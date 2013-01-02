@@ -177,6 +177,8 @@ public class ServletEntryPointGenerator extends BodyTransformer implements Signa
 		
 		instanceField.setModifiers(instanceField.getModifiers() | Modifier.STATIC | Modifier.PRIVATE);
 		
+		classGenerator.addToClInit(jimple.newAssignStmt(jimple.newStaticFieldRef(instanceField.makeRef()), NullConstant.v()));
+		
 		final SootMethod initMethod = generateInit(classGenerator, clazz, instanceField);
 		final SootMethod servMethod = generateService(classGenerator, clazz, instanceField);
 		final SootMethod destMethod = generateDestroy(classGenerator, clazz, instanceField);

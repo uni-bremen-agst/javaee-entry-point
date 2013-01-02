@@ -1,5 +1,6 @@
 package soot.jimple.toolkits.javaee;
 
+import java.util.Collections;
 import java.util.List;
 
 import soot.Modifier;
@@ -8,6 +9,9 @@ import soot.SootClass;
 import soot.SootField;
 import soot.SootMethod;
 import soot.Type;
+import soot.Unit;
+import soot.VoidType;
+import soot.jimple.Jimple;
 
 /**
  * A generator that generates a class with jimple based methods.
@@ -20,6 +24,8 @@ public class JimpleClassGenerator {
 	 */
 	private final SootClass clazz;
 
+	private final JimpleBodyGenerator clInitGenerator;
+	
 	/**
 	 * The soot scene.
 	 */
@@ -38,11 +44,26 @@ public class JimpleClassGenerator {
 
 		scene.addClass(clazz);
 
+		final List<Type> parameterTypes = Collections.emptyList();
+		clInitGenerator = method(SootMethod.staticInitializerName, parameterTypes, VoidType.v());
+		clInitGenerator.getUnits().add(Jimple.v().newNopStmt());
+
 		if(isApplicationClass) {
 			clazz.setApplicationClass();
+
+			clInitGenerator.setStatic();
 		}
 	}
 	
+	/**
+	 * Adds a statement to the class initialization method.
+	 * 
+	 * @param stmt The statement to add.
+	 */
+	public void addToClInit(final Unit stmt) {
+		clInitGenerator.getUnits().add(stmt);
+	}
+
 	/**
 	 * Creates a new field in the class.
 	 * 
