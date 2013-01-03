@@ -24,7 +24,7 @@ public class JimpleClassGenerator {
 	 */
 	private final SootClass clazz;
 
-	private final JimpleBodyGenerator clInitGenerator;
+	private JimpleBodyGenerator clInitGenerator = null;
 	
 	/**
 	 * The soot scene.
@@ -44,14 +44,8 @@ public class JimpleClassGenerator {
 
 		scene.addClass(clazz);
 
-		final List<Type> parameterTypes = Collections.emptyList();
-		clInitGenerator = method(SootMethod.staticInitializerName, parameterTypes, VoidType.v());
-		clInitGenerator.getUnits().add(Jimple.v().newNopStmt());
-
 		if(isApplicationClass) {
 			clazz.setApplicationClass();
-
-			clInitGenerator.setStatic();
 		}
 	}
 	
@@ -61,6 +55,12 @@ public class JimpleClassGenerator {
 	 * @param stmt The statement to add.
 	 */
 	public void addToClInit(final Unit stmt) {
+		if(clInitGenerator == null) {
+			final List<Type> parameterTypes = Collections.emptyList();
+			clInitGenerator = method(SootMethod.staticInitializerName, parameterTypes, VoidType.v());
+			clInitGenerator.setStatic();
+		}
+		
 		clInitGenerator.getUnits().add(stmt);
 	}
 
