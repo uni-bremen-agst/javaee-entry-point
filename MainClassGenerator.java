@@ -198,8 +198,8 @@ public final class MainClassGenerator implements Signatures {
 		final SootClass randomClass = getRandomClass();
 		
 		final Chain<Unit> units = serviceGenerator.getUnits();
-		requestLocal = serviceGenerator.local(false, scene.getSootClass(HTTP_SERVLET_REQUEST_CLASS_NAME).getType());
-		responseLocal = serviceGenerator.local(false, scene.getSootClass(HTTP_SERVLET_RESPONSE_CLASS_NAME).getType());
+		requestLocal = serviceGenerator.local(false, scene.getRefType(HTTP_SERVLET_REQUEST_CLASS_NAME));
+		responseLocal = serviceGenerator.local(false, scene.getRefType(HTTP_SERVLET_RESPONSE_CLASS_NAME));
 		randValueLocal = serviceGenerator.local(false, IntType.v());
 		final Local randLocal = serviceGenerator.local(false, randomClass.getType());
 		

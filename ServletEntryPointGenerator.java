@@ -116,6 +116,8 @@ public class ServletEntryPointGenerator extends BodyTransformer implements Signa
 		// safe because the class is instantiated after the class path is set up
 		// and before the scene is sealed.
 		scene.addBasicClass(RANDOM_CLASS_NAME, SootClass.SIGNATURES);
+		scene.addBasicClass(HTTP_SERVLET_REQUEST_CLASS_NAME, SootClass.HIERARCHY);
+		scene.addBasicClass(HTTP_SERVLET_RESPONSE_CLASS_NAME, SootClass.HIERARCHY);
 	}
 	
 	/**
