@@ -95,6 +95,18 @@ public class SootLogger {
 	public void warn(final String message) {
 		out.print(prefix);
 		out.print("WARN  - ");
-		out.println(message);	}
+		out.println(message);
+	}
+
+	/**
+	 * Logs an error message.
+	 * 
+	 * @param message The message to log.
+	 */
+	public void error(final String message) {
+		out.print(prefix);
+		out.print("ERROR - ");
+		out.println(message);
+	}
 
 }

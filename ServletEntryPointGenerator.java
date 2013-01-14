@@ -1,5 +1,6 @@
 package soot.jimple.toolkits.javaee;
 
+import java.io.FileInputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -18,11 +19,17 @@ import soot.Singletons;
 import soot.SootClass;
 import soot.SootField;
 import soot.SootMethod;
+import soot.SourceLocator;
+import soot.SourceLocator.FoundFile;
 import soot.Type;
 import soot.Unit;
 import soot.VoidType;
 import soot.jimple.Jimple;
 import soot.jimple.NullConstant;
+import soot.jimple.toolkits.javaee.model.servlet.Address;
+import soot.jimple.toolkits.javaee.model.servlet.Servlet;
+import soot.jimple.toolkits.javaee.model.servlet.Web;
+import soot.jimple.toolkits.javaee.model.servlet.io.WebXMLReader;
 import soot.util.Chain;
 
 /**
@@ -407,10 +414,60 @@ public class ServletEntryPointGenerator extends BodyTransformer implements Signa
 		considerAllServlets = PhaseOptions.getBoolean(options, "consider-all-servlets");
 		mainPackage = PhaseOptions.getString(options, "main-package");
 		
-
 		mainGenerator.start(mainPackage, mainClass, servletRequestClass, servletResponseClass);
 		
+		loadWebXML();
+		
         isInitialized = true;
+	}
+	
+	private Web web = new Web();
+
+	/**
+	 * Loads the {@code web.xml} or fakes it if the corresponding command line
+	 *   parameter was given.
+	 *   
+	 * @todo Implement proper war support for locator.
+	 */
+	private void loadWebXML() {
+		if(considerAllServlets) {
+			configureAllServlets();
+		} else {
+			SourceLocator locatore = SourceLocator.v();
+			
+			for(String part : locatore.classPath()) {
+				if(!part.endsWith("WEB-INF/classes")) {
+					continue;
+				}
+				
+				part = part.substring(0, part.length() - 7) + "web.xml";
+				try {
+					web = WebXMLReader.readWebXML(new FileInputStream(part));
+				} catch (Exception e) {
+					LOG.error("Cannot read web.xml.");
+				}
+			}
+		}
+	}
+
+	/**
+	 * Assumes that all servlets in the application scope are configured and
+	 *   creates a fake configuration.
+	 */
+	private void configureAllServlets() {
+		for(final SootClass clazz : Scene.v().getClasses()) {
+			if(isApplicationClass(clazz) && isServlet(clazz)) {
+				final Servlet servlet = new Servlet();
+				servlet.setName(clazz.getName());
+				servlet.setClazz(clazz.getName());
+				web.getServlets().add(servlet);
+				
+				final Address address = new Address();
+				address.setName(clazz.getName());
+				address.setServlet(servlet);
+				web.getRoot().getChildren().add(address);
+			}
+		}
 	}
 
 	@Override
@@ -429,6 +486,7 @@ public class ServletEntryPointGenerator extends BodyTransformer implements Signa
 
 		initialSetup(options);
 
+		LOG.info("Servlet " + declaringClass + " " + isServlet(declaringClass) + " " + isConfiguredServlet(declaringClass));
 		if(isServlet(declaringClass) && isConfiguredServlet(declaringClass)) {
 			LOG.info("Found servlet " + declaringClass);
 			createServletWrapper(declaringClass);
@@ -442,17 +500,20 @@ public class ServletEntryPointGenerator extends BodyTransformer implements Signa
 	 *   The method will always return {@code true} if the {@code consider-all-servlets}
 	 *   option is set to {@code true}.
 	 *    
-     * @todo Check if servlet is mentioned by web.xml
+     * @todo Bad runtime behaviour (O(n^2)).
 	 * 
 	 * @param clazz The servlet class we are checking.
 	 * @return {@code true} if {@code clazz} is mentioned in a {@code web.xml}.
 	 */
 	private boolean isConfiguredServlet(final SootClass clazz) {
-		if(considerAllServlets) {
-			return true;
+		for(final Servlet servlet : web.getServlets()) {
+			System.out.println("   " + servlet.getClazz() + " <-> " + clazz.getName());
+			if(servlet.getClazz().equals(clazz.getName())) {
+				return true;
+			}
 		}
 		
-		throw new RuntimeException("web.xml parsing is not yet implemented.");
+		return false;
 	}
 	
 	/**

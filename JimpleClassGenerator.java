@@ -11,7 +11,6 @@ import soot.SootMethod;
 import soot.Type;
 import soot.Unit;
 import soot.VoidType;
-import soot.jimple.Jimple;
 
 /**
  * A generator that generates a class with jimple based methods.
