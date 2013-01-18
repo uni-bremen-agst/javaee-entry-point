@@ -4,11 +4,11 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlID;
 
 /**
- * A configured servlet.
+ * A filter is applied to each incoming request for URL mapped to the filter.
  * 
  * @author Bernhard Berger
  */
-public class Servlet implements NamedElement {
+public class Filter implements NamedElement {
 	@Override
 	public int hashCode() {
 		return (name == null) ? 0 : name.hashCode();
@@ -25,7 +25,7 @@ public class Servlet implements NamedElement {
 		if (getClass() != obj.getClass())
 			return false;
 		
-		Servlet other = (Servlet) obj;
+		Filter other = (Filter) obj;
 		
 		if (name == null) {
 			if (other.name != null)
@@ -38,7 +38,7 @@ public class Servlet implements NamedElement {
 
 	@Override
 	public String toString() {
-		return "Servlet [clazz=" + clazz + ", name=" + name + "]";
+		return "Filter [clazz=" + clazz + ", name=" + name + "]";
 	}
 
 	private String clazz;

@@ -20,7 +20,6 @@ import soot.SootClass;
 import soot.SootField;
 import soot.SootMethod;
 import soot.SourceLocator;
-import soot.SourceLocator.FoundFile;
 import soot.Type;
 import soot.Unit;
 import soot.VoidType;
