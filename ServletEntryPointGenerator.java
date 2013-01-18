@@ -3,18 +3,15 @@ package soot.jimple.toolkits.javaee;
 import java.io.FileInputStream;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
-import soot.Body;
-import soot.BodyTransformer;
 import soot.G;
 import soot.Local;
 import soot.Modifier;
 import soot.PhaseOptions;
 import soot.Scene;
+import soot.SceneTransformer;
 import soot.Singletons;
 import soot.SootClass;
 import soot.SootField;
@@ -38,7 +35,7 @@ import soot.util.Chain;
  *
  * @author Bernhard Berger
  */
-public class ServletEntryPointGenerator extends BodyTransformer implements Signatures {
+public class ServletEntryPointGenerator extends SceneTransformer implements Signatures {
 	/**
 	 * Subsignature of the {@code destroy} wrapper method.
 	 */
@@ -76,11 +73,6 @@ public class ServletEntryPointGenerator extends BodyTransformer implements Signa
 	 *   commandline parameter {@code consider-all-servlets}.
 	 */
 	private boolean considerAllServlets = false;
-
-	/**
-	 * The classes that we have already handled.
-	 */
-	private Set<SootClass> handledClasses = new HashSet<SootClass>();
 	
 	/**
 	 * Have we already initialized the generator?
@@ -125,13 +117,7 @@ public class ServletEntryPointGenerator extends BodyTransformer implements Signa
 		scene.addBasicClass(HTTP_SERVLET_REQUEST_CLASS_NAME, SootClass.HIERARCHY);
 		scene.addBasicClass(HTTP_SERVLET_RESPONSE_CLASS_NAME, SootClass.HIERARCHY);
 	}
-	
-	/**
-	 * @return Whether {@code clazz} was already handled.
-	 */
-	private boolean alreadyHandled(final SootClass clazz) {
-		return handledClasses.contains(clazz);
-	}
+
 
 	/**
 	 * Checks if {@code clazz} inherits from {@code baseClassName}.
@@ -469,31 +455,6 @@ public class ServletEntryPointGenerator extends BodyTransformer implements Signa
 		}
 	}
 
-	@Override
-	protected void internalTransform(final Body body, final String phase, @SuppressWarnings("rawtypes") Map options) {
-		// configure logging
-		LOG.setPhase(phase);
-		LOG.setMethod(body.getMethod());
-		LOG.setOptions(options);
-		
-        final SootClass declaringClass = body.getMethod().getDeclaringClass();
-		
-        // skip all servlets that do not belong to the application or that are already handled.
-		if(!isApplicationClass(declaringClass) || alreadyHandled(declaringClass)) {
-			return;
-		}
-
-		initialSetup(options);
-
-		LOG.info("Servlet " + declaringClass + " " + isServlet(declaringClass) + " " + isConfiguredServlet(declaringClass));
-		if(isServlet(declaringClass) && isConfiguredServlet(declaringClass)) {
-			LOG.info("Found servlet " + declaringClass);
-			createServletWrapper(declaringClass);
-		}
-		
-		handledClasses.add(body.getMethod().getDeclaringClass());
-	}
-
 	/**
 	 * Checks whether {@code clazz} is a servlet mentioned in a {@code web.xml}.
 	 *   The method will always return {@code true} if the {@code consider-all-servlets}
@@ -506,7 +467,6 @@ public class ServletEntryPointGenerator extends BodyTransformer implements Signa
 	 */
 	private boolean isConfiguredServlet(final SootClass clazz) {
 		for(final Servlet servlet : web.getServlets()) {
-			System.out.println("   " + servlet.getClazz() + " <-> " + clazz.getName());
 			if(servlet.getClazz().equals(clazz.getName())) {
 				return true;
 			}
@@ -522,5 +482,24 @@ public class ServletEntryPointGenerator extends BodyTransformer implements Signa
 	 */
 	private boolean isServlet(final SootClass clazz) {
 		return classExtends(clazz, HTTP_SERVLET_CLASS_NAME);
+	}
+
+	@Override
+	protected void internalTransform(final String phaseName, @SuppressWarnings("rawtypes") final Map options) {
+		// configure logging
+		LOG.setPhase(phaseName);
+		//LOG.setMethod(body.getMethod());
+		LOG.setOptions(options);
+		
+		List<SootClass> applicationClasses = new ArrayList<SootClass>(scene.getApplicationClasses());
+		
+		for(final SootClass declaringClass : applicationClasses) {
+			initialSetup(options);
+	
+			if(isServlet(declaringClass) && isConfiguredServlet(declaringClass)) {
+				LOG.info("Found servlet " + declaringClass);
+				createServletWrapper(declaringClass);
+			}
+		}
 	}
 }

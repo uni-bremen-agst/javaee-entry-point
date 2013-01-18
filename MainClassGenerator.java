@@ -186,6 +186,8 @@ public final class MainClassGenerator implements Signatures {
 		generateMain();
 		
 		generateServiceSkeleton(requestClass, responseClass);
+		
+		scene.setMainClass(classGenerator.getClazz());
 	}
 
 	/**
