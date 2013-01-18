@@ -15,7 +15,7 @@ public class SootLogger {
 	/**
 	 * Name of current phase.
 	 */
-	private String phase = "";
+	private String phase = null;
 	
 	/**
 	 * Set the name of the current phase.
@@ -35,7 +35,7 @@ public class SootLogger {
 	/**
 	 * Current method name.
 	 */
-	private String method = "";
+	private String method = null;
 	
 	/**
 	 * Set the current method name.
@@ -57,7 +57,13 @@ public class SootLogger {
 	 * Derives the current prefix from {@link phase} and {@link method}.
 	 */
 	private void setPrefix() {
-		prefix = "[" + method + " - " + phase + "] ";
+		if(method != null && phase != null) {
+			prefix = "[" + method + " - " + phase + "] ";
+		} else if(method != null) {
+			prefix = "[" + method + "] ";
+		} else {
+			prefix = "[" + phase + "] ";
+		}
 	}
 	
 	/**

@@ -23,6 +23,8 @@ import soot.VoidType;
 import soot.jimple.Jimple;
 import soot.jimple.NullConstant;
 import soot.jimple.toolkits.javaee.model.servlet.Address;
+import soot.jimple.toolkits.javaee.model.servlet.Filter;
+import soot.jimple.toolkits.javaee.model.servlet.Listener;
 import soot.jimple.toolkits.javaee.model.servlet.Servlet;
 import soot.jimple.toolkits.javaee.model.servlet.Web;
 import soot.jimple.toolkits.javaee.model.servlet.io.WebXMLReader;
@@ -73,11 +75,6 @@ public class ServletEntryPointGenerator extends SceneTransformer implements Sign
 	 *   commandline parameter {@code consider-all-servlets}.
 	 */
 	private boolean considerAllServlets = false;
-	
-	/**
-	 * Have we already initialized the generator?
-	 */
-	private boolean isInitialized = false;
 
 	/**
 	 * Jimple factory.
@@ -116,8 +113,27 @@ public class ServletEntryPointGenerator extends SceneTransformer implements Sign
 		scene.addBasicClass(RANDOM_CLASS_NAME, SootClass.SIGNATURES);
 		scene.addBasicClass(HTTP_SERVLET_REQUEST_CLASS_NAME, SootClass.HIERARCHY);
 		scene.addBasicClass(HTTP_SERVLET_RESPONSE_CLASS_NAME, SootClass.HIERARCHY);
+		
+		LOG.setPhase("wjpp.seg");
 	}
 
+
+	private void loadClassesFromModel() {
+		for(final Filter filter : this.web.getFilters()) {
+			LOG.debug("Loading " + filter.getClazz());
+			scene.forceResolve(filter.getClazz(), SootClass.SIGNATURES);
+		}
+
+		for(final Listener listener : this.web.getListeners()) {
+			LOG.debug("Loading " + listener.getClazz());
+			scene.forceResolve(listener.getClazz(), SootClass.SIGNATURES);
+		}
+
+		for(final Servlet servlet : this.web.getServlets()) {
+			LOG.debug("Loading " + servlet.getClazz());
+			scene.forceResolve(servlet.getClazz(), SootClass.SIGNATURES);
+		}
+	}
 
 	/**
 	 * Checks if {@code clazz} inherits from {@code baseClassName}.
@@ -386,10 +402,6 @@ public class ServletEntryPointGenerator extends SceneTransformer implements Sign
 	 * @param options Command line options.
 	 */
 	private void initialSetup(@SuppressWarnings("rawtypes") final Map options) {
-		if(isInitialized) {
-			return;
-		}
-		
 		final SootClass servletRequestClass = findOrCreate(PhaseOptions.getString(options, "servlet-request-class"), HTTP_SERVLET_REQUEST_CLASS_NAME);
 		final SootClass servletResponseClass = findOrCreate(PhaseOptions.getString(options, "servlet-response-class"), HTTP_SERVLET_RESPONSE_CLASS_NAME);
 		final String servletConfigTypeName = PhaseOptions.getString(options, "servlet-config-class");
@@ -397,13 +409,11 @@ public class ServletEntryPointGenerator extends SceneTransformer implements Sign
 
 		servletConfigType = findOrCreate(servletConfigTypeName, "javax.servlet.ServletConfig");
 		considerAllServlets = PhaseOptions.getBoolean(options, "consider-all-servlets");
-		mainPackage = PhaseOptions.getString(options, "main-package");
+		mainPackage = PhaseOptions.getString(options, "root-package");
 		
 		mainGenerator.start(mainPackage, mainClass, servletRequestClass, servletResponseClass);
 		
 		loadWebXML();
-		
-        isInitialized = true;
 	}
 	
 	private Web web = new Web();
@@ -418,9 +428,9 @@ public class ServletEntryPointGenerator extends SceneTransformer implements Sign
 		if(considerAllServlets) {
 			configureAllServlets();
 		} else {
-			SourceLocator locatore = SourceLocator.v();
+			SourceLocator locator = SourceLocator.v();
 			
-			for(String part : locatore.classPath()) {
+			for(String part : locator.classPath()) {
 				if(!part.endsWith("WEB-INF/classes")) {
 					continue;
 				}
@@ -454,26 +464,6 @@ public class ServletEntryPointGenerator extends SceneTransformer implements Sign
 			}
 		}
 	}
-
-	/**
-	 * Checks whether {@code clazz} is a servlet mentioned in a {@code web.xml}.
-	 *   The method will always return {@code true} if the {@code consider-all-servlets}
-	 *   option is set to {@code true}.
-	 *    
-     * @todo Bad runtime behaviour (O(n^2)).
-	 * 
-	 * @param clazz The servlet class we are checking.
-	 * @return {@code true} if {@code clazz} is mentioned in a {@code web.xml}.
-	 */
-	private boolean isConfiguredServlet(final SootClass clazz) {
-		for(final Servlet servlet : web.getServlets()) {
-			if(servlet.getClazz().equals(clazz.getName())) {
-				return true;
-			}
-		}
-		
-		return false;
-	}
 	
 	/**
 	 * @todo Should we use GenericServlet?
@@ -491,15 +481,41 @@ public class ServletEntryPointGenerator extends SceneTransformer implements Sign
 		//LOG.setMethod(body.getMethod());
 		LOG.setOptions(options);
 		
-		List<SootClass> applicationClasses = new ArrayList<SootClass>(scene.getApplicationClasses());
+		LOG.info("Running " + phaseName);
 		
-		for(final SootClass declaringClass : applicationClasses) {
-			initialSetup(options);
-	
-			if(isServlet(declaringClass) && isConfiguredServlet(declaringClass)) {
-				LOG.info("Found servlet " + declaringClass);
-				createServletWrapper(declaringClass);
+		initialSetup(options);
+
+		for(final Servlet servlet : web.getServlets()) {
+			LOG.info("Processing servlet " + servlet.getName());
+
+			SootClass clazz = scene.getSootClass(servlet.getClazz());
+
+			if(!isServlet(clazz)) {
+				LOG.warn("The servlet named " + servlet.getName() + " does not inherit from " + HTTP_SERVLET_CLASS_NAME + " we will skip it.");
+				continue;
 			}
+			createServletWrapper(clazz);
 		}
+	}
+
+	public void loadEntryPoints() {
+		// the following code allows us to run in normal mode (consider-all-servlets = false)
+		// without using the -process-xxx option. We will parse the web.xml in this early
+		// step to load all servlet, filter, listener and so forth classes before the scene
+		// is sealed. If consider-all-servlets is specified we will discard the container
+		// model during the setup and since the -process-xxx option is necessary in this
+		// case these classes will be loaded nevertheless.
+		loadWebXML();
+		loadClassesFromModel();
+
+		@SuppressWarnings("rawtypes")
+		final Map options = PhaseOptions.v().getPhaseOptions("wjpp.seg");
+		final String servletRequestClass = PhaseOptions.getString(options, "servlet-request-class");
+		final String servletResponseClass = PhaseOptions.getString(options, "servlet-response-class");
+		final String servletConfigTypeName = PhaseOptions.getString(options, "servlet-config-class");
+ 
+		scene.forceResolve(servletRequestClass, SootClass.SIGNATURES);
+		scene.forceResolve(servletResponseClass, SootClass.SIGNATURES);
+		scene.forceResolve(servletConfigTypeName, SootClass.SIGNATURES);
 	}
 }
