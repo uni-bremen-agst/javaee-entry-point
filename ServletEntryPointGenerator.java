@@ -450,8 +450,8 @@ public class ServletEntryPointGenerator extends SceneTransformer implements Sign
 	 *   creates a fake configuration.
 	 */
 	private void configureAllServlets() {
-		for(final SootClass clazz : Scene.v().getClasses()) {
-			if(isApplicationClass(clazz) && isServlet(clazz)) {
+		for(final SootClass clazz : Scene.v().getApplicationClasses()) {
+			if(isServlet(clazz)) {
 				final Servlet servlet = new Servlet();
 				servlet.setName(clazz.getName());
 				servlet.setClazz(clazz.getName());
@@ -461,6 +461,8 @@ public class ServletEntryPointGenerator extends SceneTransformer implements Sign
 				address.setName(clazz.getName());
 				address.setServlet(servlet);
 				web.getRoot().getChildren().add(address);
+			} else {//look for web service annotations
+			  //ICICICI
 			}
 		}
 	}
