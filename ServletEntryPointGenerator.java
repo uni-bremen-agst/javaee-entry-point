@@ -1,10 +1,6 @@
 package soot.jimple.toolkits.javaee;
 
-import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.util.ArrayList;
@@ -17,7 +13,6 @@ import java.util.Map;
 
 import soot.BooleanType;
 import soot.DoubleType;
-import soot.FastHierarchy;
 import soot.FloatType;
 import soot.G;
 import soot.Hierarchy;
@@ -46,14 +41,13 @@ import soot.jimple.IntConstant;
 import soot.jimple.Jimple;
 import soot.jimple.LongConstant;
 import soot.jimple.NullConstant;
+import soot.jimple.StringConstant;
 import soot.jimple.toolkits.javaee.model.servlet.Address;
 import soot.jimple.toolkits.javaee.model.servlet.Filter;
 import soot.jimple.toolkits.javaee.model.servlet.Listener;
 import soot.jimple.toolkits.javaee.model.servlet.Servlet;
 import soot.jimple.toolkits.javaee.model.servlet.Web;
 import soot.jimple.toolkits.javaee.model.servlet.io.WebXMLReader;
-import soot.jimple.toolkits.typing.ClassHierarchy;
-import soot.options.Options;
 import soot.tagkit.AnnotationTag;
 import soot.tagkit.VisibilityAnnotationTag;
 import soot.util.Chain;
@@ -86,13 +80,6 @@ public class ServletEntryPointGenerator extends SceneTransformer implements Sign
 	 * Subsignature of the {@code service} wrapper method.
 	 */
 	private static final String SERVICE_METHOD_SUBSIGNATURE = "void service(javax.servlet.ServletRequest,javax.servlet.ServletResponse)";
-
-	/**
-	 * @return Whether {@code clazz} is an application class.
-	 */
-	private static boolean isApplicationClass(final SootClass clazz) {
-		return clazz.isApplicationClass();
-	}
 
 	public static ServletEntryPointGenerator v() {
     	return G.v().soot_jimple_toolkits_javaee_ServletEntryPointGenerator();
@@ -162,25 +149,6 @@ public class ServletEntryPointGenerator extends SceneTransformer implements Sign
 			LOG.debug("Loading " + servlet.getClazz());
 			scene.forceResolve(servlet.getClazz(), SootClass.SIGNATURES);
 		}
-	}
-
-	/**
-	 * Checks if {@code clazz} inherits from {@code baseClassName}.
-	 */
-	private boolean classExtends(SootClass clazz, final String baseClassName) {
-		while(clazz != null) {
-			if(clazz.isPhantom()) {
-				LOG.warn("Found phantom class. Maybe it is impossible to detect all servlets.");
-			}
-			
-			if(clazz.getName().equals(baseClassName)) {
-				return true;
-			}
-			
-			clazz = clazz.hasSuperclass() ? clazz.getSuperclass() : null;
-		}
-		
-		return false;
 	}
 
 	/**
@@ -615,89 +583,94 @@ public class ServletEntryPointGenerator extends SceneTransformer implements Sign
     web.getRoot().getChildren().add(address);
   }
 	
-	private SootClass synthetizeWSServlet(Collection<SootClass> wsClasses, Collection<SootMethod> wsMethods){
-	  JimpleClassGenerator classGen = new JimpleClassGenerator(mainPackage+".WSCaller", HTTP_SERVLET_CLASS_NAME, true);
-    final SootClass clazz = classGen.getClazz();
-    
-	  //create default constructor
-	  final JimpleBodyGenerator constructor = classGen.method("<init>", Collections.EMPTY_LIST, VoidType.v());
-	  final Local thisLocal = constructor.local(false, clazz.getType());
-	  constructor.getUnits().add(jimple.newIdentityStmt(thisLocal, jimple.newThisRef(clazz.getType())));
-	  
-	  final List<Type> parameterTypes = Arrays.asList(
-        (Type) scene.getRefType(HTTP_SERVLET_REQUEST_CLASS_NAME),
-        (Type) scene.getRefType(HTTP_SERVLET_RESPONSE_CLASS_NAME)
-        );
-    final JimpleBodyGenerator serviceMethod = classGen.method("doGet", parameterTypes, VoidType.v());
-    serviceMethod.setPublic();
-    
-    final Local requestLocal = serviceMethod.local(true, parameterTypes.get(0));
-    final Local responseLocal = serviceMethod.local(true, parameterTypes.get(1));
-    final Chain<Unit> units = serviceMethod.getUnits();
-    final Map<SootClass, Local> generatedLocals = new HashMap<SootClass, Local>(wsClasses.size());
-    
-    
-    
-    // init parameters
-    units.add(jimple.newIdentityStmt(requestLocal, jimple.newParameterRef(parameterTypes.get(0), 0)));
-    units.add(jimple.newIdentityStmt(responseLocal, jimple.newParameterRef(parameterTypes.get(1), 1)));
-    
+  /**
+   * Creates a Servlet that only calls the web services
+   * @param wsClasses the Web Service classes found
+   * @param wsMethods the Web service methods found
+   * @return a class
+   */
+  private SootClass synthetizeWSServlet(Collection<SootClass> wsClasses, Collection<SootMethod> wsMethods){
+      JimpleClassGenerator classGen = new JimpleClassGenerator(mainPackage+".WSCaller", HTTP_SERVLET_CLASS_NAME, true);
+      final SootClass clazz = classGen.getClazz();
 
-    //Construct the instances
-    for (SootClass sc : wsClasses){
-      final Local newLocal = serviceMethod.local(false, sc.getType());
-      generatedLocals.put(sc, newLocal);
-      serviceMethod.createInstance(newLocal, sc);
-      units.add(jimple.newInvokeStmt(jimple.newSpecialInvokeExpr(newLocal, sc.getMethod("void <init>()").makeRef())));
-    }
-    
-    //Add the calls to the WS methods
-    //TODO we need to figure out the parameters and get them from the request
-    for (SootMethod sm : wsMethods){
+      //create default constructor
+      final JimpleBodyGenerator constructor = classGen.method("<init>", Collections.EMPTY_LIST, VoidType.v());
+      final Local thisLocal = constructor.local(false, clazz.getType());
+      constructor.getUnits().add(jimple.newIdentityStmt(thisLocal, jimple.newThisRef(clazz.getType())));
 
-      List<Type> argTypes = sm.getParameterTypes();
-      List<Value> arguments = new ArrayList<Value>(argTypes.size());
-      for(Type t: argTypes){
-        
-        Local paramLocal = serviceMethod.local(false, t);
-        if (t instanceof PrimType){
-          if (t instanceof IntType){
-            units.add(jimple.newAssignStmt(paramLocal, IntConstant.v(0)));
-          } else if (t instanceof LongType){
-            units.add(jimple.newAssignStmt(paramLocal, LongConstant.v(0)));
-          } else if (t instanceof FloatType){
-            units.add(jimple.newAssignStmt(paramLocal, FloatConstant.v(0.0f)));
-          } else if (t instanceof DoubleType){
-            units.add(jimple.newAssignStmt(paramLocal, DoubleConstant.v(0.0)));
-          } else if (t instanceof BooleanType){
-            units.add(jimple.newAssignStmt(paramLocal, IntConstant.v(1))); //1 is true
-          }
-          
-        } else if (t instanceof RefType){
-          units.add(jimple.newAssignStmt(paramLocal, jimple.newNewExpr((RefType)t)));
-          units.add(jimple.newInvokeStmt(jimple.newSpecialInvokeExpr(paramLocal, ((RefType) t).getSootClass().getMethod("void <init>()").makeRef())));
-        }
-        arguments.add(paramLocal);//TODO
+      final List<Type> parameterTypes = Arrays.asList(
+              (Type) scene.getRefType(HTTP_SERVLET_REQUEST_CLASS_NAME),
+              (Type) scene.getRefType(HTTP_SERVLET_RESPONSE_CLASS_NAME)
+              );
+      final JimpleBodyGenerator serviceMethod = classGen.method("doGet", parameterTypes, VoidType.v());
+      serviceMethod.setPublic();
+
+      final Local serviceThisLocal = serviceMethod.local(true, clazz.getType());
+      final Local requestLocal = serviceMethod.local(true, parameterTypes.get(0));
+      final Local responseLocal = serviceMethod.local(true, parameterTypes.get(1));
+      final Chain<Unit> units = serviceMethod.getUnits();
+      final Map<SootClass, Local> generatedLocals = new HashMap<SootClass, Local>(wsClasses.size());
+
+      //Add this object ref
+      units.add(jimple.newIdentityStmt(serviceThisLocal, jimple.newThisRef(clazz.getType())));
+
+      // init parameters
+      units.add(jimple.newIdentityStmt(requestLocal, jimple.newParameterRef(parameterTypes.get(0), 0)));
+      units.add(jimple.newIdentityStmt(responseLocal, jimple.newParameterRef(parameterTypes.get(1), 1)));
+
+
+      //Construct the instances
+      for (SootClass sc : wsClasses){
+          final Local newLocal = serviceMethod.local(false, sc.getType());
+          generatedLocals.put(sc, newLocal);
+          serviceMethod.createInstance(newLocal, sc);
+          units.add(jimple.newInvokeStmt(jimple.newSpecialInvokeExpr(newLocal, sc.getMethod("void <init>()").makeRef())));
       }
-      units.add(jimple.newInvokeStmt(jimple.newVirtualInvokeExpr(
-          generatedLocals.get(sm.getDeclaringClass()), sm.makeRef(), arguments)));      
-    }
-    PrintWriter pw = new PrintWriter(new EscapedWriter(new OutputStreamWriter(G.v().out)));
-    Printer.v().printTo(clazz, pw);
-    pw.close();
 
-    return clazz;
-	}
+      final RefType stringType = Scene.v().getSootClass("java.lang.String").getType();
+
+      //Add the calls to the WS methods
+      //TODO we need to figure out the parameters and get them from the request
+      for (SootMethod sm : wsMethods){
+
+          List<Type> argTypes = sm.getParameterTypes();
+          List<Value> arguments = new ArrayList<Value>(argTypes.size());
+          for(Type t: argTypes){
+
+              Local paramLocal = serviceMethod.local(false, t);
+              if (t instanceof PrimType){
+                  if (t instanceof IntType){
+                      units.add(jimple.newAssignStmt(paramLocal, IntConstant.v(0)));
+                  } else if (t instanceof LongType){
+                      units.add(jimple.newAssignStmt(paramLocal, LongConstant.v(0)));
+                  } else if (t instanceof FloatType){
+                      units.add(jimple.newAssignStmt(paramLocal, FloatConstant.v(0.0f)));
+                  } else if (t instanceof DoubleType){
+                      units.add(jimple.newAssignStmt(paramLocal, DoubleConstant.v(0.0)));
+                  } else if (t instanceof BooleanType){
+                      units.add(jimple.newAssignStmt(paramLocal, IntConstant.v(1))); //1 is true
+                  }
+
+              } else if (t instanceof RefType){
+                  if (t.equals(stringType)){
+                      units.add(jimple.newAssignStmt(paramLocal, StringConstant.v("")));
+                  } else{
+                      units.add(jimple.newAssignStmt(paramLocal, jimple.newNewExpr((RefType)t)));
+                      units.add(jimple.newInvokeStmt(jimple.newSpecialInvokeExpr(paramLocal, ((RefType) t).getSootClass().getMethod("void <init>()").makeRef())));                
+                  }
+              }
+              arguments.add(paramLocal);//TODO
+          }
+          units.add(jimple.newInvokeStmt(jimple.newVirtualInvokeExpr(
+                  generatedLocals.get(sm.getDeclaringClass()), sm.makeRef(), arguments)));      
+      }
+      PrintWriter pw = new PrintWriter(new EscapedWriter(new OutputStreamWriter(G.v().out)));
+      Printer.v().printTo(clazz, pw);
+      pw.close();
+
+      return clazz;
+  }
 	
-	/**
-	 * @todo Should we use GenericServlet?
-	 * 
-	 * @return {@code true} if {@code clazz} is a servlet.
-	 */
-	private boolean isServlet(final SootClass clazz) {
-		return classExtends(clazz, HTTP_SERVLET_CLASS_NAME);
-	}
-
 	@Override
 	protected void internalTransform(final String phaseName, @SuppressWarnings("rawtypes") final Map options) {
 		// configure logging
@@ -708,13 +681,15 @@ public class ServletEntryPointGenerator extends SceneTransformer implements Sign
 		LOG.info("Running " + phaseName);
 		
 		initialSetup(options);
-
+		final SootClass servletClass = Scene.v().getSootClass(HTTP_SERVLET_CLASS_NAME);
+		
+		
 		for(final Servlet servlet : web.getServlets()) {
 			LOG.info("Processing servlet " + servlet.getName());
 
 			SootClass clazz = scene.getSootClass(servlet.getClazz());
 
-			if(!isServlet(clazz)) {
+			if(!Scene.v().getActiveHierarchy().isClassSubclassOf(clazz, servletClass)) {
 				LOG.warn("The servlet named " + servlet.getName() + " does not inherit from " + HTTP_SERVLET_CLASS_NAME + " we will skip it.");
 				continue;
 			}
