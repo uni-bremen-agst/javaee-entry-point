@@ -480,65 +480,65 @@ public class ServletEntryPointGenerator extends SceneTransformer implements Sign
 	 */
 	private void configureAllServlets() {
 
-	  Collection<SootClass> wsClasses = new ArrayList<SootClass>();
-	  Collection<SootMethod> wsMethods = new ArrayList<SootMethod>();
-	  
-	  Hierarchy cha = Scene.v().getActiveHierarchy();
-	  SootClass servletClass = Scene.v().getSootClass(HTTP_SERVLET_CLASS_NAME);
-	  
-		for(final SootClass clazz : Scene.v().getApplicationClasses()) {
-		  if (!clazz.isConcrete()) //ignore interfaces and abstract classes
-		    continue;
-			if (cha.isClassSubclassOf(clazz, servletClass)){//if(isServlet(clazz)) { //for servlets
-				registerServlet(clazz);
-			} else if (clazz.hasTag("VisibilityAnnotationTag")) { //for web services
-        VisibilityAnnotationTag vat = (VisibilityAnnotationTag) clazz.getTag("VisibilityAnnotationTag");
-        for (AnnotationTag at : vat.getAnnotations()) {
-                  
-          //Handling @WebService and @WebMethod
-          if ("Ljavax/jws/WebService;".equals(at.getType())&& !clazz.isInterface()){
-            wsClasses.add(clazz);
-            Collection<SootClass> interfaces = getClassesAnnotatedWithWebService(
-                                                  getInterfacesTransitively(clazz));
-            for (SootMethod sm : clazz.getMethods()){
-              
-              //Case #1: The annotation is on the class itself
-              if (getWebMethodAnnotation(sm) != null){
-                wsMethods.add(sm);
-                G.v().out.println("Found web method: " + sm);
-                continue;
-              }
-                          
-              //Case #2: The annotation is on the interface's method
-              for (SootClass sc : interfaces){
-                if (sc.declaresMethod(sm.getSubSignature()) 
-                    && getWebMethodAnnotation(sc.getMethod(sm.getSubSignature())) != null){
-                  wsMethods.add(sm);
-                  G.v().out.println("Found web method: " + sm);
-                  break; //no need to check the other interfaces
-                }
-              }
-            }
+	    Collection<SootClass> wsClasses = new ArrayList<SootClass>();
+	    Collection<SootMethod> wsMethods = new ArrayList<SootMethod>();
 
-          // Handling @WebServiceProvider
-          } else if ("Ljavax/jws/WebServiceProvider;".equals(at.getType())){
-            SootClass providerClass = Scene.v().getSootClass("javax.xml.ws.Provider");
-            if (Scene.v().getFastHierarchy().canStoreType(clazz.getType(), providerClass.getType())
-                && clazz.declaresMethodByName("invoke")){
-              wsMethods.add(clazz.getMethodByName("invoke"));
-              wsClasses.add(clazz);
-            }            
-          }
-        }
+	    Hierarchy cha = Scene.v().getActiveHierarchy();
+	    SootClass servletClass = Scene.v().getSootClass(HTTP_SERVLET_CLASS_NAME);
 
-			}
-		}
-		
-		if (!wsClasses.isEmpty()){
-		  SootClass theClass = synthetizeWSServlet(wsClasses, wsMethods);
-		  registerServlet(theClass);
-		}
-		
+	    for(final SootClass clazz : Scene.v().getApplicationClasses()) {
+	        if (!clazz.isConcrete()) //ignore interfaces and abstract classes
+	            continue;
+	        if (cha.isClassSubclassOf(clazz, servletClass)){//if(isServlet(clazz)) { //for servlets
+	            registerServlet(clazz);
+	        } else if (clazz.hasTag("VisibilityAnnotationTag")) { //for web services
+	            VisibilityAnnotationTag vat = (VisibilityAnnotationTag) clazz.getTag("VisibilityAnnotationTag");
+	            for (AnnotationTag at : vat.getAnnotations()) {
+
+	                //Handling @WebService and @WebMethod
+	                if ("Ljavax/jws/WebService;".equals(at.getType())){
+	                    wsClasses.add(clazz);
+	                    Collection<SootClass> interfaces = getClassesAnnotatedWithWebService(
+	                            getInterfacesTransitively(clazz));
+	                    for (SootMethod sm : clazz.getMethods()){
+
+	                        //Case #1: The annotation is on the class itself
+	                        if (getWebMethodAnnotation(sm) != null){
+	                            wsMethods.add(sm);
+	                            G.v().out.println("Found web method: " + sm);
+	                            continue;
+	                        }
+
+	                        //Case #2: The annotation is on the interface's method
+	                        for (SootClass sc : interfaces){
+	                            if (sc.declaresMethod(sm.getSubSignature()) 
+	                                    && getWebMethodAnnotation(sc.getMethod(sm.getSubSignature())) != null){
+	                                wsMethods.add(sm);
+	                                G.v().out.println("Found web method: " + sm);
+	                                break; //no need to check the other interfaces
+	                            }
+	                        }
+	                    }
+
+	                // Handling @WebServiceProvider
+	                } else if ("Ljavax/jws/WebServiceProvider;".equals(at.getType())){
+	                    SootClass providerClass = Scene.v().getSootClass("javax.xml.ws.Provider");
+	                    if (Scene.v().getFastHierarchy().canStoreType(clazz.getType(), providerClass.getType())
+	                            && clazz.declaresMethodByName("invoke")){
+	                        wsMethods.add(clazz.getMethodByName("invoke"));
+	                        wsClasses.add(clazz);
+	                    }            
+	                }
+	            }
+
+	        }
+	    }
+
+	    if (!wsClasses.isEmpty()){
+	        SootClass theClass = synthetizeWSServlet(wsClasses, wsMethods);
+	        registerServlet(theClass);
+	    }
+
 	}
 
 	
@@ -547,48 +547,58 @@ public class ServletEntryPointGenerator extends SceneTransformer implements Sign
 	 * @param classes the classes to filter
 	 * @return a non-null collection of classes meeting that criteria, possibly empty
 	 */
-	 private Collection<SootClass> getClassesAnnotatedWithWebService(Collection<SootClass> classes){
-	   Collection<SootClass> wsInterfaces = new ArrayList<SootClass>();
-     for (SootClass sc : classes){
-       if (isClassAnnotatedWithWebService(sc))
-         wsInterfaces.add(sc);
-        
-     }
-     return wsInterfaces;
-	 }
-	
-	 private boolean isClassAnnotatedWithWebService(SootClass sc){
-	   if (sc.hasTag("VisibilityAnnotationTag")){
-       VisibilityAnnotationTag vatInterface = (VisibilityAnnotationTag) sc.getTag("VisibilityAnnotationTag");
-       for (AnnotationTag atInterface : vatInterface.getAnnotations())
-         if ("Ljavax/jws/WebService;".equals(atInterface.getType()))
-           return true;
-	   }
-	   return false;
-	 }
-	 
-	 /**
-	  * Gets the @WebMethod annotation, if any
-	  * @param sm the method to check
-	  * @return <code>null</code> if the annotation is not found, the annotation otherwise.
-	  */
-	 private AnnotationTag getWebMethodAnnotation(SootMethod sm){
-     if (sm.hasTag("VisibilityAnnotationTag")){
-       VisibilityAnnotationTag vat = (VisibilityAnnotationTag) sm.getTag("VisibilityAnnotationTag");
-       for (AnnotationTag at : vat.getAnnotations())
-         if ("Ljavax/jws/WebMethod;".equals(at.getType()))
-           return at;
-     }
-     return null;
-	 }
-	 
+	private Collection<SootClass> getClassesAnnotatedWithWebService(Collection<SootClass> classes){
+	    Collection<SootClass> wsInterfaces = new ArrayList<SootClass>();
+	    for (SootClass sc : classes){
+	        if (isClassAnnotatedWithWebService(sc))
+	            wsInterfaces.add(sc);
+
+	    }
+	    return wsInterfaces;
+	}
+
+	/**
+	 * Checks if a class is annotated with @WebService
+	 * @param sc the class to examine
+	 * @return <code>true</code> if the annotation is present, <code>false</code> otherwise.
+	 */
+	private boolean isClassAnnotatedWithWebService(SootClass sc){
+	    if (sc.hasTag("VisibilityAnnotationTag")){
+	        VisibilityAnnotationTag vatInterface = (VisibilityAnnotationTag) sc.getTag("VisibilityAnnotationTag");
+	        for (AnnotationTag atInterface : vatInterface.getAnnotations())
+	            if ("Ljavax/jws/WebService;".equals(atInterface.getType()))
+	                return true;
+	    }
+	    return false;
+	}
+
+	/**
+	 * Gets the @WebMethod annotation, if any
+	 * @param sm the method to check
+	 * @return <code>null</code> if the annotation is not found, the annotation otherwise.
+	 */
+	private AnnotationTag getWebMethodAnnotation(SootMethod sm){
+	    if (sm.hasTag("VisibilityAnnotationTag")){
+	        VisibilityAnnotationTag vat = (VisibilityAnnotationTag) sm.getTag("VisibilityAnnotationTag");
+	        for (AnnotationTag at : vat.getAnnotations())
+	            if ("Ljavax/jws/WebMethod;".equals(at.getType()))
+	                return at;
+	    }
+	    return null;
+	}
+
+	/**
+	 * Gets all the interfaces and superinterfaces of a class
+	 * @param sc the class to examine
+	 * @return a non-null collection of interfaces
+	 */
 	private Collection<SootClass> getInterfacesTransitively(SootClass sc){
-	  final Collection<SootClass> retVal = new ArrayList<SootClass>();
-	  for (SootClass interf : sc.getInterfaces()){
-	    retVal.add(interf);
-	    retVal.addAll(getInterfacesTransitively(interf));
-	  }
-	  return retVal;
+	    final Collection<SootClass> retVal = new ArrayList<SootClass>();
+	    for (SootClass interf : sc.getInterfaces()){
+	        retVal.add(interf);
+	        retVal.addAll(getInterfacesTransitively(interf));
+	    }
+	    return retVal;
 	}
 	
 	/**
