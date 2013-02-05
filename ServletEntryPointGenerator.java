@@ -3,18 +3,18 @@ package soot.jimple.toolkits.javaee;
 import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.Writer;
 import java.util.Map;
-import java.util.Properties;
 
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 
 import org.apache.common.tools.FileTool;
-import org.apache.velocity.Template;
 import org.apache.velocity.VelocityContext;
-import org.apache.velocity.app.Velocity;
+import org.apache.velocity.app.VelocityEngine;
 import org.apache.velocity.exception.MethodInvocationException;
 import org.apache.velocity.exception.ParseErrorException;
 import org.apache.velocity.exception.ResourceNotFoundException;
@@ -175,7 +175,7 @@ public class ServletEntryPointGenerator extends SceneTransformer implements Sign
 		LOG.setPhase(phaseName);
 		LOG.setOptions(options);
 		
-		LOG.info("Running " + phaseName);
+		LOG.info("Running " + phaseName + " with options " + options);
 		
 		considerAllServlets = PhaseOptions.getBoolean(options, "consider-all-servlets");
 		
@@ -188,10 +188,7 @@ public class ServletEntryPointGenerator extends SceneTransformer implements Sign
 
 		try {
 			LOG.info("Processing templates");
-			final VelocityContext context = setupTemplateEngine(options);
-			final Template template = Velocity.getTemplate("/soot/jimple/toolkits/javaee/templates/root.vm");
-
-			template.merge(context, new NullWriter());
+			processTemplate(options);
 		} catch(final ResourceNotFoundException e) {
 			LOG.error("Could not find template file.");
 		} catch(final ParseErrorException e) {
@@ -210,12 +207,14 @@ public class ServletEntryPointGenerator extends SceneTransformer implements Sign
 	 * 
 	 * @return Velocity context.
 	 */
-	private VelocityContext setupTemplateEngine(@SuppressWarnings("rawtypes") final Map options) {
-		final Properties properties = new Properties();
-		properties.put("resource.loader", "class,file");
-		properties.put("file.resource.loader.path", "/");
-		Velocity.init(properties);
+	private void processTemplate(@SuppressWarnings("rawtypes") final Map options) {
+		final VelocityEngine engine = new VelocityEngine();
+		engine.setProperty("resource.loader", "class");
+		//engine.setProperty("file.resource.loader.path", "/");
+		engine.setProperty("class.resource.loader.class", "org.apache.velocity.runtime.resource.loader.ClasspathResourceLoader");
 		
+		engine.init();
+				
 		final VelocityContext context = new VelocityContext();
 
 		context.put("root", web);
@@ -223,12 +222,21 @@ public class ServletEntryPointGenerator extends SceneTransformer implements Sign
 		context.put("main-class", PhaseOptions.getString(options, "main-class"));
 		context.put("output-dir", PhaseOptions.getString(options, "output-dir"));	
 		context.put("FileTool", FileTool.class);
-		context.put("filter-config-impl", PhaseOptions.getString(options, "filter-config-impl"));
-		context.put("servlet-config-impl", PhaseOptions.getString(options, "servlet-config-impl"));
-		context.put("servlet-request-impl", PhaseOptions.getString(options, "servlet-request-impl"));
-		context.put("servlet-response-impl", PhaseOptions.getString(options, "servlet-response-impl"));
+		context.put("filter-config-impl", PhaseOptions.getString(options, "filter-config-class"));
+		context.put("servlet-config-impl", PhaseOptions.getString(options, "servlet-config-class"));
+		context.put("servlet-request-impl", PhaseOptions.getString(options, "servlet-request-class"));
+		context.put("servlet-response-impl", PhaseOptions.getString(options, "servlet-response-class"));
 		
-		return context;
+	    final InputStream input = getClass().getClassLoader().getResourceAsStream("soot/jimple/toolkits/javaee/templates/root.vm");
+	    if (input == null) {
+	        throw new RuntimeException("Template file doesn't exist");           
+	    }
+
+	    final InputStreamReader reader = new InputStreamReader(input); 
+
+        if (!engine.evaluate(context, new NullWriter(), "root", reader)) {
+            throw new RuntimeException("Failed to convert the template into html.");
+        }
 	}
 
 	private void storeModel(final String modelName) {
@@ -266,6 +274,6 @@ public class ServletEntryPointGenerator extends SceneTransformer implements Sign
 		// model during the setup and since the -process-xxx option is necessary in this
 		// case these classes will be loaded nevertheless.
 		loadWebXML();
-		loadClassesFromModel();
+		//loadClassesFromModel();
 	}
 }

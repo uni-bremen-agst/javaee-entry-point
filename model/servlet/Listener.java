@@ -2,10 +2,11 @@ package soot.jimple.toolkits.javaee.model.servlet;
 
 import javax.xml.bind.annotation.XmlAttribute;
 
-public class Listener {
+public class Listener implements JavaType {
 	private String clazz;
 	
-	@XmlAttribute
+	@Override
+	@XmlAttribute(name="class", required=true)
 	public String getClazz() {
 		return clazz;
 	}

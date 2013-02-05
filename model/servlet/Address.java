@@ -120,4 +120,14 @@ public class Address implements NamedElement{
 			System.err.println("Not a simple wildcard : " + pattern[0]);
 		}
 	}
+
+	public void collectBoundAddresses(final List<Address> result) {
+		if(getServlet() != null) {
+			result.add(this);
+		}
+
+		for(final Address child : children) {
+			child.collectBoundAddresses(result);
+		}
+	}
 }

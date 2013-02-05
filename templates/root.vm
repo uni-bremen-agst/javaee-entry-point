@@ -1,24 +1,24 @@
 ## main entry for template
 #macro( generateMainClass )
-#set( $classname = $main-package + "." + $main-class)
-public class $classname extends java.lang.Object
+#set( $mainclassname = $root-package + "." + $main-class)
+public class $mainclassname extends java.lang.Object
 {
   public void <init>()
   {
-    $classname r0;
+    $mainclassname r0;
 
-    r0 := @this: $classname;
+    r0 := @this: $mainclassname;
     specialinvoke r0.<java.lang.Object: void <init>()>();
   }
   
   private static void init()
   {
 #foreach($filter in $root.filters)
-    staticinvoke <$main-package.$filter.clazz: void init()>();
+    staticinvoke <$root-package.$filter.clazz: void init()>();
 #end
 
 #foreach($servlet in $root.servlets)
-    staticinvoke <$main-package.$servlet.clazz: void init()>();
+    staticinvoke <$root-package.$servlet.clazz: void init()>();
 #end
   }
 
@@ -55,7 +55,7 @@ public class $classname extends java.lang.Object
 #set($i = 2)
 #foreach($address in $bound)
      label$i:
-        staticinvoke <#chainClassName($address 0): void filter(javax.servletServletRequest,javax.servletServletResponse)>($r0, $r1);
+        staticinvoke <#chainClassName($address 0): void filter(javax.servlet.ServletRequest,javax.servlet.ServletResponse)>($r0, $r1);
         goto label0;
         
 #set($i = $i + 1)
@@ -65,11 +65,11 @@ public class $classname extends java.lang.Object
   private static void destroy()
   {
 #foreach($servlet in $root.servlets)
-    staticinvoke <$main-package.$servlet.clazz: void destroy()>();
+    staticinvoke <$root-package.$servlet.clazz: void destroy()>();
 #end
     
 #foreach($filter in $root.filters)
-    staticinvoke <$main-package.$filter.clazz: void destroy()>();
+    staticinvoke <$root-package.$filter.clazz: void destroy()>();
 #end
   }
 
@@ -78,15 +78,15 @@ public class $classname extends java.lang.Object
     java.lang.String[] r0;
 
     r0 := @parameter0: java.lang.String[];
-    staticinvoke <securibench.generated.ServletMain: void init()>();
-    staticinvoke <securibench.generated.ServletMain: void service()>();
-    staticinvoke <securibench.generated.ServletMain: void destroy()>();
+    staticinvoke <$mainclassname: void init()>();
+    staticinvoke <$mainclassname: void service()>();
+    staticinvoke <$mainclassname: void destroy()>();
   }
 }
 #end 
 
 #macro( generateServletWrapper $servlet )
-#set( $classname = $main-package + "." + $servlet.clazz ) 
+#set( $classname = $root-package + "." + $servlet.clazz ) 
 public class $classname extends java.lang.Object
 {
     private static $servlet.clazz instance;
@@ -126,7 +126,7 @@ public class $classname extends java.lang.Object
         r0 := @parameter0: javax.servlet.http.HttpServletRequest;
         r1 := @parameter1: javax.servlet.http.HttpServletResponse;
         $r2 = <$classname: $servlet.clazz instance>;
-        virtualinvoke $r2.<javax.servlet.http.HttpServlet: void service(javax.servlet.ServletRequest,javax.servlet.ServletResponse)>(r0, r1);
+        virtualinvoke $r2.<javax.servlet.http.HttpServlet: void service(javax.servlet.ServletRequest, javax.servlet.ServletResponse)>(r0, r1);
     }
 
     public static void destroy()
@@ -142,7 +142,7 @@ public class $classname extends java.lang.Object
 #end
 
 #macro( generateFilterWrapper $filter )
-#set( $classname = $main-package + "." + $filter.clazz ) 
+#set( $classname = $root-package + "." + $filter.clazz ) 
 public class $classname extends java.lang.Object implements javax.servlet.Filter
 {
     private static $filter.clazz instance;
@@ -169,11 +169,11 @@ public class $classname extends java.lang.Object implements javax.servlet.Filter
         specialinvoke $r1.<$filter-config-impl: void <init>()>();
         $r0 = new $filter.clazz;
         specialinvoke $r0.<$filter.clazz: void <init>()>();
-        virtualinvoke $r0.<javax.servlet.Filter: void init(javax.servlet.FilterConfig)>($r1);
+        interfaceinvoke $r0.<javax.servlet.Filter: void init(javax.servlet.FilterConfig)>($r1);
         <$classname: $filter.clazz instance> = $r0;
     }
 
-    public static void filter(javax.servlet.ServletRequest, javax.servlet.ServletResponse, javax.filter.FilterChain)
+    public static void filter(javax.servlet.ServletRequest, javax.servlet.ServletResponse, javax.servlet.FilterChain)
     {
         javax.servlet.ServletRequest r0;
         javax.servlet.ServletResponse r1;
@@ -183,8 +183,8 @@ public class $classname extends java.lang.Object implements javax.servlet.Filter
         r0 := @parameter0: javax.servlet.ServletRequest;
         r1 := @parameter1: javax.servlet.ServletResponse;
         r2 := @parameter2: javax.servlet.FilterChain;
-        $r3 = <$classname: $servlet.clazz instance>;
-        virtualinvoke $r3.<javax.servlet.FilterChain: void doFilter(javax.servlet.ServletRequest,javax.servlet.ServletResponse, javax.filter.FilterChain)>(r0, r1, r2);
+        $r3 = <$classname: $filter.clazz instance>;
+        interfaceinvoke $r3.<javax.servlet.Filter: void doFilter(javax.servlet.ServletRequest, javax.servlet.ServletResponse, javax.servlet.FilterChain)>(r0, r1, r2);
     }
 
     public static void destroy()
@@ -192,7 +192,7 @@ public class $classname extends java.lang.Object implements javax.servlet.Filter
         $filter.clazz $r0;
 
         $r0 = <$classname: $filter.clazz instance>;
-        virtualinvoke $r0.<javax.servlet.FilterChain: void destroy()>();
+        interfaceinvoke $r0.<javax.servlet.FilterChain: void destroy()>();
         $r0 = null;
         <$classname: $filter.clazz instance> = $r0;
     }
@@ -203,7 +203,7 @@ public class $classname extends java.lang.Object implements javax.servlet.Filter
 #macro( processServlets )
   #foreach($servlet in $root.servlets)
     #set( $fileContents = "#generateServletWrapper($servlet)" ) 
-    #set( $fileName = $output-dir + $main-package + "." + $servlet.clazz + ".jimple" )
+    #set( $fileName = $output-dir + "/" + $root-package + "." + $servlet.clazz + ".jimple" )
     $FileTool.fileWrite($fileName, $fileContents) 
   #end
 #end
@@ -212,13 +212,13 @@ public class $classname extends java.lang.Object implements javax.servlet.Filter
 #macro( processFilters )
   #foreach($filter in $root.filters)
     #set( $fileContents = "#generateFilterWrapper($filter)" ) 
-    #set( $fileName = $output-dir + $main-package + "." + $filter.clazz + ".jimple" )
+    #set( $fileName = $output-dir + "/" + $root-package + "." + $filter.clazz + ".jimple" )
     $FileTool.fileWrite($fileName, $fileContents) 
   #end
 #end
 
 #macro( generateServletChain $servlet )
-#set( $classname = ${main-package} + "." + ${servlet.name.replace(".", "_")} + "Chain" )
+#set( $classname = ${root-package} + "." + ${servlet.name.replace(".", "_")} + "Chain" )
 public class $classname extends java.lang.Object implements javax.servlet.FilterChain
 {
     public void <init>()
@@ -232,18 +232,18 @@ public class $classname extends java.lang.Object implements javax.servlet.Filter
     public void doFilter(javax.servlet.ServletRequest, javax.servlet.ServletResponse)
     {
       $classname r0;
-      javax.servlet.ServletRequest $r1;
-      javax.servlet.ServletResponse $r2;
+      javax.servlet.ServletRequest r1;
+      javax.servlet.ServletResponse r2;
       javax.servlet.http.HttpServletRequest $r3;
       javax.servlet.http.HttpServletResponse $r4;
 
       r0 := @this: $classname;
-      $r1 := @parameter0: javax.servlet.ServletRequest;
-      $r2 := @parameter1: javax.servlet.ServletResponse;
-      $r3 := (javax.servlet.http.HttpServletRequest) $r1;
-      $r4 := (javax.servlet.http.HttpServletResponse) $r2;
+      r1 := @parameter0: javax.servlet.ServletRequest;
+      r2 := @parameter1: javax.servlet.ServletResponse;
+      $r3 = (javax.servlet.http.HttpServletRequest) r1;
+      $r4 = (javax.servlet.http.HttpServletResponse) r2;
       
-      staticinvoke <$main-package.$servlet.clazz: void service(javax.servlet.http.HttpServletRequest,javax.servlet.http.HttpServletResponse)>($r3, $r4);
+      staticinvoke <$root-package.$servlet.clazz: void service(javax.servlet.http.HttpServletRequest, javax.servlet.http.HttpServletResponse)>($r3, $r4);
     }
     
     public static void filter(javax.servlet.ServletRequest, javax.servlet.ServletResponse)
@@ -275,17 +275,17 @@ public class $classname extends java.lang.Object implements javax.servlet.Filter
   public void doFilter(javax.servlet.ServletRequest, javax.servlet.ServletResponse)
   {
     $classname r0;
-    javax.servlet.ServletRequest $r1;
-    javax.servlet.ServletResponse $r2;
+    javax.servlet.ServletRequest r1;
+    javax.servlet.ServletResponse r2;
     $nextChainClassname $r3;
 
     r0 := @this: $classname;
-    $r1 := @parameter0: javax.servlet.ServletRequest;
-    $r2 := @parameter1: javax.servlet.ServletResponse;
+    r1 := @parameter0: javax.servlet.ServletRequest;
+    r2 := @parameter1: javax.servlet.ServletResponse;
     $r3 = new $nextChainClassname;
-    specialinvoke $r0.<$nextChainClassname: void <init>()>();
+    specialinvoke $r3.<$nextChainClassname: void <init>()>();
       
-    staticinvoke <$filterClassname: void filter(javax.servlet.ServletRequest,javax.servlet.ServletResponse)>($r1, $r2, $r3);
+    staticinvoke <$filterClassname: void filter(javax.servlet.ServletRequest, javax.servlet.ServletResponse, javax.servlet.FilterChain	)>(r1, r2, $r3);
   }
  
   public static void filter(javax.servlet.ServletRequest, javax.servlet.ServletResponse)
@@ -304,7 +304,7 @@ public class $classname extends java.lang.Object implements javax.servlet.Filter
 #end
 
 #macro( chainClassName $address $start )
-#set( $classname = $main-package + ".")
+#set( $classname = $root-package + ".")
 #foreach($filter in $address.filters)
 #if($foreach.index >= $start)
 #set( $classname = $classname + $filter.name + "_")
@@ -317,17 +317,17 @@ $classname#end
   #set($counter = 0)
   #foreach( $filter in $address.filters )
     #set( $currentClass = "#chainClassName( $address $counter )" )
-    #set( $filterClass = $main-package + "." + $filter.clazz )
+    #set( $filterClass = $root-package + "." + $filter.clazz )
     #set( $nextIndex = $counter + 1 )
     #set( $nextClass = "#chainClassName( $address $nextIndex )" )
     #set( $fileContents = "#generateFilterChain($currentClass $filterClass $nextClass)" ) 
-    #set( $fileName = $output-dir + $currentClass + ".jimple" )
+    #set( $fileName = $output-dir + "/" + $currentClass + ".jimple" )
     $FileTool.fileWrite($fileName, $fileContents) 
     #set( $counter = $counter + 1 )
   #end
 
   #set( $fileContents = "#generateServletChain($address.servlet)" ) 
-  #set( $fileName = $output-dir + ${main-package} + "." + ${address.servlet.name.replace(".", "_")} + "Chain" + ".jimple" )
+  #set( $fileName = $output-dir + "/" +  ${root-package} + "." + ${address.servlet.name.replace(".", "_")} + "Chain" + ".jimple" )
   $FileTool.fileWrite($fileName, $fileContents) 
 #end
 
@@ -347,6 +347,6 @@ $classname#end
 
 #walkAddresses($root.root)
 
-#set( $fileContents = "#generateMainClass()" ) 
-#set( $fileName = $output-dir + $main-package + "." + $main-class + ".jimple" )
+#set( $fileContents = "#generateMainClass()" )  
+#set( $fileName = $output-dir + "/" + $root-package + "." + $main-class + ".jimple" )
 $FileTool.fileWrite($fileName, $fileContents) 

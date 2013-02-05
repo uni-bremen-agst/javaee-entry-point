@@ -8,7 +8,7 @@ import javax.xml.bind.annotation.XmlID;
  * 
  * @author Bernhard Berger
  */
-public class Filter implements NamedElement {
+public class Filter implements NamedElement, JavaType {
 	@Override
 	public int hashCode() {
 		return (name == null) ? 0 : name.hashCode();
@@ -45,6 +45,8 @@ public class Filter implements NamedElement {
 	
 	private String name;
 	
+	@Override
+	@XmlAttribute(name="class", required=true)
 	public String getClazz() {
 		return clazz;
 	}
