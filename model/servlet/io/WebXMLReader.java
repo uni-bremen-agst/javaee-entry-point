@@ -18,6 +18,7 @@ import org.w3c.dom.NodeList;
 import soot.jimple.toolkits.javaee.model.servlet.Address;
 import soot.jimple.toolkits.javaee.model.servlet.Filter;
 import soot.jimple.toolkits.javaee.model.servlet.Listener;
+import soot.jimple.toolkits.javaee.model.servlet.Parameter;
 import soot.jimple.toolkits.javaee.model.servlet.Servlet;
 import soot.jimple.toolkits.javaee.model.servlet.Web;
 
@@ -260,6 +261,23 @@ public class WebXMLReader {
 	        		servlet.setName(attrValue);
 	        	} else if(attrName.equals("servlet-class")) {
 	        		servlet.setClazz(attrValue);
+				} else if(attrName.equals("init-param")) {
+					final Parameter parameter = new Parameter();
+					final NodeList paramNodes = child.getChildNodes();
+					for(int k = 0; k < paramNodes.getLength(); ++k) {
+						if(!(paramNodes.item(k) instanceof Element)) {
+							continue;
+						}
+
+						final Element paramNode = (Element)paramNodes.item(k);
+
+						if(paramNode.getNodeName().equals("param-name")) {
+							parameter.setName(paramNode.getFirstChild().getNodeValue());
+						} else if(paramNode.getNodeName().equals("param-value")) {
+							parameter.setValue(paramNode.getFirstChild().getNodeValue());
+						}
+					}
+					servlet.getParameters().add(parameter);
 	        	} else {
 	        		System.err.println("WebXMLReader: Unknown servlet attribute " + attrName);
 	        	}

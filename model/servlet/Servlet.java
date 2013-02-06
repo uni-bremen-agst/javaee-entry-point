@@ -1,6 +1,11 @@
 package soot.jimple.toolkits.javaee.model.servlet;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import javax.xml.bind.annotation.XmlAttribute;
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlID;
 
 /**
@@ -64,5 +69,13 @@ public class Servlet implements NamedElement, JavaType {
 	@Override
 	public void setName(String name) {
 		this.name = name;
+	}
+
+	private List<Parameter> parameters = new ArrayList<Parameter>();
+
+	@XmlElement(name="parameter")
+	@XmlElementWrapper(name="init-parameters")
+	public List<Parameter> getParameters() {
+		return parameters;
 	}
 }
