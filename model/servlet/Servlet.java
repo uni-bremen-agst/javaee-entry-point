@@ -62,6 +62,15 @@ public class Servlet implements NamedElement, JavaType {
 		return name;
 	}
 
+	public Servlet() {
+    //Do nothing - declared to avoid breaking backward compatibility
+  }
+	
+	public Servlet(String clazz, String name){
+	  this.clazz = clazz;
+	  this.name = name;
+	}
+	
 	public void setClazz(String clazz) {
 		this.clazz = clazz;
 	}

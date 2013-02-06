@@ -6,6 +6,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Writer;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import javax.xml.bind.JAXBContext;
@@ -19,19 +25,39 @@ import org.apache.velocity.exception.MethodInvocationException;
 import org.apache.velocity.exception.ParseErrorException;
 import org.apache.velocity.exception.ResourceNotFoundException;
 
+import soot.BooleanType;
+import soot.DoubleType;
+import soot.FloatType;
 import soot.G;
+import soot.IntType;
+import soot.Local;
+import soot.LongType;
 import soot.PhaseOptions;
+import soot.PrimType;
+import soot.RefType;
 import soot.Scene;
 import soot.SceneTransformer;
 import soot.Singletons;
 import soot.SootClass;
+import soot.SootMethod;
 import soot.SourceLocator;
+import soot.Type;
+import soot.Unit;
+import soot.Value;
+import soot.VoidType;
+import soot.jimple.DoubleConstant;
+import soot.jimple.FloatConstant;
+import soot.jimple.IntConstant;
+import soot.jimple.Jimple;
+import soot.jimple.LongConstant;
+import soot.jimple.NullConstant;
 import soot.jimple.toolkits.javaee.model.servlet.Address;
-import soot.jimple.toolkits.javaee.model.servlet.Filter;
-import soot.jimple.toolkits.javaee.model.servlet.Listener;
 import soot.jimple.toolkits.javaee.model.servlet.Servlet;
 import soot.jimple.toolkits.javaee.model.servlet.Web;
 import soot.jimple.toolkits.javaee.model.servlet.io.WebXMLReader;
+import soot.tagkit.AnnotationTag;
+import soot.tagkit.VisibilityAnnotationTag;
+import soot.util.Chain;
 
 /**
  * This class drives the generation of a main method that creates and calls
@@ -46,6 +72,11 @@ public class ServletEntryPointGenerator extends SceneTransformer implements Sign
 	 * Logging facility.
 	 */
 	private final static SootLogger LOG = new SootLogger();
+	
+	/**
+	 * For creation of jimple nodes.
+	 */
+	private final Jimple jimple = Jimple.v();
 
 	/**
 	 * @return Whether {@code clazz} is an application class.
@@ -70,26 +101,13 @@ public class ServletEntryPointGenerator extends SceneTransformer implements Sign
 	 */
 	private final Scene scene = Scene.v();
 	
+	/**
+	 * Name of main package.
+	 */
+	private String mainPackage;
+	
 	public ServletEntryPointGenerator(final Singletons.Global g) {
 		LOG.setPhase("wjpp.seg");
-	}
-
-
-	private void loadClassesFromModel() {
-		for(final Filter filter : this.web.getFilters()) {
-			LOG.debug("Loading " + filter.getClazz());
-			scene.forceResolve(filter.getClazz(), SootClass.SIGNATURES);
-		}
-
-		for(final Listener listener : this.web.getListeners()) {
-			LOG.debug("Loading " + listener.getClazz());
-			scene.forceResolve(listener.getClazz(), SootClass.SIGNATURES);
-		}
-
-		for(final Servlet servlet : this.web.getServlets()) {
-			LOG.debug("Loading " + servlet.getClazz());
-			scene.forceResolve(servlet.getClazz(), SootClass.SIGNATURES);
-		}
 	}
 
 	/**
@@ -145,19 +163,155 @@ public class ServletEntryPointGenerator extends SceneTransformer implements Sign
 	 *   creates a fake configuration.
 	 */
 	private void configureAllServlets() {
-		for(final SootClass clazz : Scene.v().getClasses()) {
-			if(isApplicationClass(clazz) && isServlet(clazz)) {
-				final Servlet servlet = new Servlet();
-				servlet.setName(clazz.getName());
-				servlet.setClazz(clazz.getName());
-				web.getServlets().add(servlet);
-				
-				final Address address = new Address();
-				address.setName(clazz.getName());
-				address.setServlet(servlet);
-				web.getRoot().getChildren().add(address);
+
+	  Collection<SootClass> wsClasses = new ArrayList<SootClass>();
+	  Collection<SootMethod> wsMethods = new ArrayList<SootMethod>();
+	  
+		for(final SootClass clazz : Scene.v().getApplicationClasses()) {
+		  if (!clazz.isConcrete()) //ignore interfaces and abstract classes
+		    continue;
+			if(isServlet(clazz)) { //for servlets
+				registerServlet(clazz);
+			} else if (clazz.hasTag("VisibilityAnnotationTag")) { //for web services
+        VisibilityAnnotationTag vat = (VisibilityAnnotationTag) clazz.getTag("VisibilityAnnotationTag");
+        for (AnnotationTag at : vat.getAnnotations()) {
+          
+          //Handling @WebService and @WebMethod
+          if ("Ljavax/jws/WebService;".equals(at.getType())&& !clazz.isInterface()){
+            wsClasses.add(clazz);
+            for (SootMethod sm : clazz.getMethods()){
+              if (sm.hasTag("VisibilityAnnotationTag")){
+                VisibilityAnnotationTag vat2 = (VisibilityAnnotationTag) sm.getTag("VisibilityAnnotationTag");
+                for (AnnotationTag at2 : vat2.getAnnotations())
+                  if ("Ljavax/jws/WebMethod;".equals(at2.getType()))
+                    wsMethods.add(sm);
+              }        
+            }
+
+          // Handling @WebServiceProvider
+          } else if ("Ljavax/jws/WebServiceProvider;".equals(at.getType())){
+            SootClass providerClass = Scene.v().getSootClass("javax.xml.ws.Provider");
+            if (Scene.v().getFastHierarchy().canStoreType(clazz.getType(), providerClass.getType())
+                && clazz.declaresMethodByName("invoke")){
+              wsMethods.add(clazz.getMethodByName("invoke"));
+              wsClasses.add(clazz);
+            }            
+          }
+        }
+
 			}
 		}
+		
+		if (!wsClasses.isEmpty()){
+		  SootClass theClass = synthetizeWSServlet(wsClasses, wsMethods);
+		  registerServlet(theClass);
+		}
+		
+	}
+
+	/**
+	 * Registers a servlet as if it was declared in web.xml
+	 * @param clazz the class
+	 */
+  private void registerServlet(final SootClass clazz) {
+    final Servlet servlet = new Servlet(clazz.getName(), clazz.getName());
+    web.getServlets().add(servlet);
+    
+    final Address address = new Address();
+    address.setName(clazz.getName());
+    address.setServlet(servlet);
+    web.getRoot().getChildren().add(address);
+  }
+	
+	private SootClass synthetizeWSServlet(Collection<SootClass> wsClasses,
+			Collection<SootMethod> wsMethods) {
+		JimpleClassGenerator classGen = new JimpleClassGenerator(mainPackage
+				+ ".WSCaller", HTTP_SERVLET_CLASS_NAME, true);
+		final SootClass clazz = classGen.getClazz();
+
+		// create default constructor
+		final JimpleBodyGenerator constructor = classGen.method("<init>",
+				Collections.EMPTY_LIST, VoidType.v());
+		final Local thisLocal = constructor.local(false, clazz.getType());
+		constructor.getUnits().add(
+				jimple.newIdentityStmt(thisLocal,
+						jimple.newThisRef(clazz.getType())));
+
+		final List<Type> parameterTypes = Arrays.asList(
+				(Type) scene.getRefType(HTTP_SERVLET_REQUEST_CLASS_NAME),
+				(Type) scene.getRefType(HTTP_SERVLET_RESPONSE_CLASS_NAME));
+		final JimpleBodyGenerator serviceMethod = classGen.method("doGet",
+				parameterTypes, VoidType.v());
+		serviceMethod.setPublic();
+
+		final Local requestLocal = serviceMethod.local(true,
+				parameterTypes.get(0));
+		final Local responseLocal = serviceMethod.local(true,
+				parameterTypes.get(1));
+		final Chain<Unit> units = serviceMethod.getUnits();
+		final Map<SootClass, Local> generatedLocals = new HashMap<SootClass, Local>(
+				wsClasses.size());
+
+		// init parameters
+		units.add(jimple.newIdentityStmt(requestLocal,
+				jimple.newParameterRef(parameterTypes.get(0), 0)));
+		units.add(jimple.newIdentityStmt(responseLocal,
+				jimple.newParameterRef(parameterTypes.get(1), 1)));
+
+		// Construct the instances
+		for (SootClass sc : wsClasses) {
+			final Local newLocal = serviceMethod.local(false, sc.getType());
+			generatedLocals.put(sc, newLocal);
+			serviceMethod.createInstance(newLocal, sc);
+			units.add(jimple.newInvokeStmt(jimple.newVirtualInvokeExpr(
+					newLocal, sc.getMethod("void <init>()").makeRef())));
+		}
+
+		// Add the calls to the WS methods
+		// TODO we need to figure out the parameters and get them from the
+		// request
+		for (SootMethod sm : wsMethods) {
+
+			List<Type> argTypes = sm.getParameterTypes();
+			List<Value> arguments = new ArrayList<Value>(argTypes.size());
+			for (Type t : argTypes) {
+
+				Local paramLocal = serviceMethod.local(false, t);
+				if (t instanceof PrimType) {
+					if (t instanceof IntType) {
+						units.add(jimple.newAssignStmt(paramLocal,
+								IntConstant.v(0)));
+					} else if (t instanceof LongType) {
+						units.add(jimple.newAssignStmt(paramLocal,
+								LongConstant.v(0)));
+					} else if (t instanceof FloatType) {
+						units.add(jimple.newAssignStmt(paramLocal,
+								FloatConstant.v(0.0f)));
+					} else if (t instanceof DoubleType) {
+						units.add(jimple.newAssignStmt(paramLocal,
+								DoubleConstant.v(0.0)));
+					} else if (t instanceof BooleanType) {
+						units.add(jimple.newAssignStmt(paramLocal,
+								IntConstant.v(1))); // 1 is true
+					}
+
+				} else if (t instanceof RefType) {
+					units.add(jimple.newAssignStmt(paramLocal,
+							jimple.newNewExpr((RefType) t)));
+					units.add(jimple.newInvokeStmt(jimple.newVirtualInvokeExpr(
+							paramLocal,
+							((RefType) t).getSootClass()
+									.getMethod("void <init>()").makeRef())));
+				}
+				arguments.add(paramLocal);// TODO
+			}
+			units.add(jimple.newInvokeStmt(jimple.newVirtualInvokeExpr(
+					generatedLocals.get(sm.getDeclaringClass()), sm.makeRef(),
+					arguments)));
+		}
+
+
+    return clazz;
 	}
 	
 	/**
@@ -177,6 +331,7 @@ public class ServletEntryPointGenerator extends SceneTransformer implements Sign
 		
 		LOG.info("Running " + phaseName + " with options " + options);
 		
+		mainPackage = PhaseOptions.getString(options, "root-package");
 		considerAllServlets = PhaseOptions.getBoolean(options, "consider-all-servlets");
 		
 		loadWebXML();
