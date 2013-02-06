@@ -1,6 +1,8 @@
 package soot.jimple.toolkits.javaee.model.servlet;
 
 import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -64,5 +66,11 @@ public class Web {
 		}
 		
 		return null;
+	}
+
+	public List<Address> collectBoundAddresses() {
+		List<Address> result = new LinkedList<Address>();
+		root.collectBoundAddresses(result);
+		return result;
 	}
 }

@@ -9,7 +9,9 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlIDREF;
+import javax.xml.bind.annotation.XmlType;
 
+@XmlType
 public class Address implements NamedElement{
 	@Override
 	public int hashCode() {
@@ -57,12 +59,13 @@ public class Address implements NamedElement{
 	}
 
 	@XmlElement(name="child")
+	@XmlElementWrapper(name="children")
 	public Set<Address> getChildren() {
 		return children;
 	}
 
 	@Override
-	@XmlAttribute(name="name", required=true)
+	@XmlAttribute(name="name")
 	public String getName() {
 		return name;
 	}
@@ -115,6 +118,16 @@ public class Address implements NamedElement{
 			}
 		} else {
 			System.err.println("Not a simple wildcard : " + pattern[0]);
+		}
+	}
+
+	public void collectBoundAddresses(final List<Address> result) {
+		if(getServlet() != null) {
+			result.add(this);
+		}
+
+		for(final Address child : children) {
+			child.collectBoundAddresses(result);
 		}
 	}
 }

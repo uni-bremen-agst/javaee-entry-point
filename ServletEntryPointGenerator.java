@@ -1,6 +1,11 @@
 package soot.jimple.toolkits.javaee;
 
 import java.io.FileInputStream;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Writer;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.util.ArrayList;
@@ -10,6 +15,17 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Marshaller;
+
+import org.apache.common.tools.FileTool;
+import org.apache.velocity.VelocityContext;
+import org.apache.velocity.app.VelocityEngine;
+import org.apache.velocity.exception.MethodInvocationException;
+import org.apache.velocity.exception.ParseErrorException;
+import org.apache.velocity.exception.ResourceNotFoundException;
 
 import soot.BooleanType;
 import soot.DoubleType;
@@ -61,25 +77,23 @@ import soot.util.EscapedWriter;
  * @author Bernhard Berger
  */
 public class ServletEntryPointGenerator extends SceneTransformer implements Signatures {
-	/**
-	 * Subsignature of the {@code destroy} wrapper method.
-	 */
-	private static final String DESTROY_METHOD_SUBSIGNATURE = "void destroy()";
-
-	/**
-	 * Subsignature of the {@code init} wrapper method.
-	 */
-	private static final String INIT_METHOD_SUBSIGNATURE = "void init(javax.servlet.ServletConfig)";
-    
+ 
 	/**
 	 * Logging facility.
 	 */
 	private final static SootLogger LOG = new SootLogger();
 	
 	/**
-	 * Subsignature of the {@code service} wrapper method.
+	 * For creation of jimple nodes.
 	 */
-	private static final String SERVICE_METHOD_SUBSIGNATURE = "void service(javax.servlet.ServletRequest,javax.servlet.ServletResponse)";
+	private final Jimple jimple = Jimple.v();
+
+	/**
+	 * @return Whether {@code clazz} is an application class.
+	 */
+	private static boolean isApplicationClass(final SootClass clazz) {
+		return clazz.isApplicationClass();
+	}
 
 	public static ServletEntryPointGenerator v() {
     	return G.v().soot_jimple_toolkits_javaee_ServletEntryPointGenerator();
@@ -93,25 +107,14 @@ public class ServletEntryPointGenerator extends SceneTransformer implements Sign
 	private boolean considerAllServlets = false;
 
 	/**
-	 * Jimple factory.
-	 */
-	private final Jimple jimple = Jimple.v();
-	
-	/**
-	 * Generator for the class that contains the main method.
-	 */
-	private final MainClassGenerator mainGenerator = new MainClassGenerator();
-
-	/**
-	 * The package for all generated classes. Can be set with the
-	 *   commandline parameter {@code main-package}.
-	 */
-	private String mainPackage;
-
-	/**
 	 * Scene for lookup of classes.
 	 */
 	private final Scene scene = Scene.v();
+	
+	/**
+	 * Name of main package.
+	 */
+	private String mainPackage;
 
 	/**
 	 * The type we will create as parameter for the {@code init}-method. Can be
@@ -120,299 +123,12 @@ public class ServletEntryPointGenerator extends SceneTransformer implements Sign
 	private SootClass servletConfigType = null;
 	
 	public ServletEntryPointGenerator(final Singletons.Global g) {
-		// We need some classes at least at SIGNATURE-level for code generation.
-		// Since we cannot be sure that the class is resolved correctly by Soot
-		// (maybe the program we analyze does not need the class) we have to
-		// resolve it manually. Doing the resolution within the constructor is
-		// safe because the class is instantiated after the class path is set up
-		// and before the scene is sealed.
-		scene.addBasicClass(RANDOM_CLASS_NAME, SootClass.SIGNATURES);
-		scene.addBasicClass(HTTP_SERVLET_REQUEST_CLASS_NAME, SootClass.HIERARCHY);
-		scene.addBasicClass(HTTP_SERVLET_RESPONSE_CLASS_NAME, SootClass.HIERARCHY);
-		
 		LOG.setPhase("wjpp.seg");
 	}
 
 
-	private void loadClassesFromModel() {
-		for(final Filter filter : this.web.getFilters()) {
-			LOG.debug("Loading " + filter.getClazz());
-			scene.forceResolve(filter.getClazz(), SootClass.SIGNATURES);
-		}
 
-		for(final Listener listener : this.web.getListeners()) {
-			LOG.debug("Loading " + listener.getClazz());
-			scene.forceResolve(listener.getClazz(), SootClass.SIGNATURES);
-		}
 
-		for(final Servlet servlet : this.web.getServlets()) {
-			LOG.debug("Loading " + servlet.getClazz());
-			scene.forceResolve(servlet.getClazz(), SootClass.SIGNATURES);
-		}
-	}
-
-	/**
-	 * Creates the wrapper for a servlet. The wrapper consists of three static
-	 *   methods, each wrapping one of the life cycle states.
-	 * 
-	 * <pre>
-	 * {@code
-	 * public class [mainPackage].[clazz] {
-	 * 
-	 *   private [clazz] instance;
-	 *   
-	 *   public static void init() {
-	 *     ...
-	 *   }
-	 *   
-	 *   public static void service(...) {
-	 *     ...
-	 *   }
-	 *   
-	 *   public static void destroy() {
-	 *     ...
-	 *   }
-	 * }
-	 * </pre>
-	 * 
-	 * @param clazz The servlet class.
-	 */
-	private void createServletWrapper(final SootClass clazz) {
-		final JimpleClassGenerator classGenerator = new JimpleClassGenerator(mainPackage + "." + clazz.getName(), OBJECT_CLASS_NAME, true);
-		
-		final SootField instanceField = classGenerator.field("instance", clazz);
-		
-		instanceField.setModifiers(instanceField.getModifiers() | Modifier.STATIC | Modifier.PRIVATE);
-		
-		classGenerator.addToClInit(jimple.newAssignStmt(jimple.newStaticFieldRef(instanceField.makeRef()), NullConstant.v()));
-		
-		final SootMethod initMethod = generateInit(classGenerator, clazz, instanceField);
-		final SootMethod servMethod = generateService(classGenerator, clazz, instanceField);
-		final SootMethod destMethod = generateDestroy(classGenerator, clazz, instanceField);
-		
-		mainGenerator.registerServlet(clazz, initMethod, servMethod, destMethod);
-	}
-
-	/**
-	 * Finds a method with the given {@code subsignature}. Therefore, the
-	 *   method starts at {@code clazz} and visits all super classes until
-	 *   a matching method is found.
-	 * 
-	 * @param clazz Class to start.
-	 * @param subsignature Methods signature we are looking for.
-	 * 
-	 * @return A method or {@code null}.
-	 */
-	private SootMethod findMethod(SootClass clazz, final String subsignature) {
-		while(clazz != null) {
-			if(clazz.declaresMethod(subsignature)) {
-				return clazz.getMethod(subsignature);
-			}
-			
-			clazz = clazz.hasSuperclass() ? clazz.getSuperclass() : null;
-		}
-
-		return null;
-	}
-
-	/**
-	 * Looks for the class specified by {@code className} in the Soot scene. If
-	 *   it cannot be found a class stub will be generated. The class will
-	 *   implement {@code interfaceClass} and has got a constructor without
-	 *   arguments.
-	 *   
-	 * @param className Name of the class we are looking for.
-	 * @param interfaceClass Name of the interface the class has to extend.
-	 * 
-	 * @return A valid class, implementing {@code interfaceClass} 
-	 */
-	private SootClass findOrCreate(final String className, final String interfaceClass) {
-		if(scene.containsType(className)) {
-			return scene.getSootClass(className);
-		} else {
-			final JimpleClassGenerator classGenerator = new JimpleClassGenerator(className, OBJECT_CLASS_NAME, false);
-			classGenerator.implement(interfaceClass);
-			
-			final List<Type> parameterTypes = Collections.emptyList();
-			classGenerator.method(SootMethod.constructorName, parameterTypes, soot.VoidType.v());
-			
-			return classGenerator.getClazz();
-		}
-	}
-
-	/**
-	 * Generates the destroy code. Firstly, the servlet's destroy method is
-	 *   called. Secondly, the field is set to {@code null}. 
-	 *   
-	 * <pre>
-	 * {@code
-	 * public static void destroy() {
-	 *   [clazz] local = new [clazz]();
-	 *   
-	 *   local.destroy();
-	 *   
-	 *   local = null;
-	 *   this.[instanceField] = local;
-	 * }
-	 * </pre>
-	 * 
-	 * @param classGenerator The surrounding class of the {@code destroy}-method.
-	 * @param clazz The servlet type.
-	 * @param instanceField The field that holds the servlet instance.
-	 * 
-	 * @return The generated method.	 */
-	private SootMethod generateDestroy(final JimpleClassGenerator classGenerator, final SootClass clazz, SootField instanceField) {
-		final List<Type> parameterTypes = Collections.emptyList();
-
-		final JimpleBodyGenerator destroyMethod = classGenerator.method("destroy", parameterTypes, VoidType.v());
-		destroyMethod.setStatic();
-		destroyMethod.setPublic();
-		
-		final Local servletLocal = destroyMethod.local(false, clazz.getType());
-
-		final Chain<Unit> units = destroyMethod.getUnits();
-		
-	    // assign from field
-	    units.add(jimple.newAssignStmt(servletLocal, jimple.newStaticFieldRef(instanceField.makeRef())));
-	    
-	    // call servlet.destroy
-	    SootMethod callee = findMethod(clazz, DESTROY_METHOD_SUBSIGNATURE);
-	    units.add(jimple.newInvokeStmt(jimple.newVirtualInvokeExpr(servletLocal, callee.makeRef())));
-	    
-	    // assign null
-	    units.add(jimple.newAssignStmt(servletLocal, NullConstant.v()));
-	    
-	    // store null value to field
-	    units.add(jimple.newAssignStmt(jimple.newStaticFieldRef(instanceField.makeRef()), servletLocal));
-		
-		return destroyMethod.getMethod();
-	}
-	
-
-	/**
-	 * Generates the initialization code. First, the servlet will be created
-	 *   and the {@code init}-method will be  called. The generated code will
-	 *   look like the following:
-	 *
-	 * <pre>
-	 * {@code
-	 * public static void init() {
-	 *   ServletConfig config = new ServletConfig();
-	 *   [clazz] local = new [clazz]();
-	 *   
-	 *   local.init(config);
-	 *   
-	 *   this.[instanceField] = local;
-	 * }
-	 * </pre>
-	 * 
-	 * @param classGenerator The surrounding class of the {@code init}-method.
-	 * @param clazz The servlet type.
-	 * @param instanceField The field that holds the servlet instance.
-	 * 
-	 * @return The generated method.
-	 */
-	private SootMethod generateInit(final JimpleClassGenerator classGenerator, final SootClass clazz, final SootField instanceField) {
-		final List<Type> parameterTypes = Collections.emptyList();
-
-		final JimpleBodyGenerator initMethod = classGenerator.method("init", parameterTypes, VoidType.v());
-		
-		initMethod.setStatic();
-		initMethod.setPublic();
-		
-		final Local servletLocal = initMethod.local(false, clazz.getType());
-		final Local paramLocal = initMethod.local(false, servletConfigType.getType());
-
-		final Chain<Unit> units = initMethod.getUnits();
-		
-		// create parameter
-		initMethod.createInstance(paramLocal, servletConfigType);
-	    units.add(jimple.newInvokeStmt(jimple.newSpecialInvokeExpr(paramLocal, servletConfigType.getMethod(EMPTY_CONSTRUCTOR_SUBSIGNATURE).makeRef())));
-
-		// create servlet instance
-	    initMethod.createInstance(servletLocal, clazz);
-	    units.add(jimple.newInvokeStmt(jimple.newSpecialInvokeExpr(servletLocal, clazz.getMethod(EMPTY_CONSTRUCTOR_SUBSIGNATURE).makeRef())));
-	    
-	    // call to servlet.init
-	    SootMethod callee = findMethod(clazz, INIT_METHOD_SUBSIGNATURE);
-	    units.add(jimple.newInvokeStmt(jimple.newVirtualInvokeExpr(servletLocal, callee.makeRef(), paramLocal)));
-	    
-	    // assign to field
-	    units.add(jimple.newAssignStmt(jimple.newStaticFieldRef(instanceField.makeRef()), servletLocal));
-
-	    return initMethod.getMethod();
-	}
-
-	/**
-	 * Generates the service code. The {@code service}-method of the servlet
-	 *   will be called . The generated code will look like the following:
-	 *
-	 * <pre>
-	 * {@code
-	 * public static void service(HttpServletRequest req, HttpServletResponse resp) {
-	 *   [clazz] local = this.[instanceField];
-	 *   
-	 *   local.service(req, resp);
-	 * }
-	 * </pre>
-	 * 
-	 * @param classGenerator The surrounding class of the {@code init}-method.
-	 * @param clazz The servlet type.
-	 * @param instanceField The field that holds the servlet instance.
-	 * 
-	 * @return The generated method.
-	 */
-	private SootMethod generateService(final JimpleClassGenerator classGenerator, final SootClass clazz, SootField instanceField) {
-		final List<Type> parameterTypes = new ArrayList<Type>(2);
-		parameterTypes.add(scene.getRefType(HTTP_SERVLET_REQUEST_CLASS_NAME));
-		parameterTypes.add(scene.getRefType(HTTP_SERVLET_RESPONSE_CLASS_NAME));
-		final JimpleBodyGenerator serviceMethod = classGenerator.method("service", parameterTypes, VoidType.v());
-
-		serviceMethod.setStatic();
-		serviceMethod.setPublic();
-		
-		final Local requestLocal = serviceMethod.local(true, parameterTypes.get(0));
-		final Local responseLocal = serviceMethod.local(true, parameterTypes.get(1));
-		
-		final Local servletLocal = serviceMethod.local(false, clazz.getType());
-
-		final Chain<Unit> units = serviceMethod.getUnits();
-		
-		// init parameters
-		units.add(jimple.newIdentityStmt(requestLocal, jimple.newParameterRef(parameterTypes.get(0), 0)));
-		units.add(jimple.newIdentityStmt(responseLocal, jimple.newParameterRef(parameterTypes.get(1), 1)));
-		
-	    // assign from field
-	    units.add(jimple.newAssignStmt(servletLocal, jimple.newStaticFieldRef(instanceField.makeRef())));
-	    
-	    // call to servlet.service
-	    SootMethod callee = findMethod(clazz, SERVICE_METHOD_SUBSIGNATURE);
-	    units.add(jimple.newInvokeStmt(jimple.newVirtualInvokeExpr(servletLocal, callee.makeRef(), requestLocal, responseLocal)));
-	    
-		return serviceMethod.getMethod();
-	}
-
-	/**
-	 * Does initial setup if not already done. This cannot be done in the
-	 *   constructor since we need the command-line options.
-	 *   
-	 * @param options Command line options.
-	 */
-	private void initialSetup(@SuppressWarnings("rawtypes") final Map options) {
-		final SootClass servletRequestClass = findOrCreate(PhaseOptions.getString(options, "servlet-request-class"), HTTP_SERVLET_REQUEST_CLASS_NAME);
-		final SootClass servletResponseClass = findOrCreate(PhaseOptions.getString(options, "servlet-response-class"), HTTP_SERVLET_RESPONSE_CLASS_NAME);
-		final String servletConfigTypeName = PhaseOptions.getString(options, "servlet-config-class");
-        final String mainClass = PhaseOptions.getString(options, "main-class");
-
-		servletConfigType = findOrCreate(servletConfigTypeName, "javax.servlet.ServletConfig");
-		considerAllServlets = PhaseOptions.getBoolean(options, "consider-all-servlets");
-		mainPackage = PhaseOptions.getString(options, "root-package");
-		
-		mainGenerator.start(mainPackage, mainClass, servletRequestClass, servletResponseClass);
-		
-		loadWebXML();
-	}
-	
 	private Web web = new Web();
 
 	/**
@@ -678,22 +394,95 @@ public class ServletEntryPointGenerator extends SceneTransformer implements Sign
 		//LOG.setMethod(body.getMethod());
 		LOG.setOptions(options);
 		
-		LOG.info("Running " + phaseName);
+		LOG.info("Running " + phaseName + " with options " + options);
 		
-		initialSetup(options);
-		final SootClass servletClass = Scene.v().getSootClass(HTTP_SERVLET_CLASS_NAME);
+		mainPackage = PhaseOptions.getString(options, "root-package");
+		considerAllServlets = PhaseOptions.getBoolean(options, "consider-all-servlets");
 		
+		loadWebXML();
 		
-		for(final Servlet servlet : web.getServlets()) {
-			LOG.info("Processing servlet " + servlet.getName());
+		final String modelDestination = PhaseOptions.getString(options, "dump-model");
+		if(!modelDestination.isEmpty()) {
+			storeModel(modelDestination);
+		}
 
-			SootClass clazz = scene.getSootClass(servlet.getClazz());
+		try {
+			LOG.info("Processing templates");
+			processTemplate(options);
+		} catch(final ResourceNotFoundException e) {
+			LOG.error("Could not find template file.");
+		} catch(final ParseErrorException e) {
+			LOG.error("Failed to parse the template.");
+		} catch(final MethodInvocationException e) {
+			LOG.error("Error while calling Java code from template.");
+			e.printStackTrace();
+		}
+		
+		final SootClass sootClass = scene.forceResolve(PhaseOptions.getString(options, "root-package") + "." + PhaseOptions.getString(options, "main-class"), SootClass.BODIES);
+		scene.setMainClass(sootClass);
+	}
 
-			if(!Scene.v().getActiveHierarchy().isClassSubclassOf(clazz, servletClass)) {
-				LOG.warn("The servlet named " + servlet.getName() + " does not inherit from " + HTTP_SERVLET_CLASS_NAME + " we will skip it.");
-				continue;
+	/**
+	 * Sets up and configures the template engine.
+	 * 
+	 * @return Velocity context.
+	 */
+	private void processTemplate(@SuppressWarnings("rawtypes") final Map options) {
+		final VelocityEngine engine = new VelocityEngine();
+		engine.setProperty("resource.loader", "class");
+		//engine.setProperty("file.resource.loader.path", "/");
+		engine.setProperty("class.resource.loader.class", "org.apache.velocity.runtime.resource.loader.ClasspathResourceLoader");
+		
+		engine.init();
+				
+		final VelocityContext context = new VelocityContext();
+
+		context.put("root", web);
+		context.put("root-package", PhaseOptions.getString(options, "root-package"));
+		context.put("main-class", PhaseOptions.getString(options, "main-class"));
+		context.put("output-dir", PhaseOptions.getString(options, "output-dir"));	
+		context.put("FileTool", FileTool.class);
+		context.put("filter-config-impl", PhaseOptions.getString(options, "filter-config-class"));
+		context.put("servlet-config-impl", PhaseOptions.getString(options, "servlet-config-class"));
+		context.put("servlet-request-impl", PhaseOptions.getString(options, "servlet-request-class"));
+		context.put("servlet-response-impl", PhaseOptions.getString(options, "servlet-response-class"));
+		
+	    final InputStream input = getClass().getClassLoader().getResourceAsStream("soot/jimple/toolkits/javaee/templates/root.vm");
+	    if (input == null) {
+	        throw new RuntimeException("Template file doesn't exist");           
+	    }
+
+	    final InputStreamReader reader = new InputStreamReader(input); 
+
+        if (!engine.evaluate(context, new NullWriter(), "root", reader)) {
+            throw new RuntimeException("Failed to convert the template into html.");
+        }
+	}
+
+	private void storeModel(final String modelName) {
+		try {
+			final JAXBContext context = JAXBContext.newInstance( Web.class ); 
+			final Marshaller marshaller = context.createMarshaller();
+			Writer writer = null; 
+			
+			marshaller.setProperty( Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE );
+			
+			try { 
+			  writer = new FileWriter(modelName); 
+			  marshaller.marshal( web, writer ); 
+			} catch(final IOException e) {
+				
 			}
-			createServletWrapper(clazz);
+			finally { 
+			  try {
+				  writer.close();
+			  } catch ( Exception e ) {
+				  LOG.error("Unable to dump model to " + modelName);
+			  } 
+			}
+		} catch(JAXBException e) {
+			LOG.error("Unable to dump model to " + modelName);
+			LOG.error(e.toString());
 		}
 	}
 
@@ -705,16 +494,6 @@ public class ServletEntryPointGenerator extends SceneTransformer implements Sign
 		// model during the setup and since the -process-xxx option is necessary in this
 		// case these classes will be loaded nevertheless.
 		loadWebXML();
-		loadClassesFromModel();
-
-		@SuppressWarnings("rawtypes")
-		final Map options = PhaseOptions.v().getPhaseOptions("wjpp.seg");
-		final String servletRequestClass = PhaseOptions.getString(options, "servlet-request-class");
-		final String servletResponseClass = PhaseOptions.getString(options, "servlet-response-class");
-		final String servletConfigTypeName = PhaseOptions.getString(options, "servlet-config-class");
- 
-		scene.forceResolve(servletRequestClass, SootClass.SIGNATURES);
-		scene.forceResolve(servletResponseClass, SootClass.SIGNATURES);
-		scene.forceResolve(servletConfigTypeName, SootClass.SIGNATURES);
+		//loadClassesFromModel();
 	}
 }
