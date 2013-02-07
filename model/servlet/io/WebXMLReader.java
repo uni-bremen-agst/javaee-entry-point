@@ -1,6 +1,5 @@
 package soot.jimple.toolkits.javaee.model.servlet.io;
 
-import java.io.InputStream;
 import java.util.Set;
 
 import javax.xml.parsers.DocumentBuilder;
@@ -15,6 +14,7 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 
+import soot.jimple.toolkits.javaee.ClassLoader;
 import soot.jimple.toolkits.javaee.model.servlet.Address;
 import soot.jimple.toolkits.javaee.model.servlet.Filter;
 import soot.jimple.toolkits.javaee.model.servlet.Listener;
@@ -28,25 +28,23 @@ import soot.jimple.toolkits.javaee.model.servlet.Web;
  * @author Bernhard Berger
  */
 public class WebXMLReader {
-	public static Web readWebXML(final InputStream iStream) throws Exception {
-		final Web result = new Web();
-		
+	public static Web readWebXML(final ClassLoader loader, final Web web) throws Exception {
 	    DocumentBuilderFactory domFactory = DocumentBuilderFactory.newInstance();
 	    domFactory.setNamespaceAware(true); // never forget this!
 	    DocumentBuilder builder = domFactory.newDocumentBuilder();
-	    Document doc = builder.parse(iStream);
+	    Document doc = builder.parse(loader.getInputStream("WEB-INF/web.xml"));
 		
-		readServlets(doc, result.getServlets());
+		readServlets(doc, web.getServlets());
 		
 		// read other servlets ... faces, actions and so forth
 		
-		readServletMappings(doc, result);
+		readServletMappings(doc, web);
 
-		readFilters(doc, result);
+		readFilters(doc, web);
 		
-		readListeners(doc, result);
+		readListeners(doc, web);
 		
-		return result;
+		return web;
 	}
 
 	private static void readListeners(final Document doc, final Web web) throws XPathException {
