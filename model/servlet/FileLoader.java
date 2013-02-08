@@ -13,23 +13,26 @@ import javax.xml.bind.annotation.XmlAttribute;
  * @author Bernhard Berger
  */
 public class FileLoader {
-	@XmlAttribute(name="path", required=true)
-	private String path;
+	private String basepath;
 
+	public FileLoader() {
+	}
+	
 	public FileLoader(final String path) {
-		this.path = path;
+		this.basepath = path;
 	}
 
 	public InputStream getInputStream(final String path)
 			throws FileNotFoundException {
-		return new FileInputStream(this.path + File.separator + path);
+		return new FileInputStream(this.basepath + File.separator + path);
 	}
 	
-	public String getPath() {
-		return path;
+	@XmlAttribute(name="basepath", required=true)
+	public String getBasepath() {
+		return basepath;
 	}
 	
-	public void setPath(final String path) {
-		this.path = path;
+	public void setBasepath(final String path) {
+		this.basepath = path;
 	}
 }

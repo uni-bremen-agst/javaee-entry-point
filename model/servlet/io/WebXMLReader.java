@@ -10,6 +10,8 @@ import javax.xml.xpath.XPathException;
 import javax.xml.xpath.XPathExpression;
 import javax.xml.xpath.XPathFactory;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
@@ -28,6 +30,8 @@ import soot.jimple.toolkits.javaee.model.servlet.Web;
  * @author Bernhard Berger
  */
 public class WebXMLReader {
+	private static final Logger LOG = LoggerFactory.getLogger(WebXMLReader.class);
+	
 	public static Web readWebXML(final FileLoader loader, final Web web) throws Exception {
 	    DocumentBuilderFactory domFactory = DocumentBuilderFactory.newInstance();
 	    domFactory.setNamespaceAware(true); // never forget this!
@@ -72,7 +76,7 @@ public class WebXMLReader {
 	        	if(attrName.equals("listener-class")) {
 	        		listener.setClazz(attrValue);
 	        	} else {
-	        		System.err.println("WebXMLReader: Unknown listener attribute " + attrName);
+	        		LOG.warn("Unknown listener attribute {}.", attrName);
 	        	}
 	        }
 	        
@@ -80,7 +84,7 @@ public class WebXMLReader {
 	        
 	        // check validity
 	        if(listener.getClazz() == null) {
-	        	System.err.println("WebXMLReader: Listeners not configured correctly: " + listener);
+	        	LOG.warn("Listeners not configured correctly {}. ", listener);
 	        }
 	    }
 	}
@@ -115,7 +119,7 @@ public class WebXMLReader {
 	        	} else if(attrName.equals("filter-class")) {
 	        		filter.setClazz(attrValue);
 	        	} else {
-	        		System.err.println("WebXMLReader: Unknown filter attribute " + attrName);
+	        		LOG.warn("Unknown filter attribute {}.", attrName);
 	        	}
 	        }
 	        
@@ -123,7 +127,7 @@ public class WebXMLReader {
 	        
 	        // check validity
 	        if(filter.getName() == null || filter.getClazz() == null) {
-	        	System.err.println("WebXMLReader: Filter not configured correctly: " + filter);
+	        	LOG.error("Filter not configured correctly {}.", filter);
 	        }
 	    }
 	    
@@ -152,7 +156,7 @@ public class WebXMLReader {
 	        	} else if(attrName.equals("url-pattern")) {
 	        		url = attrValue;
 	        	} else {
-	        		System.err.println("WebXMLReader: Unknown filter-mapping attribute " + attrName);
+	        		LOG.warn("Unknown filter-mapping attribute {}.", attrName);
 	        	}
 	        }
 	        
@@ -163,7 +167,7 @@ public class WebXMLReader {
 	        System.arraycopy(pattern, 1, subPattern, 0, subPattern.length);
 	        
 	        root.add(subPattern, filter);
-	        System.err.println("Found filter mapping " + filter + " -> " + url);
+	        LOG.info("Found filter mapping {} -> {}.", filter, url);
 	    }
 	    
 	}
@@ -199,7 +203,7 @@ public class WebXMLReader {
 	        	} else if(attrName.equals("url-pattern")) {
 	        		url = attrValue;
 	        	} else {
-	        		System.err.println("WebXMLReader: Unknown servlet-mapping attribute " + attrName);
+	        		LOG.warn("Unknown servlet-mapping attribute {}.", attrName);
 	        	}
 	        }
 
@@ -277,17 +281,16 @@ public class WebXMLReader {
 						}
 					}
 					servlet.getParameters().add(parameter);
-					servlet.setLoader(loader);
 	        	} else {
-	        		System.err.println("WebXMLReader: Unknown servlet attribute " + attrName);
+	        		LOG.warn("Unknown servlet attribute {}.", attrName);
 	        	}
 	        }
-	        
+			servlet.setLoader(loader);	        
 	        servlets.add(servlet);
 	        
 	        // check validity
 	        if(servlet.getName() == null || servlet.getClazz() == null) {
-	        	System.err.println("WebXMLReader: Servlet not configured correctly: " + servlet);
+	        	LOG.error("Servlet not configured correctly {}.", servlet);
 	        }
 	    }
 	}
