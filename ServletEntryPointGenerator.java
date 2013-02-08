@@ -19,6 +19,8 @@ import org.apache.velocity.app.VelocityEngine;
 import org.apache.velocity.exception.MethodInvocationException;
 import org.apache.velocity.exception.ParseErrorException;
 import org.apache.velocity.exception.ResourceNotFoundException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import soot.G;
 import soot.PhaseOptions;
@@ -43,7 +45,7 @@ public class ServletEntryPointGenerator extends SceneTransformer implements Sign
 	/**
 	 * Logging facility.
 	 */
-	private final static SootLogger LOG = new SootLogger();
+	private final static Logger LOG = LoggerFactory.getLogger(ServletEntryPointGenerator.class);
 	
 	/**
 	 * List of all available servlet detectors.
@@ -70,8 +72,6 @@ public class ServletEntryPointGenerator extends SceneTransformer implements Sign
 	private final Scene scene = Scene.v();
 	
 	public ServletEntryPointGenerator(final Singletons.Global g) {
-		LOG.setPhase("wjpp.seg");
-		
 		servletDetectors.add(new GenericServletDetector());
 		servletDetectors.add(new WebServiceDetector());
 	}
@@ -101,10 +101,7 @@ public class ServletEntryPointGenerator extends SceneTransformer implements Sign
 
 	@Override
 	protected void internalTransform(final String phaseName, @SuppressWarnings("rawtypes") final Map options) {
-		// configure logging
-		LOG.setPhase(phaseName);
-		LOG.setOptions(options);
-		
+		// configure logging		
 		LOG.info("Running " + phaseName);
 		
 		considerAllServlets = PhaseOptions.getBoolean(options, "consider-all-servlets");
