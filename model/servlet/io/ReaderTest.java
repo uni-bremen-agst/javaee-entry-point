@@ -7,8 +7,8 @@ import java.io.Writer;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.Marshaller;
 
+import soot.jimple.toolkits.javaee.model.servlet.FileLoader;
 import soot.jimple.toolkits.javaee.model.servlet.Web;
-import soot.jimple.toolkits.javaee.ClassLoader;
 
 public class ReaderTest {
 
@@ -18,7 +18,7 @@ public class ReaderTest {
 	 * @throws FileNotFoundException 
 	 */
 	public static void main(String[] args) throws FileNotFoundException, Exception {
-		final ClassLoader  loader = new ClassLoader(args[0]);
+		final FileLoader  loader = new FileLoader(args[0]);
 		final Web web = new Web();
 		
 		WebXMLReader.readWebXML(loader, web);

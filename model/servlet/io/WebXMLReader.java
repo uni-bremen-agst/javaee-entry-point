@@ -14,8 +14,8 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 
-import soot.jimple.toolkits.javaee.ClassLoader;
 import soot.jimple.toolkits.javaee.model.servlet.Address;
+import soot.jimple.toolkits.javaee.model.servlet.FileLoader;
 import soot.jimple.toolkits.javaee.model.servlet.Filter;
 import soot.jimple.toolkits.javaee.model.servlet.Listener;
 import soot.jimple.toolkits.javaee.model.servlet.Parameter;
@@ -28,13 +28,13 @@ import soot.jimple.toolkits.javaee.model.servlet.Web;
  * @author Bernhard Berger
  */
 public class WebXMLReader {
-	public static Web readWebXML(final ClassLoader loader, final Web web) throws Exception {
+	public static Web readWebXML(final FileLoader loader, final Web web) throws Exception {
 	    DocumentBuilderFactory domFactory = DocumentBuilderFactory.newInstance();
 	    domFactory.setNamespaceAware(true); // never forget this!
 	    DocumentBuilder builder = domFactory.newDocumentBuilder();
 	    Document doc = builder.parse(loader.getInputStream("WEB-INF/web.xml"));
 		
-		readServlets(doc, web.getServlets());
+		readServlets(doc, web.getServlets(), loader);
 		
 		// read other servlets ... faces, actions and so forth
 		
@@ -232,8 +232,9 @@ public class WebXMLReader {
 
 	/**
 	 * Reads all servlets
+	 * @param loader 
 	 */
-	private static void readServlets(final Document doc, final Set<Servlet> servlets) throws XPathException {
+	private static void readServlets(final Document doc, final Set<Servlet> servlets, FileLoader loader) throws XPathException {
 	    final XPathFactory factory = XPathFactory.newInstance();
 	    final XPath xpath = factory.newXPath();
 	    final XPathExpression servletExpr = xpath.compile("//web-app/servlet");
@@ -276,6 +277,7 @@ public class WebXMLReader {
 						}
 					}
 					servlet.getParameters().add(parameter);
+					servlet.setLoader(loader);
 	        	} else {
 	        		System.err.println("WebXMLReader: Unknown servlet attribute " + attrName);
 	        	}

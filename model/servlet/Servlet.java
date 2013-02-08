@@ -87,4 +87,15 @@ public class Servlet implements NamedElement, JavaType {
 	public List<Parameter> getParameters() {
 		return parameters;
 	}
+	
+	private FileLoader loader;
+	
+	@XmlElement
+	public FileLoader getLoader() {
+		return loader;
+	}
+	
+	public void setLoader(final FileLoader loader) {
+		this.loader = loader;
+	}
 }
