@@ -17,6 +17,7 @@ import soot.VoidType;
  * 
  * @author Bernhard Berger
  */
+@Deprecated
 public class JimpleClassGenerator {
 	/**
 	 * The class that corresponds to this generator.

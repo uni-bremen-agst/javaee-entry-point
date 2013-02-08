@@ -20,6 +20,7 @@ import soot.util.Chain;
  *  
  * @author Bernhard Berger
  */
+@Deprecated
 public class JimpleBodyGenerator {
 	/**
 	 * The body we are going to populate.

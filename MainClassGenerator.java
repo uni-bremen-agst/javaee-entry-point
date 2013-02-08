@@ -26,6 +26,7 @@ import soot.util.Chain;
  *   
  * @author Bernhard Berger
  */
+@Deprecated
 public final class MainClassGenerator implements Signatures {
 	private static final Scene scene = Scene.v();
 
