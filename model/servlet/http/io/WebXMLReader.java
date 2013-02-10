@@ -17,12 +17,12 @@ import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 
 import soot.jimple.toolkits.javaee.model.servlet.Address;
-import soot.jimple.toolkits.javaee.model.servlet.FileLoader;
 import soot.jimple.toolkits.javaee.model.servlet.Filter;
 import soot.jimple.toolkits.javaee.model.servlet.Listener;
 import soot.jimple.toolkits.javaee.model.servlet.Parameter;
 import soot.jimple.toolkits.javaee.model.servlet.Servlet;
 import soot.jimple.toolkits.javaee.model.servlet.Web;
+import soot.jimple.toolkits.javaee.model.servlet.http.FileLoader;
 import soot.jimple.toolkits.javaee.model.servlet.http.HttpServlet;
 
 /**

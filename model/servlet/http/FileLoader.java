@@ -1,4 +1,4 @@
-package soot.jimple.toolkits.javaee.model.servlet;
+package soot.jimple.toolkits.javaee.model.servlet.http;
 
 import java.io.File;
 import java.io.FileInputStream;

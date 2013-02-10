@@ -9,10 +9,10 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import soot.jimple.toolkits.javaee.model.servlet.FileLoader;
 import soot.jimple.toolkits.javaee.model.servlet.Parameter;
 import soot.jimple.toolkits.javaee.model.servlet.Servlet;
 import soot.jimple.toolkits.javaee.model.servlet.Web;
+import soot.jimple.toolkits.javaee.model.servlet.http.FileLoader;
 import soot.jimple.toolkits.javaee.model.servlet.http.HttpServlet;
 import soot.jimple.toolkits.javaee.model.servlet.struts1.ActionServlet;
 import soot.jimple.toolkits.javaee.model.servlet.struts1.io.StrutsReader;

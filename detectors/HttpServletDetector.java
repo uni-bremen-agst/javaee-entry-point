@@ -12,8 +12,8 @@ import soot.SootClass;
 import soot.SourceLocator;
 import soot.jimple.toolkits.javaee.Signatures;
 import soot.jimple.toolkits.javaee.model.servlet.Address;
-import soot.jimple.toolkits.javaee.model.servlet.FileLoader;
 import soot.jimple.toolkits.javaee.model.servlet.Web;
+import soot.jimple.toolkits.javaee.model.servlet.http.FileLoader;
 import soot.jimple.toolkits.javaee.model.servlet.http.HttpServlet;
 import soot.jimple.toolkits.javaee.model.servlet.http.io.WebXMLReader;
 
