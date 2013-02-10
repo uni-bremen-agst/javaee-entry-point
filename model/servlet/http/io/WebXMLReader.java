@@ -16,8 +16,8 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 
-import soot.jimple.toolkits.javaee.model.servlet.Address;
 import soot.jimple.toolkits.javaee.model.servlet.Filter;
+import soot.jimple.toolkits.javaee.model.servlet.FilterMapping;
 import soot.jimple.toolkits.javaee.model.servlet.Listener;
 import soot.jimple.toolkits.javaee.model.servlet.Parameter;
 import soot.jimple.toolkits.javaee.model.servlet.Servlet;
@@ -39,13 +39,11 @@ public class WebXMLReader {
 	    DocumentBuilder builder = domFactory.newDocumentBuilder();
 	    Document doc = builder.parse(loader.getInputStream("WEB-INF/web.xml"));
 		
+		readFilters(doc, web);
+	    
 		readServlets(doc, web.getServlets(), loader);
 		
-		// read other servlets ... faces, actions and so forth
-		
 		readServletMappings(doc, web);
-
-		readFilters(doc, web);
 		
 		readListeners(doc, web);
 		
@@ -140,9 +138,8 @@ public class WebXMLReader {
 	        final Element node = (Element)mappingNodes.item(i);
 	        
 	        final NodeList children = node.getChildNodes();
-
-	        String name = null;
-	        String url  = null;
+	        final FilterMapping mapping = new FilterMapping();
+	        
 	        for(int j = 0; j < children.getLength(); j++) {
 	        	if(!(children.item(j) instanceof Element)) {
 	        		continue;
@@ -153,22 +150,16 @@ public class WebXMLReader {
 	        	final String attrValue = child.getFirstChild().getNodeValue();
 	        	
 	        	if(attrName.equals("filter-name")) {
-	        		name = attrValue;
+	        		mapping.setFilter(web.getFilter(attrValue));
 	        	} else if(attrName.equals("url-pattern")) {
-	        		url = attrValue;
+	        		mapping.setURLPattern(attrValue.replace("*", ".*"));
 	        	} else {
 	        		LOG.warn("Unknown filter-mapping attribute {}.", attrName);
 	        	}
 	        }
 	        
-	        Filter filter = web.getFilter(name);
-	        Address root = web.getRoot();
-	        String [] pattern = url.split("/");
-	        String [] subPattern = new String[pattern.length - 1];
-	        System.arraycopy(pattern, 1, subPattern, 0, subPattern.length);
-	        
-	        root.add(subPattern, filter);
-	        LOG.info("Found filter mapping {} -> {}.", filter, url);
+	        web.getFilterMappings().add(mapping);
+	        LOG.info("Found filter mapping {}.", mapping);
 	    }
 	    
 	}

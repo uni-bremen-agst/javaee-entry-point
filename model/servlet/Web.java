@@ -109,6 +109,8 @@ public class Web {
         		child.setName(path[index]);
         		child.setFullPath(concat(path, index));
 	        	address.getChildren().add(child);
+	        	
+	        	applyFilters(child);
         	}
 
         	address = child;
@@ -116,6 +118,24 @@ public class Web {
 
         return address;
  	}
+
+	private void applyFilters(final Address address) {
+		for(final FilterMapping mapping : filterMappings) {
+			if(address.getFullPath().matches(mapping.getURLPattern())) {
+				address.getFilters().add(mapping.getFilter());
+			}
+		}
+		/*
+        Filter filter = web.getFilter(name);
+
+        Address root = web.getRoot();
+        String [] pattern = url.split("/");
+        String [] subPattern = new String[pattern.length - 1];
+        System.arraycopy(pattern, 1, subPattern, 0, subPattern.length);
+
+        root.add(subPattern, filter);
+	 */
+	}
 
 	private static String concat(String[] path, int lastIndex) {
 		final StringBuilder builder = new StringBuilder();
@@ -132,5 +152,13 @@ public class Web {
 		}
 		
 		return builder.toString();
+	}
+	
+	private List<FilterMapping> filterMappings = new LinkedList<FilterMapping>();
+
+	@XmlElement(name="filterMapping")
+	@XmlElementWrapper(name="filterMappings")
+	public List<FilterMapping> getFilterMappings() {
+		return filterMappings;
 	}
 }
