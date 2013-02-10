@@ -3,9 +3,6 @@ package soot.jimple.toolkits.javaee.detectors;
 import java.util.Map;
 
 import soot.SootClass;
-import soot.jimple.toolkits.javaee.model.servlet.Address;
-import soot.jimple.toolkits.javaee.model.servlet.Servlet;
-import soot.jimple.toolkits.javaee.model.servlet.Web;
 
 /**
  * An abstract servlet detector with some additional functions.
@@ -39,21 +36,5 @@ public abstract class AbstractServletDetector implements ServletDetector {
 		}
 
 		return false;
-	}
-
-	/**
-	 * Registers a servlet as if it was declared in web.xml
-	 * 
-	 * @param clazz
-	 *            the class
-	 */
-	protected void registerServlet(final Web web, final SootClass clazz) {
-		final Servlet servlet = new Servlet(clazz.getName(), clazz.getName());
-		web.getServlets().add(servlet);
-
-		final Address address = new Address();
-		address.setName(clazz.getName());
-		address.setServlet(servlet);
-		web.getRoot().getChildren().add(address);
 	}
 }

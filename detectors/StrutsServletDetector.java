@@ -2,6 +2,9 @@ package soot.jimple.toolkits.javaee.detectors;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,6 +13,8 @@ import soot.jimple.toolkits.javaee.model.servlet.FileLoader;
 import soot.jimple.toolkits.javaee.model.servlet.Parameter;
 import soot.jimple.toolkits.javaee.model.servlet.Servlet;
 import soot.jimple.toolkits.javaee.model.servlet.Web;
+import soot.jimple.toolkits.javaee.model.servlet.http.HttpServlet;
+import soot.jimple.toolkits.javaee.model.servlet.struts1.ActionServlet;
 import soot.jimple.toolkits.javaee.model.servlet.struts1.io.StrutsReader;
 
 /**
@@ -31,16 +36,18 @@ public class StrutsServletDetector extends AbstractServletDetector {
 	@Override
 	public void detectFromConfig(final Web web) {
 		LOG.info("Detecting struts actions from configuration file");
-		for(final Servlet servlet : web.getServlets()) {
+		for(final Servlet servlet : new ArrayList<Servlet>(web.getServlets())) {
 			if(!servlet.getClazz().equals("org.apache.struts.action.ActionServlet")) {
 				continue;
 			}
 			
 			LOG.info("Found action servlet {}", servlet);
 			
-			final FileLoader fileLoader = servlet.getLoader();
+			HttpServlet httpServlet = (HttpServlet)servlet;
+			
+			final FileLoader fileLoader = httpServlet.getLoader();
 
-			for(final Parameter parameter : servlet.getParameters()) {
+			for(final Parameter parameter : httpServlet.getParameters()) {
 				if(parameter.getName().equals("config")) {
 					for(final String xmlFile : parameter.getValue().split(",")) {
 						LOG.info("Found configuration file {}.", xmlFile);
@@ -54,5 +61,11 @@ public class StrutsServletDetector extends AbstractServletDetector {
 				}
 			}
 		}
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public List<Class<?>> getModelExtensions() {
+		return (List<Class<?>>)(List<?>)Collections.singletonList(ActionServlet.class);
 	}
 }

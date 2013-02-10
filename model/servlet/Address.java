@@ -8,11 +8,24 @@ import java.util.TreeSet;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
+import javax.xml.bind.annotation.XmlID;
 import javax.xml.bind.annotation.XmlIDREF;
 import javax.xml.bind.annotation.XmlType;
 
 @XmlType
-public class Address implements NamedElement{
+public class Address implements NamedElement {
+	private String fullPath;
+	
+	@XmlAttribute(required=true)
+	@XmlID
+	public String getFullPath() {
+		return fullPath;
+	}
+	
+	public void setFullPath(final String fullPath) {
+		this.fullPath = fullPath;
+	}
+	
 	@Override
 	public int hashCode() {
 		return (name == null) ? 0 : name.hashCode();

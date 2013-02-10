@@ -1,4 +1,4 @@
-package soot.jimple.toolkits.javaee.model.servlet.io;
+package soot.jimple.toolkits.javaee.model.servlet.http.io;
 
 import java.io.FileNotFoundException;
 import java.io.FileWriter;

@@ -6,6 +6,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Writer;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -28,8 +29,9 @@ import soot.Scene;
 import soot.SceneTransformer;
 import soot.Singletons;
 import soot.SootClass;
-import soot.jimple.toolkits.javaee.detectors.GenericServletDetector;
+import soot.jimple.toolkits.javaee.detectors.HttpServletDetector;
 import soot.jimple.toolkits.javaee.detectors.ServletDetector;
+import soot.jimple.toolkits.javaee.detectors.StrutsServletDetector;
 import soot.jimple.toolkits.javaee.detectors.WebServiceDetector;
 import soot.jimple.toolkits.javaee.model.servlet.Web;
 
@@ -72,8 +74,9 @@ public class ServletEntryPointGenerator extends SceneTransformer implements Sign
 	private final Scene scene = Scene.v();
 	
 	public ServletEntryPointGenerator(final Singletons.Global g) {
-		servletDetectors.add(new GenericServletDetector());
+		servletDetectors.add(new HttpServletDetector());
 		servletDetectors.add(new WebServiceDetector());
+		servletDetectors.add(new StrutsServletDetector());
 	}
 	
 	/**
@@ -171,9 +174,19 @@ public class ServletEntryPointGenerator extends SceneTransformer implements Sign
 	 * @param modelName Name of the resulting file.
 	 */
 	private void storeModel(final String modelName) {
+		LOG.info("Storing model to {}.", modelName);
+	
 		try {
-			final JAXBContext context = JAXBContext.newInstance( Web.class ); 
+			final HashSet<Class<?>> classes = new HashSet<Class<?>>();
+			for(final ServletDetector detector : servletDetectors) {
+				classes.addAll(detector.getModelExtensions());
+			}
+			classes.add(Web.class);
+			
+			final JAXBContext context = JAXBContext.newInstance(classes.toArray(new Class[classes.size()]));
+
 			final Marshaller marshaller = context.createMarshaller();
+			
 			Writer writer = null; 
 			
 			marshaller.setProperty( Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE );

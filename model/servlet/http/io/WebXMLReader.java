@@ -1,4 +1,4 @@
-package soot.jimple.toolkits.javaee.model.servlet.io;
+package soot.jimple.toolkits.javaee.model.servlet.http.io;
 
 import java.util.Set;
 
@@ -23,6 +23,7 @@ import soot.jimple.toolkits.javaee.model.servlet.Listener;
 import soot.jimple.toolkits.javaee.model.servlet.Parameter;
 import soot.jimple.toolkits.javaee.model.servlet.Servlet;
 import soot.jimple.toolkits.javaee.model.servlet.Web;
+import soot.jimple.toolkits.javaee.model.servlet.http.HttpServlet;
 
 /**
  * A reader for {@code web.xml} files.
@@ -207,30 +208,13 @@ public class WebXMLReader {
 	        	}
 	        }
 
-	        // TODO I think we need to filter for handled servlets, such as struts actions etc
-	        if(url.contains("*")) {
-	        	continue;
+	        try {
+	        	final Servlet servlet = web.getServlet(name);
+
+	        	web.bindServlet(servlet, url);
+	        } catch(final IllegalArgumentException e) {
+	        	LOG.warn("Cannot bind wildcard urls");
 	        }
-	        
-	        Servlet servlet = web.getServlet(name);
-	        Address address = web.getRoot();
-	        
-	        final String [] path = url.split("/");
-	     
-	        for(int index = 1; index < path.length; ++index) {
-	        	Address child = address.getChild(path[index]);
-	        	
-	        	if(child == null) {
-	        		child = new Address();
-	        		child.setName(path[index]);
-		        	address.getChildren().add(child);
-	        	}
-	        	
-	        	
-	        	address = child;
-	        }
-	        
-	        address.setServlet(servlet);
 	    }
 	}
 
@@ -250,7 +234,7 @@ public class WebXMLReader {
 	        
 	        final NodeList children = node.getChildNodes();
 	        
-	        Servlet servlet = new Servlet();
+	        HttpServlet servlet = new HttpServlet();
 	        for(int j = 0; j < children.getLength(); j++) {
 	        	if(!(children.item(j) instanceof Element)) {
 	        		continue;

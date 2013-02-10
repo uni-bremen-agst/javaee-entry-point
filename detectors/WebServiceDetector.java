@@ -117,7 +117,7 @@ public class WebServiceDetector extends AbstractServletDetector implements
 
 		if (!wsClasses.isEmpty()) {
 			SootClass theClass = synthetizeWSServlet(wsClasses, wsMethods);
-			registerServlet(web, theClass);
+			HttpServletDetector.registerServlet(web, theClass);
 		}
 	}
 
@@ -317,6 +317,11 @@ public class WebServiceDetector extends AbstractServletDetector implements
 	public void detectFromConfig(Web web) {
 		// TODO Auto-generated method stub
 
+	}
+
+	@Override
+	public List<Class<?>> getModelExtensions() {
+		return Collections.emptyList();
 	}
 
 }
