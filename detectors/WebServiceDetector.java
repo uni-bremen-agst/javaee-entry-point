@@ -36,15 +36,15 @@ import soot.jimple.LongConstant;
 import soot.jimple.StringConstant;
 import soot.jimple.toolkits.javaee.JimpleBodyGenerator;
 import soot.jimple.toolkits.javaee.JimpleClassGenerator;
-import soot.jimple.toolkits.javaee.Signatures;
 import soot.jimple.toolkits.javaee.model.servlet.Web;
+import soot.jimple.toolkits.javaee.model.servlet.http.HttpServletSignatures;
 import soot.tagkit.AnnotationTag;
 import soot.tagkit.VisibilityAnnotationTag;
 import soot.util.Chain;
 import soot.util.EscapedWriter;
 
 public class WebServiceDetector extends AbstractServletDetector implements
-		Signatures {
+		HttpServletSignatures {
 
 	/**
 	 * For creation of jimple nodes.

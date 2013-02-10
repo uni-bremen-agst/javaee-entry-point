@@ -20,10 +20,24 @@ public interface ServletDetector {
 	 */
 	public List<Class<?>> getModelExtensions();
 	
+	/**
+	 * Sets the phase options.
+	 * 
+	 * @param options Actual phase options.
+	 */
 	public void setOptions(@SuppressWarnings("rawtypes") final Map options);
 	
+	/**
+	 * Detects the servlets from source.
+	 * 
+	 * @param web The web instance where the servlets have to be registered. 
+	 */
 	public void detectFromSource(final Web web);
 
-	public void detectFromConfig(Web web);
-
+	/**
+	 * Detects the servlets from config files.
+	 * 
+	 * @param web The web instance where the servlets have to be registered. 
+	 */
+	public void detectFromConfig(final Web web);
 }

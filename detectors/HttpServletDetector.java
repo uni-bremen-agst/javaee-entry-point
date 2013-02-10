@@ -10,19 +10,21 @@ import soot.Hierarchy;
 import soot.Scene;
 import soot.SootClass;
 import soot.SourceLocator;
-import soot.jimple.toolkits.javaee.Signatures;
-import soot.jimple.toolkits.javaee.model.servlet.Address;
 import soot.jimple.toolkits.javaee.model.servlet.Web;
 import soot.jimple.toolkits.javaee.model.servlet.http.FileLoader;
 import soot.jimple.toolkits.javaee.model.servlet.http.HttpServlet;
+import soot.jimple.toolkits.javaee.model.servlet.http.HttpServletSignatures;
 import soot.jimple.toolkits.javaee.model.servlet.http.io.WebXMLReader;
 
 /**
- * Generic servlet detector.
+ * Servlet detector for {@code HttpServlets}. If you use source code detection
+ *   it will check for each class if it extends {@code HttpServlet}. In the
+ *   case that you want to detect the servlets from config files the {@code web.xml}
+ *   is parsed.
  * 
  * @author Bernhard Berger
  */
-public class HttpServletDetector extends AbstractServletDetector implements Signatures {
+public class HttpServletDetector extends AbstractServletDetector implements HttpServletSignatures {
 	/**
 	 * Logger.
 	 */
@@ -45,13 +47,12 @@ public class HttpServletDetector extends AbstractServletDetector implements Sign
 		}
 	}
 
-
 	@Override
 	public void detectFromConfig(final Web web) {
 		LOG.info("Detecting servlets from web.xml.");
-		SourceLocator locator = SourceLocator.v();
+		final SourceLocator locator = SourceLocator.v();
 		
-		for(String part : locator.classPath()) {
+		for(final String part : locator.classPath()) {
 			if(!part.endsWith("WEB-INF/classes")) {
 				continue;
 			}
@@ -61,11 +62,10 @@ public class HttpServletDetector extends AbstractServletDetector implements Sign
 			try {
 				WebXMLReader.readWebXML(loader, web);
 			} catch (final Exception e) {
-				LOG.error("Cannot read web.xml.", e);
+				LOG.error("Cannot read web.xml:", e);
 			}
 		}
 	}
-
 
 	@SuppressWarnings("unchecked")
 	@Override
@@ -82,10 +82,7 @@ public class HttpServletDetector extends AbstractServletDetector implements Sign
 	public static void registerServlet(final Web web, final SootClass clazz) {
 		final HttpServlet servlet = new HttpServlet(clazz.getName(), clazz.getName());
 		web.getServlets().add(servlet);
-
-		final Address address = new Address();
-		address.setName(clazz.getName());
-		address.setServlet(servlet);
-		web.getRoot().getChildren().add(address);
+		
+		web.bindServlet(servlet, "/" + clazz.getName());
 	}
 }

@@ -34,6 +34,7 @@ import soot.jimple.toolkits.javaee.detectors.ServletDetector;
 import soot.jimple.toolkits.javaee.detectors.StrutsServletDetector;
 import soot.jimple.toolkits.javaee.detectors.WebServiceDetector;
 import soot.jimple.toolkits.javaee.model.servlet.Web;
+import soot.jimple.toolkits.javaee.model.servlet.http.HttpServletSignatures;
 
 /**
  * This class drives the generation of a main method that creates and calls
@@ -42,7 +43,7 @@ import soot.jimple.toolkits.javaee.model.servlet.Web;
  *
  * @author Bernhard Berger
  */
-public class ServletEntryPointGenerator extends SceneTransformer implements Signatures {
+public class ServletEntryPointGenerator extends SceneTransformer implements HttpServletSignatures {
  
 	/**
 	 * Logging facility.
