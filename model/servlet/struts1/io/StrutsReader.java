@@ -24,6 +24,10 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
 
+import soot.PhaseOptions;
+import soot.Scene;
+import soot.SootClass;
+import soot.SootMethod;
 import soot.SourceLocator;
 import soot.jimple.toolkits.javaee.model.servlet.Web;
 import soot.jimple.toolkits.javaee.model.servlet.struts1.ActionForward;
@@ -51,32 +55,39 @@ public class StrutsReader {
 	 * The input stream of the configuration file.
 	 */
 	private final InputStream configFileStream;
-	
-	public StrutsReader(final Web web, final InputStream configFileStream) {
+
+	/**
+	 * Command-line options.
+	 */
+	@SuppressWarnings("rawtypes")
+	private Map options;
+
+	public StrutsReader(@SuppressWarnings("rawtypes") final Map options, final Web web, final InputStream configFileStream) {
+		this.options = options;
 		this.web = web;
 		this.configFileStream = configFileStream;
 	}
-	
+
 	/**
 	 * Maps a form bean name to its form bean.
 	 */
 	private final Map<String, FormBean> formBeanMapping = new HashMap<String, FormBean>();
-	
+
 	/**
 	 * XML document.
 	 */
 	private Document doc;
-	
+
 	/**
 	 * XPath factory.
 	 */
 	private final XPathFactory factory = XPathFactory.newInstance();
-	
+
 	/**
 	 * XPath.
 	 */
 	private final XPath xpath = factory.newXPath();
-	
+
 	/**
 	 * Reads the configuration file and adds all information to {@code web}.
 	 */
@@ -113,41 +124,62 @@ public class StrutsReader {
 		for (int i = 0; i < actionNodes.getLength(); i++) {
 			final Element actionNode = (Element) actionNodes.item(i);
 			final ActionServlet servlet = new ActionServlet();
-			
+
 			final String path = actionNode.getAttribute("path");
 			final String type = actionNode.getAttribute("type");
 			final String name = actionNode.getAttribute("name");
 			final String scope = actionNode.getAttribute("scope");
 			final String validate = actionNode.getAttribute("validate");
-			
+
 			if(type == null || type.isEmpty()) {
 				LOG.warn("Action for path {} has no type - Skipping.", path);
 				continue;
 			}
-			
+
 			if(path == null || path.isEmpty()) {
 				LOG.warn("Action {} has no associated path - Skipping.", type);
 				continue;
 			}
-			
+
 			if(SourceLocator.v().getClassSource(type) == null) {
 				LOG.warn("Failed to resolve class " + type + " - Skipping.");
 				continue;
 			}
 
 			servlet.setName(type); // set unique name to type name
-			servlet.setClazz(type);
+			servlet.setActionClass(type);
+			servlet.setClazz(PhaseOptions.getString(options, "root-package") + "." + type + "Servlet");
 			servlet.setScope(scope);
 			servlet.setValidate(validate.toLowerCase().equals("true"));
 			servlet.setFormBean(formBeanMapping.get(name));
-			
+
 			if(actionNode.hasAttribute("parameter")) {
 				servlet.setParameter(actionNode.getAttribute("parameter"));
 			}
-			
+
+			// scan for methods
+			SootClass actionClass = Scene.v().forceResolve(type, SootClass.SIGNATURES);
+			for(final SootMethod method : actionClass.getMethods()) {
+				if(!method.isPublic()) {
+					continue;
+				}
+
+				if(!method.getReturnType().toString().equals("org.apache.struts.action.ActionForward")) {
+					continue;
+				}
+
+				if(!method.getReturnType().toString().equals("org.apache.struts.action.ActionForward")) {
+					continue;
+				}
+
+				if(!method.getReturnType().toString().equals("org.apache.struts.action.ActionForward")) {
+					continue;
+				}
+			}
+
 			web.getServlets().add(servlet);
 			web.bindServlet(servlet, path);	
-			
+
 			servlet.getForwards().addAll(globalForwards);
 			readForwards(actionNode, servlet.getForwards());
 		}
@@ -165,20 +197,20 @@ public class StrutsReader {
 			if(!(children.item(j) instanceof Element)) {
 				continue;
 			}
-			
+
 			final Element child = (Element)children.item(j);
 			if(child.getNodeName().equals("forward")) {
 				final ActionForward forward = new ActionForward();
 				forward.setName(child.getAttribute("name"));
-				
+
 				// forward may consist of an destination and additional parameters
 				final String [] dest = child.getAttribute("path").split("\\?");				
-				
+
 				forward.setDestination(web.resolveAddress(dest[0]));
 				if(dest.length > 1) {
 					forward.setParameter(dest[1]);
 				}
-				
+
 				forwards.add(forward);
 			} else {
 				LOG.warn("Found child with unknown name {}.", child.getNodeName());
@@ -201,7 +233,7 @@ public class StrutsReader {
 
 		for (int i = 0; i < globalForwardNodes.getLength(); i++) {
 			final Element globalForwardNode = (Element) globalForwardNodes.item(i);
-			
+
 			readForwards(globalForwardNode, globalForwards);
 		}
 	}

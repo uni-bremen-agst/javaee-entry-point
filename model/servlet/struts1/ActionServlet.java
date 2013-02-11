@@ -64,4 +64,23 @@ public class ActionServlet extends Servlet {
 	public void setFormBean(final FormBean formBean) {
 		this.formBean = formBean;
 	}
+
+	private String actionClass;
+
+	@XmlAttribute
+	public String getActionClass() {
+		return actionClass;
+	}
+
+	public void setActionClass(final String actionClass) {
+		this.actionClass = actionClass;
+	}
+
+	private List<String> methods = new LinkedList<String>();
+
+	@XmlElement(name="method")
+	@XmlElementWrapper(name="methods")
+	public List<String> getMethods() {
+		return methods;
+	}
 }

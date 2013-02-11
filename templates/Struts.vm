@@ -1,0 +1,44 @@
+#macro(generateActionServlet $servlet)
+#set($classname = $servlet.clazz)
+public class $classname {
+##    static void <clinit>()
+##    {
+##        <com.beo.generated.com.beo.generated.com.beo.atlas.struts.SumaViewActionServlet: com.beo.generated.com.beo.atlas.struts.SumaViewActionServlet instance> = null;
+##    }
+
+  public void <init>()
+  {
+    $classname r0;
+
+    r0 := @this: $classname;
+    specialinvoke r0.<java.lang.Object: void <init>()>();
+  }
+
+  public void init(javax.servlet.ServletConfig)
+  {
+    r0 := @this: $classname;
+  }
+
+  public void service(javax.servlet.http.HttpServletRequest, javax.servlet.http.HttpServletResponse)
+  {
+    r0 := @this: $classname;
+  }
+
+  public void destroy()
+  {
+    r0 := @this: $classname;
+  }
+}
+#end
+
+#macro(processActionServlets)
+#foreach($servlet in $root.servlets)
+#if(${servlet.class.simpleName} == "ActionServlet")
+#set( $fileContents = "#generateActionServlet($servlet)" )  
+#set( $fileName = $output-dir + "/" + $servlet.clazz + ".jimple" )
+$FileTool.fileWrite($fileName, $fileContents)
+#end
+#end
+#end
+
+#processActionServlets()

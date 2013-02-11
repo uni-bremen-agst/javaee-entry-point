@@ -53,7 +53,7 @@ public class StrutsServletDetector extends AbstractServletDetector {
 						LOG.info("Found configuration file {}.", xmlFile);
 						try {
 							final InputStream inputStream = fileLoader.getInputStream(xmlFile);
-							new StrutsReader(web, inputStream).readStrutsConfig();
+							new StrutsReader(options, web, inputStream).readStrutsConfig();
 						} catch(final IOException e) {
 							LOG.error("Unable to load configuration file.", e);
 						}
@@ -71,6 +71,6 @@ public class StrutsServletDetector extends AbstractServletDetector {
 
 	@Override
 	public String getTemplateFile() {
-		return null;
+		return "soot/jimple/toolkits/javaee/templates/Struts.vm";
 	}
 }
