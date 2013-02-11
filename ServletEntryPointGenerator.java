@@ -91,13 +91,15 @@ public class ServletEntryPointGenerator extends SceneTransformer implements Http
 	 *   
 	 * @todo Implement proper war support for locator.
 	 */
-	private void loadWebXML() {
+	private void loadWebXML(@SuppressWarnings("rawtypes") final Map options) {
 		if(considerAllServlets) {
 			for(final ServletDetector dector : servletDetectors) {
+				dector.setOptions(options);
 				dector.detectFromSource(web);
 			}
 		} else {
 			for(final ServletDetector dector : servletDetectors) {
+				dector.setOptions(options);
 				dector.detectFromConfig(web);
 			}
 		}
@@ -109,9 +111,9 @@ public class ServletEntryPointGenerator extends SceneTransformer implements Http
 		LOG.info("Running " + phaseName);
 		
 		considerAllServlets = PhaseOptions.getBoolean(options, "consider-all-servlets");
-		
-		loadWebXML();
-		
+
+		loadWebXML(options);
+
 		final String modelDestination = PhaseOptions.getString(options, "dump-model");
 		if(!modelDestination.isEmpty()) {
 			storeModel(modelDestination);
@@ -128,7 +130,7 @@ public class ServletEntryPointGenerator extends SceneTransformer implements Http
 			LOG.error("Error while calling Java code from template.");
 			e.printStackTrace();
 		}
-		
+
 		LOG.info("Loading main class.");
 		final SootClass sootClass = scene.forceResolve(PhaseOptions.getString(options, "root-package") + "." + PhaseOptions.getString(options, "main-class"), SootClass.BODIES);
 		scene.setMainClass(sootClass);
@@ -172,6 +174,7 @@ public class ServletEntryPointGenerator extends SceneTransformer implements Http
 			final InputStreamReader reader = new InputStreamReader(input); 
 
 			try {
+				LOG.info("Processing template {}.", templateFile);
 				if (!engine.evaluate(context, new NullWriter(), templateFile, reader)) {
 					LOG.error("Failed to process template " + templateFile);
 				}
