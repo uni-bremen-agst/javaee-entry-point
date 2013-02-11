@@ -126,7 +126,13 @@ public class $classname extends java.lang.Object
         r0 := @parameter0: javax.servlet.http.HttpServletRequest;
         r1 := @parameter1: javax.servlet.http.HttpServletResponse;
         $r2 = <$classname: $servlet.clazz instance>;
-        virtualinvoke $r2.<javax.servlet.http.HttpServlet: void service(javax.servlet.ServletRequest, javax.servlet.ServletResponse)>(r0, r1);
+        virtualinvoke $r2.<$servlet.clazz: void doGet(javax.servlet.http.HttpServletRequest, javax.servlet.http.HttpServletResponse)>(r0, r1);
+        virtualinvoke $r2.<$servlet.clazz: void doHead(javax.servlet.http.HttpServletRequest, javax.servlet.http.HttpServletResponse)>(r0, r1);
+        virtualinvoke $r2.<$servlet.clazz: void doPost(javax.servlet.http.HttpServletRequest, javax.servlet.http.HttpServletResponse)>(r0, r1);
+        virtualinvoke $r2.<$servlet.clazz: void doPut(javax.servlet.http.HttpServletRequest, javax.servlet.http.HttpServletResponse)>(r0, r1);
+        virtualinvoke $r2.<$servlet.clazz: void doDelete(javax.servlet.http.HttpServletRequest, javax.servlet.http.HttpServletResponse)>(r0, r1);
+        virtualinvoke $r2.<$servlet.clazz: void doOptions(javax.servlet.http.HttpServletRequest, javax.servlet.http.HttpServletResponse)>(r0, r1);
+        virtualinvoke $r2.<$servlet.clazz: void doTrace(javax.servlet.http.HttpServletRequest, javax.servlet.http.HttpServletResponse)>(r0, r1);
     }
 
     public static void destroy()
