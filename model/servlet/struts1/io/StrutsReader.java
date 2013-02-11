@@ -23,6 +23,8 @@ import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
+
+import soot.SourceLocator;
 import soot.jimple.toolkits.javaee.model.servlet.Web;
 import soot.jimple.toolkits.javaee.model.servlet.struts1.ActionForward;
 import soot.jimple.toolkits.javaee.model.servlet.struts1.ActionServlet;
@@ -128,6 +130,11 @@ public class StrutsReader {
 				continue;
 			}
 			
+			if(SourceLocator.v().getClassSource(type) == null) {
+				LOG.warn("Failed to resolve class " + type + " - Skipping.");
+				continue;
+			}
+
 			servlet.setName(type); // set unique name to type name
 			servlet.setClazz(type);
 			servlet.setScope(scope);
@@ -222,6 +229,11 @@ public class StrutsReader {
 			if(formbean.getClazz() == null || formbean.getClazz().isEmpty()) {
 				LOG.warn("Found form bean {} without type - Skipping.", formbean.getName());
 				continue;
+			} else {
+				if(SourceLocator.v().getClassSource(formbean.getClazz()) == null) {
+					LOG.warn("Failed to resolve form bean class " + formbean.getClazz() + " - Skipping.");
+					continue;
+				}
 			}
 
 			final NodeList beanChildren = node.getChildNodes();
