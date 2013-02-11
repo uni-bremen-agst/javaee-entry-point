@@ -53,7 +53,7 @@ public class StrutsServletDetector extends AbstractServletDetector {
 						LOG.info("Found configuration file {}.", xmlFile);
 						try {
 							final InputStream inputStream = fileLoader.getInputStream(xmlFile);
-							StrutsReader.readStrutsConfig(web, inputStream);
+							new StrutsReader(web, inputStream).readStrutsConfig();
 						} catch(final IOException e) {
 							LOG.error("Unable to load configuration file.", e);
 						}

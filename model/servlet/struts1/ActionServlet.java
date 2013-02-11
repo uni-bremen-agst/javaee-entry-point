@@ -53,4 +53,15 @@ public class ActionServlet extends Servlet {
 	public List<ActionForward> getForwards() {
 		return forwards;
 	}
+	
+	private FormBean formBean;
+	
+	@XmlElement
+	public FormBean getFormBean() {
+		return formBean;
+	}
+	
+	public void setFormBean(final FormBean formBean) {
+		this.formBean = formBean;
+	}
 }

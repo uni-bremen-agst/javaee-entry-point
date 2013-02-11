@@ -2,6 +2,10 @@ package soot.jimple.toolkits.javaee.model.servlet.struts1.io;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -31,39 +35,76 @@ import soot.jimple.toolkits.javaee.model.servlet.struts1.FormProperty;
  * @author Bernhard Berger
  */
 public class StrutsReader {
-	private final static Logger LOG = LoggerFactory
-			.getLogger(StrutsReader.class);
+	/**
+	 * Logger.
+	 */
+	private final static Logger LOG = LoggerFactory.getLogger(StrutsReader.class);
 
-	public static void readStrutsConfig(final Web web,
-			final InputStream configFileStream) {
+	/**
+	 * The web instance we are going to populate.
+	 */
+	private final Web web;
+	
+	/**
+	 * The input stream of the configuration file.
+	 */
+	private final InputStream configFileStream;
+	
+	public StrutsReader(final Web web, final InputStream configFileStream) {
+		this.web = web;
+		this.configFileStream = configFileStream;
+	}
+	
+	/**
+	 * Maps a form bean name to its form bean.
+	 */
+	private final Map<String, FormBean> formBeanMapping = new HashMap<String, FormBean>();
+	
+	/**
+	 * XML document.
+	 */
+	private Document doc;
+	
+	/**
+	 * XPath factory.
+	 */
+	private final XPathFactory factory = XPathFactory.newInstance();
+	
+	/**
+	 * XPath.
+	 */
+	private final XPath xpath = factory.newXPath();
+	
+	/**
+	 * Reads the configuration file and adds all information to {@code web}.
+	 */
+	public void readStrutsConfig() {
 		try {
-			DocumentBuilderFactory domFactory = DocumentBuilderFactory
-					.newInstance();
+			final DocumentBuilderFactory domFactory = DocumentBuilderFactory.newInstance();
 			domFactory.setNamespaceAware(true); // never forget this!
-			DocumentBuilder builder = domFactory.newDocumentBuilder();
-			Document doc = builder.parse(configFileStream);
+			final DocumentBuilder builder = domFactory.newDocumentBuilder();
+			doc = builder.parse(configFileStream);
 
-			readFormBeans(doc, web);
-			readGlobalForwards(doc, web);
-			readActions(doc, web);
+			readFormBeans();
+			readGlobalForwards();
+			readActions();
 
 		} catch (final ParserConfigurationException e) {
-
+			LOG.error("Unable to create DOM.", e);
 		} catch (SAXException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			LOG.error("Unable to parse XML.", e);
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			LOG.error("Unable to read file.", e);
 		} catch (final XPathExpressionException e) {
-			e.printStackTrace();
+			LOG.error("Unable to create XPath expression.", e);
 		}
 	}
 
-	private static void readActions(Document doc, Web web) throws XPathExpressionException {
-		final XPathFactory factory = XPathFactory.newInstance();
-		final XPath xpath = factory.newXPath();
-		final XPathExpression actionExpr = xpath.compile("//action-mappings/action");
+	/**
+	 * Reads all actions from {@link doc} and stores them in {@link web}.
+	 */
+	private void readActions() throws XPathExpressionException {
+		final XPathExpression actionExpr = xpath.compile("//struts-config/action-mappings/action");
 
 		final NodeList actionNodes = (NodeList) actionExpr.evaluate(doc, XPathConstants.NODESET);
 
@@ -71,16 +112,27 @@ public class StrutsReader {
 			final Element actionNode = (Element) actionNodes.item(i);
 			final ActionServlet servlet = new ActionServlet();
 			
-			String path = actionNode.getAttribute("path");
-			String type = actionNode.getAttribute("type");
-			String name = actionNode.getAttribute("name");
-			String scope = actionNode.getAttribute("scope");
-			String validate = actionNode.getAttribute("validate");
+			final String path = actionNode.getAttribute("path");
+			final String type = actionNode.getAttribute("type");
+			final String name = actionNode.getAttribute("name");
+			final String scope = actionNode.getAttribute("scope");
+			final String validate = actionNode.getAttribute("validate");
 			
-			servlet.setName(name);
+			if(type == null || type.isEmpty()) {
+				LOG.warn("Action for path {} has no type - Skipping.", path);
+				continue;
+			}
+			
+			if(path == null || path.isEmpty()) {
+				LOG.warn("Action {} has no associated path - Skipping.", type);
+				continue;
+			}
+			
+			servlet.setName(type); // set unique name to type name
 			servlet.setClazz(type);
 			servlet.setScope(scope);
 			servlet.setValidate(validate.toLowerCase().equals("true"));
+			servlet.setFormBean(formBeanMapping.get(name));
 			
 			if(actionNode.hasAttribute("parameter")) {
 				servlet.setParameter(actionNode.getAttribute("parameter"));
@@ -89,46 +141,71 @@ public class StrutsReader {
 			web.getServlets().add(servlet);
 			web.bindServlet(servlet, path);	
 			
-			final NodeList children = actionNode.getChildNodes();
-			for(int j = 0; j < children.getLength(); ++j) {
-				if(!(children.item(j) instanceof Element)) {
-					continue;
+			servlet.getForwards().addAll(globalForwards);
+			readForwards(actionNode, servlet.getForwards());
+		}
+	}
+
+	/**
+	 * Read all forwards from {@code node} and stores them in {@code forwads}.
+	 * 
+	 * @param node The DOM node containing forwards.
+	 * @param forwards The target for the forwards.
+	 */
+	private void readForwards(final Element actionNode, final List<ActionForward> forwards) {
+		final NodeList children = actionNode.getChildNodes();
+		for(int j = 0; j < children.getLength(); ++j) {
+			if(!(children.item(j) instanceof Element)) {
+				continue;
+			}
+			
+			final Element child = (Element)children.item(j);
+			if(child.getNodeName().equals("forward")) {
+				final ActionForward forward = new ActionForward();
+				forward.setName(child.getAttribute("name"));
+				
+				// forward may consist of an destination and additional parameters
+				final String [] dest = child.getAttribute("path").split("\\?");				
+				
+				forward.setDestination(web.resolveAddress(dest[0]));
+				if(dest.length > 1) {
+					forward.setParameter(dest[1]);
 				}
 				
-				final Element child = (Element)children.item(j);
-				if(child.getNodeName().equals("forward")) {
-					ActionForward forward = new ActionForward();
-					forward.setName(child.getAttribute("name"));
-					
-					String [] dest = child.getAttribute("path").split("\\?");
-					
-					forward.setDestination(web.resolveAddress(dest[0]));
-					if(dest.length > 1) {
-						forward.setParameter(dest[1]);
-					}
-					
-					servlet.getForwards().add(forward);
-				} else {
-					LOG.warn("Found child with unknown name {}.", child.getNodeName());
-				}
+				forwards.add(forward);
+			} else {
+				LOG.warn("Found child with unknown name {}.", child.getNodeName());
 			}
 		}
 	}
 
-	private static void readGlobalForwards(Document doc, Web web) {
-		// TODO Auto-generated method stub
+	/**
+	 * List of all global forwards.
+	 */
+	private final List<ActionForward> globalForwards = new LinkedList<ActionForward>();
 
+	/**
+	 * Reads all global forward entries and stores them in {@link #globalForwards}.
+	 */
+	private void readGlobalForwards() throws XPathExpressionException {
+		final XPathExpression globalForwardExpr = xpath.compile("//struts-config/global-forwards");
+
+		final NodeList globalForwardNodes = (NodeList) globalForwardExpr.evaluate(doc, XPathConstants.NODESET);
+
+		for (int i = 0; i < globalForwardNodes.getLength(); i++) {
+			final Element globalForwardNode = (Element) globalForwardNodes.item(i);
+			
+			readForwards(globalForwardNode, globalForwards);
+		}
 	}
 
-	private static void readFormBeans(final Document doc, final Web web)
-			throws XPathExpressionException {
-		final XPathFactory factory = XPathFactory.newInstance();
-		final XPath xpath = factory.newXPath();
-		final XPathExpression listenerExpr = xpath
-				.compile("//struts-config/form-beans/form-bean");
+	/**
+	 * Reads all form beans and stores them in {@link #formBeanMapping}.
+	 */
+	private void readFormBeans() throws XPathExpressionException {
+		final XPathExpression listenerExpr = xpath.compile("//struts-config/form-beans/form-bean");
 
-		final NodeList formBeanNodes = (NodeList) listenerExpr.evaluate(doc,
-				XPathConstants.NODESET);
+		final NodeList formBeanNodes = (NodeList) listenerExpr.evaluate(doc, XPathConstants.NODESET);
 
 		for (int i = 0; i < formBeanNodes.getLength(); i++) {
 			final Element node = (Element) formBeanNodes.item(i);
@@ -136,6 +213,16 @@ public class StrutsReader {
 			final FormBean formbean = new FormBean();
 			formbean.setName(node.getAttribute("name"));
 			formbean.setClazz(node.getAttribute("type"));
+			
+			if(formbean.getName() == null || formbean.getName().isEmpty()) {
+				LOG.warn("Found form bean without name - Skipping.");
+				continue;
+			}
+
+			if(formbean.getClazz() == null || formbean.getClazz().isEmpty()) {
+				LOG.warn("Found form bean {} without type - Skipping.", formbean.getName());
+				continue;
+			}
 
 			final NodeList beanChildren = node.getChildNodes();
 			for (int j = 0; j < beanChildren.getLength(); ++j) {
@@ -155,6 +242,8 @@ public class StrutsReader {
 					LOG.warn("Unknown node type {}.", element.getNodeName());
 				}
 			}
+			
+			formBeanMapping.put(formbean.getName(), formbean);
 		}
 	}
 }

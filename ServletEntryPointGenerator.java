@@ -157,7 +157,7 @@ public class ServletEntryPointGenerator extends SceneTransformer implements Http
 		context.put("servlet-request-impl", PhaseOptions.getString(options, "servlet-request-class"));
 		context.put("servlet-response-impl", PhaseOptions.getString(options, "servlet-response-class"));
 		
-	    final InputStream input = getClass().getClassLoader().getResourceAsStream("soot/jimple/toolkits/javaee/templates/root.vm");
+	    final InputStream input = getClass().getClassLoader().getResourceAsStream("soot/jimple/toolkits/javaee/templates/HttpServlet.vm");
 	    if (input == null) {
 	        throw new RuntimeException("Template file doesn't exist");           
 	    }

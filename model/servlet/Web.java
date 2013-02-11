@@ -12,6 +12,9 @@ import javax.xml.bind.annotation.XmlElementRefs;
 import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import soot.jimple.toolkits.javaee.model.servlet.struts1.ActionServlet;
 
 /**
@@ -21,6 +24,8 @@ import soot.jimple.toolkits.javaee.model.servlet.struts1.ActionServlet;
  */
 @XmlRootElement( namespace = "http://informatik.uni-bremen.de/st/javaee/servlet" ) 
 public class Web {
+	private final static Logger LOG = LoggerFactory.getLogger(Web.class);
+	
 	private Address root = new Address();
 	
 	private Set<Filter> filters = new TreeSet<Filter>(new NamedElementComparator<Filter>());
@@ -84,6 +89,7 @@ public class Web {
 	}
 
 	public void bindServlet(Servlet servlet, String url) {
+		LOG.info("Bindung {} to {}.", url, servlet);
         // TODO I think we need to filter for handled servlets, such as struts actions etc
         Address address = resolveAddress(url);
         
