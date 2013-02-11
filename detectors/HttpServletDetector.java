@@ -85,4 +85,9 @@ public class HttpServletDetector extends AbstractServletDetector implements Http
 		
 		web.bindServlet(servlet, "/" + clazz.getName());
 	}
+
+	@Override
+	public String getTemplateFile() {
+		return "soot/jimple/toolkits/javaee/templates/HttpServlet.vm";
+	}
 }

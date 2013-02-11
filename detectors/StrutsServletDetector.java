@@ -68,4 +68,9 @@ public class StrutsServletDetector extends AbstractServletDetector {
 	public List<Class<?>> getModelExtensions() {
 		return (List<Class<?>>)(List<?>)Collections.singletonList(ActionServlet.class);
 	}
+
+	@Override
+	public String getTemplateFile() {
+		return null;
+	}
 }

@@ -40,4 +40,11 @@ public interface ServletDetector {
 	 * @param web The web instance where the servlets have to be registered. 
 	 */
 	public void detectFromConfig(final Web web);
+
+	/**
+	 * Returns the name of the template file.
+	 *
+	 * @return Name of the template file.
+	 */
+	public String getTemplateFile();
 }

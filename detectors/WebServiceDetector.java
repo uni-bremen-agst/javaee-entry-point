@@ -324,4 +324,9 @@ public class WebServiceDetector extends AbstractServletDetector implements
 		return Collections.emptyList();
 	}
 
+	@Override
+	public String getTemplateFile() {
+		return null;
+	}
+
 }

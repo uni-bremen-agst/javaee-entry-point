@@ -144,29 +144,44 @@ public class ServletEntryPointGenerator extends SceneTransformer implements Http
 		engine.setProperty("class.resource.loader.class", "org.apache.velocity.runtime.resource.loader.ClasspathResourceLoader");
 		
 		engine.init();
-				
-		final VelocityContext context = new VelocityContext();
 
-		context.put("root", web);
-		context.put("root-package", PhaseOptions.getString(options, "root-package"));
-		context.put("main-class", PhaseOptions.getString(options, "main-class"));
-		context.put("output-dir", PhaseOptions.getString(options, "output-dir"));	
-		context.put("FileTool", FileTool.class);
-		context.put("filter-config-impl", PhaseOptions.getString(options, "filter-config-class"));
-		context.put("servlet-config-impl", PhaseOptions.getString(options, "servlet-config-class"));
-		context.put("servlet-request-impl", PhaseOptions.getString(options, "servlet-request-class"));
-		context.put("servlet-response-impl", PhaseOptions.getString(options, "servlet-response-class"));
-		
-	    final InputStream input = getClass().getClassLoader().getResourceAsStream("soot/jimple/toolkits/javaee/templates/HttpServlet.vm");
-	    if (input == null) {
-	        throw new RuntimeException("Template file doesn't exist");           
-	    }
+		for(final ServletDetector detector : servletDetectors) {
+			final String templateFile = detector.getTemplateFile();
 
-	    final InputStreamReader reader = new InputStreamReader(input); 
+			if(templateFile == null) {
+				continue; // skip if there is no template
+			}
+			final VelocityContext context = new VelocityContext();
 
-        if (!engine.evaluate(context, new NullWriter(), "root", reader)) {
-            throw new RuntimeException("Failed to convert the template into html.");
-        }
+			context.put("root", web);
+			context.put("root-package", PhaseOptions.getString(options, "root-package"));
+			context.put("main-class", PhaseOptions.getString(options, "main-class"));
+			context.put("output-dir", PhaseOptions.getString(options, "output-dir"));
+			context.put("FileTool", FileTool.class);
+			context.put("filter-config-impl", PhaseOptions.getString(options, "filter-config-class"));
+			context.put("servlet-config-impl", PhaseOptions.getString(options, "servlet-config-class"));
+			context.put("servlet-request-impl", PhaseOptions.getString(options, "servlet-request-class"));
+			context.put("servlet-response-impl", PhaseOptions.getString(options, "servlet-response-class"));
+
+			final InputStream input = getClass().getClassLoader().getResourceAsStream(templateFile);
+			if (input == null) {
+				LOG.error("Cannot open template '{}' - Skipping.", templateFile);
+			}
+
+			final InputStreamReader reader = new InputStreamReader(input); 
+
+			try {
+				if (!engine.evaluate(context, new NullWriter(), templateFile, reader)) {
+					LOG.error("Failed to process template " + templateFile);
+				}
+			} catch(final ParseErrorException e) {
+				LOG.error("Failed to parse template " + templateFile, e);
+			} catch(final MethodInvocationException e) {
+				LOG.error("Failed to call java method in template " + templateFile, e);
+			} catch(final ResourceNotFoundException e) {
+				LOG.error("Failed to find a resource in template " + templateFile, e);
+			}
+		}
 	}
 
 	/**
