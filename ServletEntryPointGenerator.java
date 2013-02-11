@@ -166,6 +166,7 @@ public class ServletEntryPointGenerator extends SceneTransformer implements Http
 			final InputStream input = getClass().getClassLoader().getResourceAsStream(templateFile);
 			if (input == null) {
 				LOG.error("Cannot open template '{}' - Skipping.", templateFile);
+				continue;
 			}
 
 			final InputStreamReader reader = new InputStreamReader(input); 
