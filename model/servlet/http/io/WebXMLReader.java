@@ -92,76 +92,74 @@ public class WebXMLReader {
 	 * Reads the filter settings and their mappings.
 	 */
 	private static void readFilters(final Document doc, final Web web) throws XPathException {
-	    final XPathFactory factory = XPathFactory.newInstance();
-	    final XPath xpath = factory.newXPath();
-	    final XPathExpression filterExpr = xpath.compile("//web-app/filter");
+		final XPathFactory factory = XPathFactory.newInstance();
+		final XPath xpath = factory.newXPath();
+		final XPathExpression filterExpr = xpath.compile("//web-app/filter");
 
-	    final NodeList filterNodes = (NodeList)filterExpr.evaluate(doc, XPathConstants.NODESET);
+		final NodeList filterNodes = (NodeList)filterExpr.evaluate(doc, XPathConstants.NODESET);
 
-	    for (int i = 0; i < filterNodes.getLength(); i++) {
-	        final Element node = (Element)filterNodes.item(i);
-	        
-	        final NodeList children = node.getChildNodes();
-	        
-	        Filter  filter = new Filter();
-	        for(int j = 0; j < children.getLength(); j++) {
-	        	if(!(children.item(j) instanceof Element)) {
-	        		continue;
-	        	}
-	        	final Element child = (Element) children.item(j);
-	        	
-	        	final String attrName  = child.getNodeName();
-	        	final String attrValue = child.getFirstChild().getNodeValue();
-	        	
-	        	if(attrName.equals("filter-name")) {
-	        		filter.setName(attrValue);
-	        	} else if(attrName.equals("filter-class")) {
-	        		filter.setClazz(attrValue);
-	        	} else {
-	        		LOG.warn("Unknown filter attribute {}.", attrName);
-	        	}
-	        }
-	        
-	        web.getFilters().add(filter);
-	        
-	        // check validity
-	        if(filter.getName() == null || filter.getClazz() == null) {
-	        	LOG.error("Filter not configured correctly {}.", filter);
-	        }
-	    }
-	    
-	    final XPathExpression filterMappingExpr = xpath.compile("//web-app/filter-mapping");
-	    
-	    final NodeList mappingNodes = (NodeList)filterMappingExpr.evaluate(doc, XPathConstants.NODESET);
+		for (int i = 0; i < filterNodes.getLength(); i++) {
+			final Element node = (Element)filterNodes.item(i);
+			final NodeList children = node.getChildNodes();
 
-	    for (int i = 0; i < mappingNodes.getLength(); i++) {
-	        final Element node = (Element)mappingNodes.item(i);
-	        
-	        final NodeList children = node.getChildNodes();
-	        final FilterMapping mapping = new FilterMapping();
-	        
-	        for(int j = 0; j < children.getLength(); j++) {
-	        	if(!(children.item(j) instanceof Element)) {
-	        		continue;
-	        	}
-	        	final Element child = (Element) children.item(j);
-	        	
-	        	final String attrName  = child.getNodeName();
-	        	final String attrValue = child.getFirstChild().getNodeValue();
-	        	
-	        	if(attrName.equals("filter-name")) {
-	        		mapping.setFilter(web.getFilter(attrValue));
-	        	} else if(attrName.equals("url-pattern")) {
-	        		mapping.setURLPattern(attrValue.replace("*", ".*"));
-	        	} else {
-	        		LOG.warn("Unknown filter-mapping attribute {}.", attrName);
-	        	}
-	        }
-	        
-	        web.getFilterMappings().add(mapping);
-	        LOG.info("Found filter mapping {}.", mapping);
-	    }
-	    
+			final Filter  filter = new Filter();
+			for(int j = 0; j < children.getLength(); j++) {
+				if(!(children.item(j) instanceof Element)) {
+					continue;
+				}
+
+				final Element child = (Element) children.item(j);
+				final String attrName  = child.getNodeName();
+				final String attrValue = child.getFirstChild().getNodeValue();
+
+				if(attrName.equals("filter-name")) {
+					filter.setName(attrValue);
+				} else if(attrName.equals("filter-class")) {
+					filter.setClazz(attrValue);
+				} else if(attrName.equals("display-name") || attrName.equals("description")) {
+					// ignore
+				} else {
+					LOG.warn("Unknown filter attribute {}.", attrName);
+				}
+			}
+
+			web.getFilters().add(filter);
+
+			// check validity
+			if(filter.getName() == null || filter.getClazz() == null) {
+				LOG.error("Filter not configured correctly {}.", filter);
+			}
+		}
+
+		final XPathExpression filterMappingExpr = xpath.compile("//web-app/filter-mapping");
+		final NodeList mappingNodes = (NodeList)filterMappingExpr.evaluate(doc, XPathConstants.NODESET);
+
+		for (int i = 0; i < mappingNodes.getLength(); i++) {
+			final Element node = (Element)mappingNodes.item(i);
+			final NodeList children = node.getChildNodes();
+			final FilterMapping mapping = new FilterMapping();
+
+			for(int j = 0; j < children.getLength(); j++) {
+				if(!(children.item(j) instanceof Element)) {
+					continue;
+				}
+
+				final Element child = (Element) children.item(j);
+				final String attrName  = child.getNodeName();
+				final String attrValue = child.getFirstChild().getNodeValue();
+
+				if(attrName.equals("filter-name")) {
+					mapping.setFilter(web.getFilter(attrValue));
+				} else if(attrName.equals("url-pattern")) {
+					mapping.setURLPattern(attrValue.replace("*", ".*"));
+				} else {
+					LOG.warn("Unknown filter-mapping attribute {}.", attrName);
+				}
+			}
+
+			web.getFilterMappings().add(mapping);
+			LOG.info("Found filter mapping {}.", mapping);
+		}
 	}
 
 	/**
