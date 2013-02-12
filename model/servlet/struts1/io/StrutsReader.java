@@ -160,20 +160,16 @@ public class StrutsReader {
 			// scan for methods
 			SootClass actionClass = Scene.v().forceResolve(type, SootClass.SIGNATURES);
 			for(final SootMethod method : actionClass.getMethods()) {
-				if(!method.isPublic()) {
-					continue;
-				}
-
-				if(!method.getReturnType().toString().equals("org.apache.struts.action.ActionForward")) {
-					continue;
-				}
-
-				if(!method.getReturnType().toString().equals("org.apache.struts.action.ActionForward")) {
-					continue;
-				}
-
-				if(!method.getReturnType().toString().equals("org.apache.struts.action.ActionForward")) {
-					continue;
+				final FormBean formbean = servlet.getFormBean();
+				if(method.isPublic()
+						&& method.getParameterCount() == 4
+						&& method.getReturnType().toString().equals("org.apache.struts.action.ActionForward")
+						&& method.getParameterType(0).toString().equals("org.apache.struts.action.ActionMapping")
+						&& (method.getParameterType(1).toString().equals("org.apache.struts.action.ActionForm")
+								|| (formbean != null && method.getParameterType(1).toString().equals(formbean.getClazz())))
+						&& method.getParameterType(2).toString().equals("javax.servlet.http.HttpServletRequest")
+						&& method.getParameterType(3).toString().equals("javax.servlet.http.HttpServletResponse")) {
+					servlet.getMethods().add(method.getSubSignature());
 				}
 			}
 
