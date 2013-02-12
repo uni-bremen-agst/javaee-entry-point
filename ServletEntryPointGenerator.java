@@ -226,7 +226,6 @@ public class ServletEntryPointGenerator extends SceneTransformer implements Http
 			}
 		} catch(JAXBException e) {
 			LOG.error("Unable to dump model to {}", modelName, e);
-			LOG.error(e.toString());
 		}
 	}
 	
