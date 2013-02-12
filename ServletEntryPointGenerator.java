@@ -176,14 +176,14 @@ public class ServletEntryPointGenerator extends SceneTransformer implements Http
 			try {
 				LOG.info("Processing template {}.", templateFile);
 				if (!engine.evaluate(context, new NullWriter(), templateFile, reader)) {
-					LOG.error("Failed to process template " + templateFile);
+					LOG.error("Failed to process template {}", templateFile);
 				}
 			} catch(final ParseErrorException e) {
-				LOG.error("Failed to parse template " + templateFile, e);
+				LOG.error("Failed to parse template {}", templateFile, e);
 			} catch(final MethodInvocationException e) {
-				LOG.error("Failed to call java method in template " + templateFile, e);
+				LOG.error("Failed to call java method in template {}", templateFile, e);
 			} catch(final ResourceNotFoundException e) {
-				LOG.error("Failed to find a resource in template " + templateFile, e);
+				LOG.error("Failed to find a resource in template {}", templateFile, e);
 			}
 		}
 	}
@@ -221,11 +221,11 @@ public class ServletEntryPointGenerator extends SceneTransformer implements Http
 			  try {
 				  writer.close();
 			  } catch ( Exception e ) {
-				  LOG.error("Unable to dump model to " + modelName);
+				  LOG.error("Unable to dump model to {}", modelName, e);
 			  } 
 			}
 		} catch(JAXBException e) {
-			LOG.error("Unable to dump model to " + modelName);
+			LOG.error("Unable to dump model to {}", modelName, e);
 			LOG.error(e.toString());
 		}
 	}
