@@ -17,12 +17,14 @@ import soot.G;
 import soot.IntType;
 import soot.Local;
 import soot.LongType;
+import soot.Modifier;
 import soot.PhaseOptions;
 import soot.PrimType;
 import soot.Printer;
 import soot.RefType;
 import soot.Scene;
 import soot.SootClass;
+import soot.SootField;
 import soot.SootMethod;
 import soot.Type;
 import soot.Unit;
@@ -46,7 +48,9 @@ import soot.util.EscapedWriter;
 public class WebServiceDetector extends AbstractServletDetector implements
 		HttpServletSignatures {
 
-	/**
+	public static final String GENERATED_CLASS_NAME = "WSCaller";
+
+    /**
 	 * For creation of jimple nodes.
 	 */
 	private final Jimple jimple = Jimple.v();
@@ -222,9 +226,22 @@ public class WebServiceDetector extends AbstractServletDetector implements
     @SuppressWarnings("deprecation")
     private SootClass synthetizeWSServlet(String methodName, List<Type> parameterTypes, boolean isStatic) {
         JimpleClassGenerator classGen = new JimpleClassGenerator(PhaseOptions.getString(options, "root-package")
-                + ".WSCaller", HTTP_SERVLET_CLASS_NAME, true);
+                + "." + GENERATED_CLASS_NAME, HTTP_SERVLET_CLASS_NAME, true);
         final SootClass clazz = classGen.getClazz();
 
+        final JimpleBodyGenerator staticInit = classGen.method("<clinit>", Collections.<Type> emptyList(), VoidType.v());
+        
+        Map<SootClass, SootField> generatedFields = new HashMap<SootClass, SootField>();
+        for (SootClass sc : wsClasses) {
+            SootField sf = classGen.field("ws"+sc.getShortName(), sc);
+            generatedFields.put(sc, sf);
+            sf.setModifiers(Modifier.STATIC | Modifier.FINAL | Modifier.PUBLIC);
+            Local sfLocal = staticInit.local(false, sc.getType());
+            staticInit.createInstance(sfLocal, sc);
+            staticInit.getUnits().addLast(jimple.newInvokeStmt(jimple.newSpecialInvokeExpr(
+                    sfLocal, sc.getMethod("void <init>()").makeRef())));
+        }
+        
         // create default constructor
         final JimpleBodyGenerator constructor = classGen.method("<init>",
                 Collections.<Type> emptyList(), VoidType.v());
@@ -255,16 +272,23 @@ public class WebServiceDetector extends AbstractServletDetector implements
                 jimple.newParameterRef(parameterTypes.get(1), 1)));
 
         // Construct the instances
-        for (SootClass sc : wsClasses) {
+/*        for (SootClass sc : wsClasses) {
             final Local newLocal = serviceMethod.local(false, sc.getType());
             generatedLocals.put(sc, newLocal);
             serviceMethod.createInstance(newLocal, sc);
             units.add(jimple.newInvokeStmt(jimple.newSpecialInvokeExpr(
                     newLocal, sc.getMethod("void <init>()").makeRef())));
         }
+*/
 
-        final RefType stringType = Scene.v().getSootClass("java.lang.String")
-                .getType();
+        for (SootClass sc : wsClasses) {
+            final Local newLocal = serviceMethod.local(false, sc.getType());
+            generatedLocals.put(sc, newLocal);
+            serviceMethod.createInstance(newLocal, sc);
+            units.add(jimple.newAssignStmt(newLocal, jimple.newStaticFieldRef(generatedFields.get(sc).makeRef())));
+        }
+        
+        final RefType stringType = Scene.v().getSootClass("java.lang.String").getType();
 
         // Add the calls to the WS methods
         // TODO we need to figure out the parameters and get them from the
