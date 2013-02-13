@@ -108,10 +108,14 @@ public class ServletEntryPointGenerator extends SceneTransformer implements Http
 	@Override
 	protected void internalTransform(final String phaseName, @SuppressWarnings("rawtypes") final Map options) {
 		// configure logging		
-		LOG.info("Running " + phaseName);
-		
+		LOG.info("Running {}", phaseName);
+
+		final boolean wsOnly = PhaseOptions.getBoolean(options, "wsonly");
 		considerAllServlets = PhaseOptions.getBoolean(options, "consider-all-servlets");
 
+		if (wsOnly){
+		    processWs(options);
+		} else {
 		loadWebXML(options);
 
 		final String modelDestination = PhaseOptions.getString(options, "dump-model");
@@ -121,7 +125,10 @@ public class ServletEntryPointGenerator extends SceneTransformer implements Http
 
 		try {
 			LOG.info("Processing templates");
-			processTemplate(options);
+		    processTemplate(options);
+		    final SootClass sootClass = scene.forceResolve(PhaseOptions.getString(options, "root-package") + "." + PhaseOptions.getString(options, "main-class"), SootClass.BODIES);
+		    scene.setMainClass(sootClass);
+	        LOG.info("Loading main class.");
 		} catch(final ResourceNotFoundException e) {
 			LOG.error("Could not find template file.");
 		} catch(final ParseErrorException e) {
@@ -130,13 +137,14 @@ public class ServletEntryPointGenerator extends SceneTransformer implements Http
 			LOG.error("Error while calling Java code from template.");
 			e.printStackTrace();
 		}
+		}
 
-		LOG.info("Loading main class.");
-		final SootClass sootClass = scene.forceResolve(PhaseOptions.getString(options, "root-package") + "." + PhaseOptions.getString(options, "main-class"), SootClass.BODIES);
-		scene.setMainClass(sootClass);
+
 	}
 
-	/**
+
+
+    /**
 	 * Processes all templates.
 	 */
 	private void processTemplate(@SuppressWarnings("rawtypes") final Map options) {
@@ -187,6 +195,17 @@ public class ServletEntryPointGenerator extends SceneTransformer implements Http
 			}
 		}
 	}
+	
+	   private void processWs(Map options) {
+	        WebServiceDetector detector = new WebServiceDetector();
+	        detector.setOptions(options);
+	        SootClass sc = detector.detectFromSource();
+	        if (sc != null){
+	            //set as main class
+	            final SootClass sootClass = scene.forceResolve(sc.getName(), SootClass.BODIES);
+	            scene.setMainClass(sootClass);
+	        }
+	    }
 
 	/**
 	 * Stores the model into a file name {@code modelName}.
