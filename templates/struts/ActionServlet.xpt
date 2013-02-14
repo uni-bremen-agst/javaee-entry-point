@@ -1,0 +1,62 @@
+«IMPORT soot::jimple::toolkits::javaee::model::servlet»
+«IMPORT soot::jimple::toolkits::javaee::model::servlet::struts1»
+
+«EXTENSION soot::jimple::toolkits::javaee::templates::http::Servlet»
+«EXTENSION soot::jimple::toolkits::javaee::templates::struts::ActionServlet»
+
+«DEFINE actionServlet FOR Servlet»
+«ENDDEFINE»
+
+«DEFINE actionServlet FOR ActionServlet»
+«FILE clazz + ".jimple"»
+public class «clazz» {
+  private static «actionClass» actionInstance;
+
+  static void <clinit>()
+  {
+    <«clazz»: «actionClass» actionInstance> = null;
+  }
+
+  public void <init>()
+  {
+    «clazz» r0;
+
+    r0 := @this: «clazz»;
+    specialinvoke r0.<java.lang.Object: void <init>()>();
+  }
+
+  public void init(javax.servlet.ServletConfig)
+  {
+    «clazz» r0;
+    «actionClass» $r1;
+
+    r0 := @this: «clazz»;
+
+    $r1 = new «actionClass»;
+    specialinvoke $r1.<«actionClass»: void <init>()>();
+    <«clazz»: «actionClass» actionInstance> = $r1;
+  }
+
+  public void service(javax.servlet.http.HttpServletRequest, javax.servlet.http.HttpServletResponse)
+  {
+    «clazz» r0;
+    «actionFormClassname()» $r1;
+
+    r0 := @this: «clazz»;
+    $r1 = new «actionFormClassname()»;
+    specialinvoke $r1.<«actionFormClassname()»: void <init>()>();
+  }
+
+  public void destroy()
+  {
+    «clazz» r0;
+
+    r0 := @this: «clazz»;
+  }
+}
+«ENDFILE»
+«ENDDEFINE»
+
+«DEFINE main FOR Web»
+«EXPAND actionServlet FOREACH servlets»
+«ENDDEFINE»
