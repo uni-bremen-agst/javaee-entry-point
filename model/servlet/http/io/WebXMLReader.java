@@ -34,10 +34,12 @@ public class WebXMLReader {
 	private static final Logger LOG = LoggerFactory.getLogger(WebXMLReader.class);
 	
 	public static Web readWebXML(final FileLoader loader, final Web web) throws Exception {
-	    DocumentBuilderFactory domFactory = DocumentBuilderFactory.newInstance();
+	    final DocumentBuilderFactory domFactory = DocumentBuilderFactory.newInstance();
 	    domFactory.setNamespaceAware(true); // never forget this!
-	    DocumentBuilder builder = domFactory.newDocumentBuilder();
-	    Document doc = builder.parse(loader.getInputStream("WEB-INF/web.xml"));
+	    domFactory.setValidating(false);
+	    domFactory.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
+	    final DocumentBuilder builder = domFactory.newDocumentBuilder();
+	    final Document doc = builder.parse(loader.getInputStream("WEB-INF/web.xml"));
 		
 		readFilters(doc, web);
 	    
