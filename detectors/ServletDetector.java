@@ -47,4 +47,19 @@ public interface ServletDetector {
 	 * @return Name of the template file.
 	 */
 	public String getTemplateFile();
+
+	/**
+	 * @return Iff the template is a XPand template.
+	 */
+	public boolean isXpandTemplate();
+	
+	/**
+	 * @return A list of supported check files.
+	 */
+	public List<String> getCheckFiles();
+
+	/**
+	 * @return A list of template files.
+	 */
+	public List<String> getTemplateFiles();
 }

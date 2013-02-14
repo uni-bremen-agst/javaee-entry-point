@@ -20,6 +20,20 @@ import org.apache.velocity.app.VelocityEngine;
 import org.apache.velocity.exception.MethodInvocationException;
 import org.apache.velocity.exception.ParseErrorException;
 import org.apache.velocity.exception.ResourceNotFoundException;
+import org.eclipse.emf.mwe.core.WorkflowContext;
+import org.eclipse.emf.mwe.core.WorkflowContextDefaultImpl;
+import org.eclipse.emf.mwe.core.WorkflowInterruptedException;
+import org.eclipse.emf.mwe.core.issues.IssuesImpl;
+import org.eclipse.emf.mwe.core.issues.MWEDiagnostic;
+import org.eclipse.emf.mwe.core.monitor.NullProgressMonitor;
+import org.eclipse.emf.mwe.internal.core.Workflow;
+import org.eclipse.emf.mwe.utils.StandaloneSetup;
+import org.eclipse.xpand2.Generator;
+import org.eclipse.xpand2.output.Outlet;
+import org.eclipse.xtend.check.CheckComponent;
+import org.eclipse.xtend.type.impl.java.JavaBeansMetaModel;
+import org.eclipse.xtend.type.impl.java.JavaTypeStrategy;
+import org.eclipse.xtend.type.impl.java.beans.JavaBeansStrategy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -92,6 +106,8 @@ public class ServletEntryPointGenerator extends SceneTransformer implements Http
 	 * @todo Implement proper war support for locator.
 	 */
 	private void loadWebXML(@SuppressWarnings("rawtypes") final Map options) {
+		web.getGeneratorInfos().initializeFromOptions(options);
+		
 		if(considerAllServlets) {
 			for(final ServletDetector dector : servletDetectors) {
 				dector.setOptions(options);
@@ -148,42 +164,101 @@ public class ServletEntryPointGenerator extends SceneTransformer implements Http
 		engine.init();
 
 		for(final ServletDetector detector : servletDetectors) {
-			final String templateFile = detector.getTemplateFile();
-
-			if(templateFile == null) {
-				continue; // skip if there is no template
-			}
-			final VelocityContext context = new VelocityContext();
-
-			context.put("root", web);
-			context.put("root-package", PhaseOptions.getString(options, "root-package"));
-			context.put("main-class", PhaseOptions.getString(options, "main-class"));
-			context.put("output-dir", PhaseOptions.getString(options, "output-dir"));
-			context.put("FileTool", FileTool.class);
-			context.put("filter-config-impl", PhaseOptions.getString(options, "filter-config-class"));
-			context.put("servlet-config-impl", PhaseOptions.getString(options, "servlet-config-class"));
-			context.put("servlet-request-impl", PhaseOptions.getString(options, "servlet-request-class"));
-			context.put("servlet-response-impl", PhaseOptions.getString(options, "servlet-response-class"));
-
-			final InputStream input = getClass().getClassLoader().getResourceAsStream(templateFile);
-			if (input == null) {
-				LOG.error("Cannot open template '{}' - Skipping.", templateFile);
-				continue;
-			}
-
-			final InputStreamReader reader = new InputStreamReader(input); 
-
-			try {
-				LOG.info("Processing template {}.", templateFile);
-				if (!engine.evaluate(context, new NullWriter(), templateFile, reader)) {
-					LOG.error("Failed to process template " + templateFile);
+			if(detector.isXpandTemplate()) {
+				final JavaBeansMetaModel metaModel = new JavaBeansMetaModel();
+				metaModel.setTypeStrategy(new JavaBeansStrategy());
+				
+				final WorkflowContext context = new WorkflowContextDefaultImpl();
+				context.set("root", web);
+				
+				final CheckComponent check = new CheckComponent();
+				check.setExpression("root");
+				check.addMetaModel(metaModel);
+				for(final String checkFile : detector.getCheckFiles()) {
+					check.addCheckFile(checkFile);
 				}
-			} catch(final ParseErrorException e) {
-				LOG.error("Failed to parse template " + templateFile, e);
-			} catch(final MethodInvocationException e) {
-				LOG.error("Failed to call java method in template " + templateFile, e);
-			} catch(final ResourceNotFoundException e) {
-				LOG.error("Failed to find a resource in template " + templateFile, e);
+
+				final Outlet outlet = new Outlet();
+				outlet.setPath(PhaseOptions.getString(options, "output-dir"));
+				
+				final Workflow workflow = new Workflow();
+				workflow.addBean(new StandaloneSetup());
+				workflow.addBean(metaModel);
+				workflow.addComponent(check);
+
+				for(final String templateFile : detector.getTemplateFiles()) {
+					final Generator generator = new Generator();
+					generator.addMetaModel(metaModel);
+					generator.setExpand(templateFile + " FOR root");
+					generator.addOutlet(outlet);
+					workflow.addComponent(generator);
+				}
+				
+				final IssuesImpl issues = new IssuesImpl();
+				NullProgressMonitor monitor = new NullProgressMonitor();
+				
+				try {
+					workflow.invoke(context, monitor, issues);
+				} catch(final WorkflowInterruptedException e) {
+					System.err.println("Workflow interrupted: " + e.getMessage());
+				}
+				
+				if(issues.hasErrors()) {
+					for(final MWEDiagnostic diag : issues.getErrors()) {
+						LOG.error("{}", diag);
+					}
+				}
+				
+				if(issues.hasWarnings()) {
+					for(final MWEDiagnostic diag : issues.getWarnings()) {
+						LOG.warn("{}", diag);
+					}
+				}
+				
+				if(issues.hasInfos()) {
+					for(final MWEDiagnostic diag : issues.getInfos()) {
+						LOG.info("{}", diag);
+					}
+				}
+				
+			} else {
+				final String templateFile = detector.getTemplateFile();
+
+				if(templateFile == null) {
+					continue; // skip if there is no template
+				}
+				final VelocityContext context = new VelocityContext();
+	
+				context.put("root", web);
+				context.put("root-package", PhaseOptions.getString(options, "root-package"));
+				context.put("main-class", PhaseOptions.getString(options, "main-class"));
+				context.put("output-dir", PhaseOptions.getString(options, "output-dir"));
+				context.put("FileTool", FileTool.class);
+				context.put("filter-config-impl", PhaseOptions.getString(options, "filter-config-class"));
+				context.put("servlet-config-impl", PhaseOptions.getString(options, "servlet-config-class"));
+				context.put("servlet-request-impl", PhaseOptions.getString(options, "servlet-request-class"));
+				context.put("servlet-response-impl", PhaseOptions.getString(options, "servlet-response-class"));
+	
+				final InputStream input = getClass().getClassLoader().getResourceAsStream(templateFile);
+				if (input == null) {
+					LOG.error("Cannot open template '{}' - Skipping.", templateFile);
+					continue;
+				}
+	
+				final InputStreamReader reader = new InputStreamReader(input); 
+	
+				try {
+					LOG.info("Processing template {}.", templateFile);
+					if (!engine.evaluate(context, new NullWriter(), templateFile, reader)) {
+						LOG.error("Failed to process template " + templateFile);
+					}
+				} catch(final ParseErrorException e) {
+					LOG.error("Failed to parse template " + templateFile, e);
+				} catch(final MethodInvocationException e) {
+					LOG.error("Failed to call java method in template " + templateFile, e);
+				} catch(final ResourceNotFoundException e) {
+					LOG.error("Failed to find a resource in template " + templateFile, e);
+				}
 			}
 		}
 	}

@@ -1,0 +1,89 @@
+«IMPORT soot::jimple::toolkits::javaee::model::servlet»
+«IMPORT soot::jimple::toolkits::javaee::model::servlet::http»
+
+«EXTENSION soot::jimple::toolkits::javaee::templates::http::Address»
+«EXTENSION soot::jimple::toolkits::javaee::templates::http::Filter»
+«EXTENSION soot::jimple::toolkits::javaee::templates::http::Servlet»
+«EXTENSION soot::jimple::toolkits::javaee::templates::http::Web»
+
+«DEFINE main FOR Web»
+«FILE mainclassFile()»
+public class «this.mainclassName()» extends java.lang.Object
+{
+  public void <init>()
+  {
+    «mainclassName()» r0;
+
+    r0 := @this: «mainclassName()»;
+    specialinvoke r0.<java.lang.Object: void <init>()>();
+  }
+  
+  private static void init()
+  {
+«FOREACH filters AS filter»
+    staticinvoke <«filter.wrapperClassname(this)»: void init()>();
+«ENDFOREACH»
+
+«FOREACH servlets AS servlet»
+    staticinvoke <«servlet.wrapperClassname(this)»: void init()>();
+«ENDFOREACH»
+  }
+
+  private static void service()
+  {
+    javax.servlet.http.HttpServletRequest $r0;
+    javax.servlet.http.HttpServletResponse $r1;
+    int $i0;
+    java.util.Random $r2;
+
+    $r2 = new java.util.Random;
+    specialinvoke $r2.<java.util.Random: void <init>()>();
+
+    label0:
+      $i0 = virtualinvoke $r2.<java.util.Random: int nextInt()>();
+      $r0 = new «generatorInfos.servletRequestImpl»;
+      specialinvoke $r0.<«generatorInfos.servletRequestImpl»: void <init>()>();
+      $r1 = new «generatorInfos.servletResponseImpl»;
+      specialinvoke $r1.<«generatorInfos.servletResponseImpl»: void <init>()>();
+      tableswitch($i0)
+      {
+«FOREACH collectBoundAddresses() AS bound ITERATOR iter»
+        case «iter.counter0» : goto label«iter.counter0 + 2»;
+«ENDFOREACH»
+        default: goto label1;
+      };
+      
+    label1:
+      return;
+      
+«FOREACH collectBoundAddresses() AS bound ITERATOR iter»
+     label«iter.counter0 + 2»:
+        staticinvoke <«((Address)bound).chainClassname(this)»: void filter(javax.servlet.ServletRequest,javax.servlet.ServletResponse)>($r0, $r1);
+        goto label0;
+        
+«ENDFOREACH»
+  }
+
+  private static void destroy()
+  {
+«FOREACH servlets AS servlet»
+    staticinvoke <«servlet.wrapperClassname(this)»: void destroy()>();
+«ENDFOREACH»
+
+«FOREACH filters AS filter»
+    staticinvoke <«filter.wrapperClassname(this)»: void destroy()>();
+«ENDFOREACH»
+  }
+
+  public static void main(java.lang.String[])
+  {
+    java.lang.String[] r0;
+
+    r0 := @parameter0: java.lang.String[];
+    staticinvoke <«this.mainclassName()»: void init()>();
+    staticinvoke <«this.mainclassName()»: void service()>();
+    staticinvoke <«this.mainclassName()»: void destroy()>();
+  }
+}
+«ENDFILE»
+«ENDDEFINE»

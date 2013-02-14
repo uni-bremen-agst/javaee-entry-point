@@ -1,0 +1,8 @@
+import soot::jimple::toolkits::javaee::model::servlet;
+
+mainclassFile(Web this) :
+	generatorInfos.rootPackage + "." + generatorInfos.mainclass + ".jimple";
+
+mainclassName(Web this) :
+	generatorInfos.rootPackage + "." + generatorInfos.mainclass;
+	

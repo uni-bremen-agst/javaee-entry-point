@@ -1,0 +1,13 @@
+import soot::jimple::toolkits::javaee::model::servlet;
+
+private String concat(List[Filter] this, String delim):
+   if isEmpty then
+     ""
+   else
+     first().name + delim + withoutFirst().concat(delim);
+
+chainClassname(Address this, Web web) :
+	chainClassname(this, this.filters, web);
+	
+chainClassname(Address this, List[Filter] filters, Web web) :
+	web.generatorInfos.rootPackage + "." + filters.concat("_") + servlet.name.replaceAll("\\.","_") + "Chain";

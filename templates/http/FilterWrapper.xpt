@@ -1,0 +1,66 @@
+«IMPORT soot::jimple::toolkits::javaee::model::servlet»
+«IMPORT soot::jimple::toolkits::javaee::model::servlet::http»
+
+«EXTENSION soot::jimple::toolkits::javaee::templates::http::Filter»
+«EXTENSION soot::jimple::toolkits::javaee::templates::http::Web»
+
+«DEFINE main FOR Web»
+«FOREACH filters AS filter»
+«FILE filter.wrapperFilename(this)»
+public class «filter.wrapperClassname(this)» extends java.lang.Object implements javax.servlet.Filter
+{
+    private static «filter.clazz» instance;
+
+    static void <clinit>()
+    {
+        <«filter.wrapperClassname(this)»: «filter.clazz» instance> = null;
+    }
+
+    public void <init>()
+    {
+      «filter.wrapperClassname(this)» r0;
+
+      r0 := @this: «filter.wrapperClassname(this)»;
+      specialinvoke r0.<java.lang.Object: void <init>()>();
+    }
+  
+    public static void init()
+    {
+        «filter.clazz» $r0;
+        «generatorInfos.filterConfigImpl» $r1;
+
+        $r1 = new «generatorInfos.filterConfigImpl»;
+        specialinvoke $r1.<«generatorInfos.filterConfigImpl»: void <init>()>();
+        $r0 = new «filter.clazz»;
+        specialinvoke $r0.<«filter.clazz»: void <init>()>();
+        interfaceinvoke $r0.<javax.servlet.Filter: void init(javax.servlet.FilterConfig)>($r1);
+        <«filter.wrapperClassname(this)»: «filter.clazz» instance> = $r0;
+    }
+
+    public static void filter(javax.servlet.ServletRequest, javax.servlet.ServletResponse, javax.servlet.FilterChain)
+    {
+        javax.servlet.ServletRequest r0;
+        javax.servlet.ServletResponse r1;
+        javax.servlet.FilterChain r2;
+        «filter.clazz» $r3;
+
+        r0 := @parameter0: javax.servlet.ServletRequest;
+        r1 := @parameter1: javax.servlet.ServletResponse;
+        r2 := @parameter2: javax.servlet.FilterChain;
+        $r3 = <«filter.wrapperClassname(this)»: «filter.clazz» instance>;
+        interfaceinvoke $r3.<javax.servlet.Filter: void doFilter(javax.servlet.ServletRequest, javax.servlet.ServletResponse, javax.servlet.FilterChain)>(r0, r1, r2);
+    }
+
+    public static void destroy()
+    {
+        «filter.clazz» $r0;
+
+        $r0 = <«filter.wrapperClassname(this)»: «filter.clazz» instance>;
+        interfaceinvoke $r0.<javax.servlet.FilterChain: void destroy()>();
+        $r0 = null;
+        <«filter.wrapperClassname(this)»: «filter.clazz» instance> = $r0;
+    }
+}
+«ENDFILE»
+«ENDFOREACH»
+«ENDDEFINE»

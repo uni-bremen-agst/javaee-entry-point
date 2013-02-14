@@ -73,4 +73,22 @@ public class StrutsServletDetector extends AbstractServletDetector {
 	public String getTemplateFile() {
 		return "soot/jimple/toolkits/javaee/templates/Struts.vm";
 	}
+
+	@Override
+	public boolean isXpandTemplate() {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public List<String> getCheckFiles() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public List<String> getTemplateFiles() {
+		// TODO Auto-generated method stub
+		return null;
+	}
 }

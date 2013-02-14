@@ -131,16 +131,6 @@ public class Web {
 				address.getFilters().add(mapping.getFilter());
 			}
 		}
-		/*
-        Filter filter = web.getFilter(name);
-
-        Address root = web.getRoot();
-        String [] pattern = url.split("/");
-        String [] subPattern = new String[pattern.length - 1];
-        System.arraycopy(pattern, 1, subPattern, 0, subPattern.length);
-
-        root.add(subPattern, filter);
-	 */
 	}
 
 	private static String concat(String[] path, int lastIndex) {
@@ -166,5 +156,16 @@ public class Web {
 	@XmlElementWrapper(name="filterMappings")
 	public List<FilterMapping> getFilterMappings() {
 		return filterMappings;
+	}
+	
+	private GeneratorInfos generatorInfos = new GeneratorInfos();
+
+	@XmlElement
+	public GeneratorInfos getGeneratorInfos() {
+		return generatorInfos;
+	}
+
+	public void setGeneratorInfos(GeneratorInfos generatorInfos) {
+		this.generatorInfos = generatorInfos;
 	}
 }

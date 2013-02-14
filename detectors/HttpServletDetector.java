@@ -1,5 +1,6 @@
 package soot.jimple.toolkits.javaee.detectors;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -88,6 +89,26 @@ public class HttpServletDetector extends AbstractServletDetector implements Http
 
 	@Override
 	public String getTemplateFile() {
-		return "soot/jimple/toolkits/javaee/templates/HttpServlet.vm";
+		throw new RuntimeException("Not implemented.");
+	}
+
+	@Override
+	public boolean isXpandTemplate() {
+		return true;
+	}
+
+	@Override
+	public List<String> getCheckFiles() {
+		return Collections.<String>emptyList();
+	}
+
+	private String [] templates = {"soot::jimple::toolkits::javaee::templates::http::MainClass::main",
+			"soot::jimple::toolkits::javaee::templates::http::ServletWrapper::main",
+			"soot::jimple::toolkits::javaee::templates::http::FilterWrapper::main",
+			"soot::jimple::toolkits::javaee::templates::http::FilterChain::main"
+	};
+	@Override
+	public List<String> getTemplateFiles() {
+		return Arrays.asList(templates);
 	}
 }

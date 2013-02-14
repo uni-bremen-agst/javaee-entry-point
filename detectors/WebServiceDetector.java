@@ -329,4 +329,22 @@ public class WebServiceDetector extends AbstractServletDetector implements
 		return null;
 	}
 
+	@Override
+	public boolean isXpandTemplate() {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public List<String> getCheckFiles() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public List<String> getTemplateFiles() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
 }
