@@ -1,32 +1,32 @@
-ÇIMPORT soot::jimple::toolkits::javaee::model::servletÈ
-ÇIMPORT soot::jimple::toolkits::javaee::model::servlet::httpÈ
+Â«IMPORT soot::jimple::toolkits::javaee::model::servletÂ»
+Â«IMPORT soot::jimple::toolkits::javaee::model::servlet::httpÂ»
 
-ÇEXTENSION soot::jimple::toolkits::javaee::templates::http::AddressÈ
-ÇEXTENSION soot::jimple::toolkits::javaee::templates::http::FilterÈ
-ÇEXTENSION soot::jimple::toolkits::javaee::templates::http::ServletÈ
-ÇEXTENSION soot::jimple::toolkits::javaee::templates::http::WebÈ
+Â«EXTENSION soot::jimple::toolkits::javaee::templates::http::AddressÂ»
+Â«EXTENSION soot::jimple::toolkits::javaee::templates::http::FilterÂ»
+Â«EXTENSION soot::jimple::toolkits::javaee::templates::http::ServletÂ»
+Â«EXTENSION soot::jimple::toolkits::javaee::templates::http::WebÂ»
 
-ÇDEFINE main FOR WebÈ
-ÇFILE mainclassFile()È
-public class Çthis.mainclassName()È extends java.lang.Object
+Â«DEFINE main FOR WebÂ»
+Â«FILE mainclassFile()Â»
+public class Â«this.mainclassName()Â» extends java.lang.Object
 {
   public void <init>()
   {
-    ÇmainclassName()È r0;
+    Â«mainclassName()Â» r0;
 
-    r0 := @this: ÇmainclassName()È;
+    r0 := @this: Â«mainclassName()Â»;
     specialinvoke r0.<java.lang.Object: void <init>()>();
   }
   
   private static void init()
   {
-ÇFOREACH filters AS filterÈ
-    staticinvoke <Çfilter.wrapperClassname(this)È: void init()>();
-ÇENDFOREACHÈ
+Â«FOREACH filters AS filterÂ»
+    staticinvoke <Â«filter.wrapperClassname(this)Â»: void init()>();
+Â«ENDFOREACHÂ»
 
-ÇFOREACH servlets AS servletÈ
-    staticinvoke <Çservlet.wrapperClassname(this)È: void init()>();
-ÇENDFOREACHÈ
+Â«FOREACH servlets AS servletÂ»
+    staticinvoke <Â«servlet.wrapperClassname(this)Â»: void init()>();
+Â«ENDFOREACHÂ»
   }
 
   private static void service()
@@ -41,38 +41,38 @@ public class Çthis.mainclassName()È extends java.lang.Object
 
     label0:
       $i0 = virtualinvoke $r2.<java.util.Random: int nextInt()>();
-      $r0 = new ÇgeneratorInfos.servletRequestImplÈ;
-      specialinvoke $r0.<ÇgeneratorInfos.servletRequestImplÈ: void <init>()>();
-      $r1 = new ÇgeneratorInfos.servletResponseImplÈ;
-      specialinvoke $r1.<ÇgeneratorInfos.servletResponseImplÈ: void <init>()>();
+      $r0 = new Â«generatorInfos.servletRequestImplÂ»;
+      specialinvoke $r0.<Â«generatorInfos.servletRequestImplÂ»: void <init>()>();
+      $r1 = new Â«generatorInfos.servletResponseImplÂ»;
+      specialinvoke $r1.<Â«generatorInfos.servletResponseImplÂ»: void <init>()>();
       tableswitch($i0)
       {
-ÇFOREACH collectBoundAddresses() AS bound ITERATOR iterÈ
-        case Çiter.counter0È : goto labelÇiter.counter0 + 2È;
-ÇENDFOREACHÈ
+Â«FOREACH collectBoundAddresses() AS bound ITERATOR iterÂ»
+        case Â«iter.counter0Â» : goto labelÂ«iter.counter0 + 2Â»;
+Â«ENDFOREACHÂ»
         default: goto label1;
       };
       
     label1:
       return;
       
-ÇFOREACH collectBoundAddresses() AS bound ITERATOR iterÈ
-     labelÇiter.counter0 + 2È:
-        staticinvoke <Ç((Address)bound).chainClassname(this)È: void filter(javax.servlet.ServletRequest,javax.servlet.ServletResponse)>($r0, $r1);
+Â«FOREACH collectBoundAddresses() AS bound ITERATOR iterÂ»
+     labelÂ«iter.counter0 + 2Â»:
+        staticinvoke <Â«((Address)bound).chainClassname(this)Â»: void filter(javax.servlet.ServletRequest,javax.servlet.ServletResponse)>($r0, $r1);
         goto label0;
         
-ÇENDFOREACHÈ
+Â«ENDFOREACHÂ»
   }
 
   private static void destroy()
   {
-ÇFOREACH servlets AS servletÈ
-    staticinvoke <Çservlet.wrapperClassname(this)È: void destroy()>();
-ÇENDFOREACHÈ
+Â«FOREACH servlets AS servletÂ»
+    staticinvoke <Â«servlet.wrapperClassname(this)Â»: void destroy()>();
+Â«ENDFOREACHÂ»
 
-ÇFOREACH filters AS filterÈ
-    staticinvoke <Çfilter.wrapperClassname(this)È: void destroy()>();
-ÇENDFOREACHÈ
+Â«FOREACH filters AS filterÂ»
+    staticinvoke <Â«filter.wrapperClassname(this)Â»: void destroy()>();
+Â«ENDFOREACHÂ»
   }
 
   public static void main(java.lang.String[])
@@ -80,10 +80,10 @@ public class Çthis.mainclassName()È extends java.lang.Object
     java.lang.String[] r0;
 
     r0 := @parameter0: java.lang.String[];
-    staticinvoke <Çthis.mainclassName()È: void init()>();
-    staticinvoke <Çthis.mainclassName()È: void service()>();
-    staticinvoke <Çthis.mainclassName()È: void destroy()>();
+    staticinvoke <Â«this.mainclassName()Â»: void init()>();
+    staticinvoke <Â«this.mainclassName()Â»: void service()>();
+    staticinvoke <Â«this.mainclassName()Â»: void destroy()>();
   }
 }
-ÇENDFILEÈ
-ÇENDDEFINEÈ
+Â«ENDFILEÂ»
+Â«ENDDEFINEÂ»

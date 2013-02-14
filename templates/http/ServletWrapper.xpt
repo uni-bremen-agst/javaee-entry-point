@@ -1,64 +1,64 @@
-ÇIMPORT soot::jimple::toolkits::javaee::model::servletÈ
-ÇIMPORT soot::jimple::toolkits::javaee::model::servlet::httpÈ
+Â«IMPORT soot::jimple::toolkits::javaee::model::servletÂ»
+Â«IMPORT soot::jimple::toolkits::javaee::model::servlet::httpÂ»
 
-ÇEXTENSION soot::jimple::toolkits::javaee::templates::http::ServletÈ
-ÇEXTENSION soot::jimple::toolkits::javaee::templates::http::WebÈ
+Â«EXTENSION soot::jimple::toolkits::javaee::templates::http::ServletÂ»
+Â«EXTENSION soot::jimple::toolkits::javaee::templates::http::WebÂ»
 
-ÇDEFINE main FOR WebÈ
-ÇFOREACH servlets AS servletÈ
-ÇFILE servlet.wrapperFilename(this)È
-public class Çservlet.wrapperClassname(this)È extends java.lang.Object
+Â«DEFINE main FOR WebÂ»
+Â«FOREACH servlets AS servletÂ»
+Â«FILE servlet.wrapperFilename(this)Â»
+public class Â«servlet.wrapperClassname(this)Â» extends java.lang.Object
 {
-    private static Çservlet.clazzÈ instance;
+    private static Â«servlet.clazzÂ» instance;
 
     static void <clinit>()
     {
-        <Çservlet.wrapperClassname(this)È: Çservlet.clazzÈ instance> = null;
+        <Â«servlet.wrapperClassname(this)Â»: Â«servlet.clazzÂ» instance> = null;
     }
 
     public void <init>()
     {
-     Çservlet.wrapperClassname(this)È r0;
+     Â«servlet.wrapperClassname(this)Â» r0;
 
-      r0 := @this: Çservlet.wrapperClassname(this)È;
+      r0 := @this: Â«servlet.wrapperClassname(this)Â»;
       specialinvoke r0.<java.lang.Object: void <init>()>();
     }
   
     public static void init()
     {
-        Çservlet.clazzÈ $r0;
-        ÇgeneratorInfos.servletConfigImplÈ $r1;
+        Â«servlet.clazzÂ» $r0;
+        Â«generatorInfos.servletConfigImplÂ» $r1;
 
-        $r1 = new ÇgeneratorInfos.servletConfigImplÈ;
-        specialinvoke $r1.<ÇgeneratorInfos.servletConfigImplÈ: void <init>()>();
-        $r0 = new Çservlet.clazzÈ;
-        specialinvoke $r0.<Çservlet.clazzÈ: void <init>()>();
+        $r1 = new Â«generatorInfos.servletConfigImplÂ»;
+        specialinvoke $r1.<Â«generatorInfos.servletConfigImplÂ»: void <init>()>();
+        $r0 = new Â«servlet.clazzÂ»;
+        specialinvoke $r0.<Â«servlet.clazzÂ»: void <init>()>();
         virtualinvoke $r0.<javax.servlet.GenericServlet: void init(javax.servlet.ServletConfig)>($r1);
-        <Çservlet.wrapperClassname(this)È: Çservlet.clazzÈ instance> = $r0;
+        <Â«servlet.wrapperClassname(this)Â»: Â«servlet.clazzÂ» instance> = $r0;
     }
 
     public static void service(javax.servlet.http.HttpServletRequest, javax.servlet.http.HttpServletResponse)
     {
         javax.servlet.http.HttpServletRequest r0;
         javax.servlet.http.HttpServletResponse r1;
-        Çservlet.clazzÈ $r2;
+        Â«servlet.clazzÂ» $r2;
 
         r0 := @parameter0: javax.servlet.http.HttpServletRequest;
         r1 := @parameter1: javax.servlet.http.HttpServletResponse;
-        $r2 = <Çservlet.wrapperClassname(this)È: Çservlet.clazzÈ instance>;
+        $r2 = <Â«servlet.wrapperClassname(this)Â»: Â«servlet.clazzÂ» instance>;
         virtualinvoke $r2.<javax.servlet.http.HttpServlet: void service(javax.servlet.ServletRequest, javax.servlet.ServletResponse)>(r0, r1);
     }
 
     public static void destroy()
     {
-        Çservlet.clazzÈ $r0;
+        Â«servlet.clazzÂ» $r0;
 
-        $r0 = <Çservlet.wrapperClassname(this)È: Çservlet.clazzÈ instance>;
+        $r0 = <Â«servlet.wrapperClassname(this)Â»: Â«servlet.clazzÂ» instance>;
         virtualinvoke $r0.<javax.servlet.GenericServlet: void destroy()>();
         $r0 = null;
-        <Çservlet.wrapperClassname(this)È: Çservlet.clazzÈ instance> = $r0;
+        <Â«servlet.wrapperClassname(this)Â»: Â«servlet.clazzÂ» instance> = $r0;
     }
 }
-ÇENDFILEÈ
-ÇENDFOREACHÈ
-ÇENDDEFINEÈ
+Â«ENDFILEÂ»
+Â«ENDFOREACHÂ»
+Â«ENDDEFINEÂ»

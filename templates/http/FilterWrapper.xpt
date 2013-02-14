@@ -1,40 +1,40 @@
-ÇIMPORT soot::jimple::toolkits::javaee::model::servletÈ
-ÇIMPORT soot::jimple::toolkits::javaee::model::servlet::httpÈ
+Â«IMPORT soot::jimple::toolkits::javaee::model::servletÂ»
+Â«IMPORT soot::jimple::toolkits::javaee::model::servlet::httpÂ»
 
-ÇEXTENSION soot::jimple::toolkits::javaee::templates::http::FilterÈ
-ÇEXTENSION soot::jimple::toolkits::javaee::templates::http::WebÈ
+Â«EXTENSION soot::jimple::toolkits::javaee::templates::http::FilterÂ»
+Â«EXTENSION soot::jimple::toolkits::javaee::templates::http::WebÂ»
 
-ÇDEFINE main FOR WebÈ
-ÇFOREACH filters AS filterÈ
-ÇFILE filter.wrapperFilename(this)È
-public class Çfilter.wrapperClassname(this)È extends java.lang.Object implements javax.servlet.Filter
+Â«DEFINE main FOR WebÂ»
+Â«FOREACH filters AS filterÂ»
+Â«FILE filter.wrapperFilename(this)Â»
+public class Â«filter.wrapperClassname(this)Â» extends java.lang.Object implements javax.servlet.Filter
 {
-    private static Çfilter.clazzÈ instance;
+    private static Â«filter.clazzÂ» instance;
 
     static void <clinit>()
     {
-        <Çfilter.wrapperClassname(this)È: Çfilter.clazzÈ instance> = null;
+        <Â«filter.wrapperClassname(this)Â»: Â«filter.clazzÂ» instance> = null;
     }
 
     public void <init>()
     {
-      Çfilter.wrapperClassname(this)È r0;
+      Â«filter.wrapperClassname(this)Â» r0;
 
-      r0 := @this: Çfilter.wrapperClassname(this)È;
+      r0 := @this: Â«filter.wrapperClassname(this)Â»;
       specialinvoke r0.<java.lang.Object: void <init>()>();
     }
   
     public static void init()
     {
-        Çfilter.clazzÈ $r0;
-        ÇgeneratorInfos.filterConfigImplÈ $r1;
+        Â«filter.clazzÂ» $r0;
+        Â«generatorInfos.filterConfigImplÂ» $r1;
 
-        $r1 = new ÇgeneratorInfos.filterConfigImplÈ;
-        specialinvoke $r1.<ÇgeneratorInfos.filterConfigImplÈ: void <init>()>();
-        $r0 = new Çfilter.clazzÈ;
-        specialinvoke $r0.<Çfilter.clazzÈ: void <init>()>();
+        $r1 = new Â«generatorInfos.filterConfigImplÂ»;
+        specialinvoke $r1.<Â«generatorInfos.filterConfigImplÂ»: void <init>()>();
+        $r0 = new Â«filter.clazzÂ»;
+        specialinvoke $r0.<Â«filter.clazzÂ»: void <init>()>();
         interfaceinvoke $r0.<javax.servlet.Filter: void init(javax.servlet.FilterConfig)>($r1);
-        <Çfilter.wrapperClassname(this)È: Çfilter.clazzÈ instance> = $r0;
+        <Â«filter.wrapperClassname(this)Â»: Â«filter.clazzÂ» instance> = $r0;
     }
 
     public static void filter(javax.servlet.ServletRequest, javax.servlet.ServletResponse, javax.servlet.FilterChain)
@@ -42,25 +42,25 @@ public class Çfilter.wrapperClassname(this)È extends java.lang.Object implements
         javax.servlet.ServletRequest r0;
         javax.servlet.ServletResponse r1;
         javax.servlet.FilterChain r2;
-        Çfilter.clazzÈ $r3;
+        Â«filter.clazzÂ» $r3;
 
         r0 := @parameter0: javax.servlet.ServletRequest;
         r1 := @parameter1: javax.servlet.ServletResponse;
         r2 := @parameter2: javax.servlet.FilterChain;
-        $r3 = <Çfilter.wrapperClassname(this)È: Çfilter.clazzÈ instance>;
+        $r3 = <Â«filter.wrapperClassname(this)Â»: Â«filter.clazzÂ» instance>;
         interfaceinvoke $r3.<javax.servlet.Filter: void doFilter(javax.servlet.ServletRequest, javax.servlet.ServletResponse, javax.servlet.FilterChain)>(r0, r1, r2);
     }
 
     public static void destroy()
     {
-        Çfilter.clazzÈ $r0;
+        Â«filter.clazzÂ» $r0;
 
-        $r0 = <Çfilter.wrapperClassname(this)È: Çfilter.clazzÈ instance>;
+        $r0 = <Â«filter.wrapperClassname(this)Â»: Â«filter.clazzÂ» instance>;
         interfaceinvoke $r0.<javax.servlet.FilterChain: void destroy()>();
         $r0 = null;
-        <Çfilter.wrapperClassname(this)È: Çfilter.clazzÈ instance> = $r0;
+        <Â«filter.wrapperClassname(this)Â»: Â«filter.clazzÂ» instance> = $r0;
     }
 }
-ÇENDFILEÈ
-ÇENDFOREACHÈ
-ÇENDDEFINEÈ
+Â«ENDFILEÂ»
+Â«ENDFOREACHÂ»
+Â«ENDDEFINEÂ»
