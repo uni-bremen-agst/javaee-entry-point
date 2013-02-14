@@ -122,37 +122,48 @@ public class ServletEntryPointGenerator extends SceneTransformer implements Http
 	}
 
 	@Override
-	protected void internalTransform(final String phaseName, @SuppressWarnings("rawtypes") final Map options) {
-		// configure logging		
-		LOG.info("Running " + phaseName);
-		
+	protected void internalTransform(final String phaseName,
+			@SuppressWarnings("rawtypes") final Map options) {
+		// configure logging
+		LOG.info("Running {}", phaseName);
+
+		final boolean wsOnly = PhaseOptions.getBoolean(options, "wsonly");
 		considerAllServlets = PhaseOptions.getBoolean(options, "consider-all-servlets");
 
-		loadWebXML(options);
+		if (wsOnly) {
+			processWs(options);
+		} else {
+			loadWebXML(options);
 
-		final String modelDestination = PhaseOptions.getString(options, "dump-model");
-		if(!modelDestination.isEmpty()) {
-			storeModel(modelDestination);
+			final String modelDestination = PhaseOptions.getString(options,
+					"dump-model");
+			if (!modelDestination.isEmpty()) {
+				storeModel(modelDestination);
+			}
+
+			try {
+				LOG.info("Processing templates");
+				processTemplate(options);
+				final SootClass sootClass = scene.forceResolve(
+						PhaseOptions.getString(options, "root-package")
+								+ "."
+								+ PhaseOptions.getString(options,"main-class"), SootClass.BODIES);
+				scene.setMainClass(sootClass);
+				LOG.info("Loading main class.");
+			} catch (final ResourceNotFoundException e) {
+				LOG.error("Could not find template file.");
+			} catch (final ParseErrorException e) {
+				LOG.error("Failed to parse the template.");
+			} catch (final MethodInvocationException e) {
+				LOG.error("Error while calling Java code from template.");
+				e.printStackTrace();
+			}
 		}
-
-		try {
-			LOG.info("Processing templates");
-			processTemplate(options);
-		} catch(final ResourceNotFoundException e) {
-			LOG.error("Could not find template file.");
-		} catch(final ParseErrorException e) {
-			LOG.error("Failed to parse the template.");
-		} catch(final MethodInvocationException e) {
-			LOG.error("Error while calling Java code from template.");
-			e.printStackTrace();
-		}
-
-		LOG.info("Loading main class.");
-		final SootClass sootClass = scene.forceResolve(PhaseOptions.getString(options, "root-package") + "." + PhaseOptions.getString(options, "main-class"), SootClass.BODIES);
-		scene.setMainClass(sootClass);
 	}
 
-	/**
+
+
+    /**
 	 * Processes all templates.
 	 */
 	private void processTemplate(@SuppressWarnings("rawtypes") final Map options) {
@@ -253,15 +264,26 @@ public class ServletEntryPointGenerator extends SceneTransformer implements Http
 						LOG.error("Failed to process template " + templateFile);
 					}
 				} catch(final ParseErrorException e) {
-					LOG.error("Failed to parse template " + templateFile, e);
+					LOG.error("Failed to parse template {}.", templateFile, e);
 				} catch(final MethodInvocationException e) {
-					LOG.error("Failed to call java method in template " + templateFile, e);
+					LOG.error("Failed to call java method in template {}.", templateFile, e);
 				} catch(final ResourceNotFoundException e) {
-					LOG.error("Failed to find a resource in template " + templateFile, e);
+					LOG.error("Failed to find a resource in template {}.", templateFile, e);
 				}
 			}
 		}
 	}
+	
+	   private void processWs(@SuppressWarnings("rawtypes") Map options) {
+	        WebServiceDetector detector = new WebServiceDetector();
+	        detector.setOptions(options);
+	        SootClass sc = detector.detectFromSource();
+	        if (sc != null){
+	            //set as main class
+	            final SootClass sootClass = scene.forceResolve(sc.getName(), SootClass.BODIES);
+	            scene.setMainClass(sootClass);
+	        }
+	    }
 
 	/**
 	 * Stores the model into a file name {@code modelName}.
@@ -296,12 +318,11 @@ public class ServletEntryPointGenerator extends SceneTransformer implements Http
 			  try {
 				  writer.close();
 			  } catch ( Exception e ) {
-				  LOG.error("Unable to dump model to " + modelName);
+				  LOG.error("Unable to dump model to {}", modelName, e);
 			  } 
 			}
 		} catch(JAXBException e) {
-			LOG.error("Unable to dump model to " + modelName);
-			LOG.error(e.toString());
+			LOG.error("Unable to dump model to {}", modelName, e);
 		}
 	}
 	
