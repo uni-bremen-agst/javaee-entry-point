@@ -240,6 +240,7 @@ public class WebServiceDetector extends AbstractServletDetector implements
             staticInit.createInstance(sfLocal, sc);
             staticInit.getUnits().addLast(jimple.newInvokeStmt(jimple.newSpecialInvokeExpr(
                     sfLocal, sc.getMethod("void <init>()").makeRef())));
+            staticInit.getUnits().addLast(jimple.newAssignStmt(jimple.newStaticFieldRef(sf.makeRef()), sfLocal));
         }
         
         // create default constructor
