@@ -1,10 +1,16 @@
+#macro(getActionFormClassName $servlet)
+#if(${servlet.formBean})${servlet.formBean.clazz}#else org.apache.struts.action.ActionForm#end
+#end
+
 #macro(generateActionServlet $servlet)
 #set($classname = $servlet.clazz)
 public class $classname {
-##    static void <clinit>()
-##    {
-##        <com.beo.generated.com.beo.generated.com.beo.atlas.struts.SumaViewActionServlet: com.beo.generated.com.beo.atlas.struts.SumaViewActionServlet instance> = null;
-##    }
+  private static ${servlet.actionClass} actionInstance;
+
+  static void <clinit>()
+  {
+    <$classname: ${servlet.actionClass} actionInstance> = null;
+  }
 
   public void <init>()
   {
@@ -16,16 +22,31 @@ public class $classname {
 
   public void init(javax.servlet.ServletConfig)
   {
+    $classname r0;
+    ${servlet.actionClass} $r1;
+
     r0 := @this: $classname;
+
+    $r1 = new ${servlet.actionClass};
+    specialinvoke $r1.<${servlet.actionClass}: void <init>()>();
+    <$classname: ${servlet.actionClass} actionInstance> = $r1;
   }
 
+#set($actionformclass = "#getActionFormClassName($servlet)")
   public void service(javax.servlet.http.HttpServletRequest, javax.servlet.http.HttpServletResponse)
   {
+    $classname r0;
+    ${actionformclass} $r1;
+
     r0 := @this: $classname;
+    $r1 = new ${actionformclass};
+    specialinvoke $r1.<${actionformclass}: void <init>()>();
   }
 
   public void destroy()
   {
+    $classname r0;
+
     r0 := @this: $classname;
   }
 }

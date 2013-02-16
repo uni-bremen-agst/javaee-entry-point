@@ -1,5 +1,4 @@
 «IMPORT soot::jimple::toolkits::javaee::model::servlet»
-«IMPORT soot::jimple::toolkits::javaee::model::servlet::http»
 
 «EXTENSION soot::jimple::toolkits::javaee::templates::http::Address»
 «EXTENSION soot::jimple::toolkits::javaee::templates::http::Filter»
@@ -99,7 +98,7 @@ public class «this.chainClassname(filters, web)» extends java.lang.Object impl
 
 «DEFINE main FOR Web»
 «FOREACH collectBoundAddresses() AS address»
-«EXPAND generateFilterChain(address.filters, this) FOR address»
-«EXPAND generateServletChain(this) FOR address.servlet»
+«EXPAND generateFilterChain(((Address)address).filters, this) FOR ((Address)address)»
+«EXPAND generateServletChain(this) FOR ((Address)address).servlet»
 «ENDFOREACH»
 «ENDDEFINE»

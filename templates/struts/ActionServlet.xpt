@@ -9,7 +9,7 @@
 
 «DEFINE actionServlet FOR ActionServlet»
 «FILE clazz + ".jimple"»
-public class «clazz» {
+public class «clazz» extends javax.servlet.http.HttpServlet {
   private static «actionClass» actionInstance;
 
   static void <clinit>()
@@ -40,11 +40,24 @@ public class «clazz» {
   public void service(javax.servlet.http.HttpServletRequest, javax.servlet.http.HttpServletResponse)
   {
     «clazz» r0;
-    «actionFormClassname()» $r1;
+    javax.servlet.http.HttpServletRequest r1;
+    javax.servlet.http.HttpServletResponse r2;
+    «actionFormClassname()» $r3;
+    «actionClass» $r4;
 
     r0 := @this: «clazz»;
-    $r1 = new «actionFormClassname()»;
-    specialinvoke $r1.<«actionFormClassname()»: void <init>()>();
+    r1 := @parameter0: javax.servlet.http.HttpServletRequest;
+    r2 := @parameter1: javax.servlet.http.HttpServletResponse;
+    
+    $r3 = new «actionFormClassname()»;
+    specialinvoke $r3.<«actionFormClassname()»: void <init>()>();
+    $r4 = <«clazz»: «actionClass» actionInstance>;
+    «REM»// TODO copy parameters«ENDREM»
+«IF parameter != null»
+«EXPAND dispatchAction FOR this»
+«ELSE»
+«EXPAND normalAction FOR this»
+«ENDIF»
   }
 
   public void destroy()
@@ -55,6 +68,16 @@ public class «clazz» {
   }
 }
 «ENDFILE»
+«ENDDEFINE»
+
+«DEFINE dispatchAction FOR ActionServlet»
+«FOREACH methods AS method»
+    virtualinvoke $r4.<«actionClass»: «method»>(null, $r3, r1, r2);
+«ENDFOREACH»
+«ENDDEFINE»
+
+«DEFINE normalAction FOR ActionServlet»
+    virtualinvoke $r4.<«actionClass»: «methods.first()»>(null, $r3, r1, r2);
 «ENDDEFINE»
 
 «DEFINE main FOR Web»
