@@ -1,5 +1,6 @@
 package soot.jimple.toolkits.javaee.detectors;
 
+import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.util.ArrayList;
@@ -9,6 +10,12 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import java.io.File;
+import java.io.IOException;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import soot.BooleanType;
 import soot.DoubleType;
@@ -59,6 +66,8 @@ public class WebServiceDetector extends AbstractServletDetector implements
 
 	private final Collection<SootClass> wsClasses = new ArrayList<SootClass>();
 	private final Collection<SootMethod> wsMethods = new ArrayList<SootMethod>();
+	
+	private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
 	@Override
 	public void detectFromSource(Web web) {
@@ -214,47 +223,86 @@ public class WebServiceDetector extends AbstractServletDetector implements
 		return retVal;
 	}
 
-	   /**
+    /**
      * Creates a Servlet that only calls the web services
      * 
-     * @param wsClasses
-     *            the Web Service classes found
-     * @param wsMethods
-     *            the Web service methods found
      * @return a class
      */
     @SuppressWarnings("deprecation")
-    private SootClass synthetizeWSServlet(String methodName, List<Type> parameterTypes, boolean isStatic) {
-        JimpleClassGenerator classGen = new JimpleClassGenerator(PhaseOptions.getString(options, "root-package")
-                + "." + GENERATED_CLASS_NAME, HTTP_SERVLET_CLASS_NAME, true);
+    private SootClass synthetizeWSServlet() {
+        JimpleClassGenerator classGen = new JimpleClassGenerator(PhaseOptions.getString(options, "root-package") + "."
+                + GENERATED_CLASS_NAME, HTTP_SERVLET_CLASS_NAME, true);
         final SootClass clazz = classGen.getClazz();
 
         final JimpleBodyGenerator staticInit = classGen.method("<clinit>", Collections.<Type> emptyList(), VoidType.v());
-        
+
         Map<SootClass, SootField> generatedFields = new HashMap<SootClass, SootField>();
         for (SootClass sc : wsClasses) {
-            SootField sf = classGen.field("ws"+sc.getShortName(), sc);
+            SootField sf = classGen.field("ws" + sc.getShortName(), sc);
             generatedFields.put(sc, sf);
             sf.setModifiers(Modifier.STATIC | Modifier.FINAL | Modifier.PUBLIC);
             Local sfLocal = staticInit.local(false, sc.getType());
             staticInit.createInstance(sfLocal, sc);
-            staticInit.getUnits().addLast(jimple.newInvokeStmt(jimple.newSpecialInvokeExpr(
-                    sfLocal, sc.getMethod("void <init>()").makeRef())));
+            staticInit.getUnits().addLast(
+                    jimple.newInvokeStmt(jimple.newSpecialInvokeExpr(sfLocal, sc.getMethod("void <init>()").makeRef())));
             staticInit.getUnits().addLast(jimple.newAssignStmt(jimple.newStaticFieldRef(sf.makeRef()), sfLocal));
         }
-        
-        // create default constructor
-        final JimpleBodyGenerator constructor = classGen.method("<init>",
-                Collections.<Type> emptyList(), VoidType.v());
-        final Local thisLocal = constructor.local(false, clazz.getType());
-        constructor.getUnits().add(
-                jimple.newIdentityStmt(thisLocal,
-                        jimple.newThisRef(clazz.getType())));
 
-        final JimpleBodyGenerator serviceMethod = classGen.method(methodName, parameterTypes, VoidType.v());
+        // create default constructor
+        final JimpleBodyGenerator constructor = classGen.method("<init>", Collections.<Type> emptyList(), VoidType.v());
+        final Local thisLocal = constructor.local(false, clazz.getType());
+        constructor.getUnits().add(jimple.newIdentityStmt(thisLocal, jimple.newThisRef(clazz.getType())));
+
+        // Save to the same dir as the templates
+        try {
+            File dir = new File((String) options.get("output-dir"));
+            if (!dir.exists())
+                dir.mkdir();
+            PrintWriter pw = new PrintWriter(new File(dir, clazz.getName() + ".jimple"));
+            Printer.v().printTo(clazz, pw);
+            pw.close();
+        } catch (IOException e) {
+            logger.error("Unable to export WSCaller", e);
+        }
+
+        return clazz;
+    }
+
+    /**
+     * Creates a Servlet that only calls the web services and offers a main method
+     * 
+     * @return a class
+     */
+    @SuppressWarnings("deprecation")
+    private SootClass synthetizeWSServletMain() {
+        JimpleClassGenerator classGen = new JimpleClassGenerator(PhaseOptions.getString(options, "root-package") + "."
+                + GENERATED_CLASS_NAME, HTTP_SERVLET_CLASS_NAME, true);
+        final SootClass clazz = classGen.getClazz();
+
+        final JimpleBodyGenerator staticInit = classGen.method("<clinit>", Collections.<Type> emptyList(), VoidType.v());
+
+        Map<SootClass, SootField> generatedFields = new HashMap<SootClass, SootField>();
+        for (SootClass sc : wsClasses) {
+            SootField sf = classGen.field("ws" + sc.getShortName(), sc);
+            generatedFields.put(sc, sf);
+            sf.setModifiers(Modifier.STATIC | Modifier.FINAL | Modifier.PUBLIC);
+            Local sfLocal = staticInit.local(false, sc.getType());
+            staticInit.createInstance(sfLocal, sc);
+            staticInit.getUnits().addLast(
+                    jimple.newInvokeStmt(jimple.newSpecialInvokeExpr(sfLocal, sc.getMethod("void <init>()").makeRef())));
+            staticInit.getUnits().addLast(jimple.newAssignStmt(jimple.newStaticFieldRef(sf.makeRef()), sfLocal));
+        }
+
+        // create default constructor
+        final JimpleBodyGenerator constructor = classGen.method("<init>", Collections.<Type> emptyList(), VoidType.v());
+        final Local thisLocal = constructor.local(false, clazz.getType());
+        constructor.getUnits().add(jimple.newIdentityStmt(thisLocal, jimple.newThisRef(clazz.getType())));
+
+        List<Type> parameterTypes = Arrays.asList((Type) scene.getRefType("java.lang.String").getArrayType());
+
+        final JimpleBodyGenerator serviceMethod = classGen.method("main", parameterTypes, VoidType.v());
         serviceMethod.setPublic();
-        if (isStatic)
-            serviceMethod.setStatic();
+        serviceMethod.setStatic();
 
         final Local serviceThisLocal = serviceMethod.local(true, clazz.getType());
         final Local requestLocal = serviceMethod.local(true, parameterTypes.get(0));
@@ -263,37 +311,24 @@ public class WebServiceDetector extends AbstractServletDetector implements
         final Map<SootClass, Local> generatedLocals = new HashMap<SootClass, Local>(wsClasses.size());
 
         // Add this object ref
-        units.add(jimple.newIdentityStmt(serviceThisLocal,
-                jimple.newThisRef(clazz.getType())));
+        units.add(jimple.newIdentityStmt(serviceThisLocal, jimple.newThisRef(clazz.getType())));
 
         // init parameters
-        units.add(jimple.newIdentityStmt(requestLocal,
-                jimple.newParameterRef(parameterTypes.get(0), 0)));
-        units.add(jimple.newIdentityStmt(responseLocal,
-                jimple.newParameterRef(parameterTypes.get(1), 1)));
-
-        // Construct the instances
-/*        for (SootClass sc : wsClasses) {
-            final Local newLocal = serviceMethod.local(false, sc.getType());
-            generatedLocals.put(sc, newLocal);
-            serviceMethod.createInstance(newLocal, sc);
-            units.add(jimple.newInvokeStmt(jimple.newSpecialInvokeExpr(
-                    newLocal, sc.getMethod("void <init>()").makeRef())));
-        }
-*/
+        units.add(jimple.newIdentityStmt(requestLocal, jimple.newParameterRef(parameterTypes.get(0), 0)));
+        units.add(jimple.newIdentityStmt(responseLocal, jimple.newParameterRef(parameterTypes.get(1), 1)));
 
         for (SootClass sc : wsClasses) {
             final Local newLocal = serviceMethod.local(false, sc.getType());
             generatedLocals.put(sc, newLocal);
-            serviceMethod.createInstance(newLocal, sc);
             units.add(jimple.newAssignStmt(newLocal, jimple.newStaticFieldRef(generatedFields.get(sc).makeRef())));
         }
-        
+
         final RefType stringType = Scene.v().getSootClass("java.lang.String").getType();
 
         // Add the calls to the WS methods
         // TODO we need to figure out the parameters and get them from the
         // request
+
         for (SootMethod sm : wsMethods) {
 
             List<Type> argTypes = sm.getParameterTypes();
@@ -303,75 +338,47 @@ public class WebServiceDetector extends AbstractServletDetector implements
                 Local paramLocal = serviceMethod.local(false, t);
                 if (t instanceof PrimType) {
                     if (t instanceof IntType) {
-                        units.add(jimple.newAssignStmt(paramLocal,
-                                IntConstant.v(0)));
+                        units.add(jimple.newAssignStmt(paramLocal, IntConstant.v(0)));
                     } else if (t instanceof LongType) {
-                        units.add(jimple.newAssignStmt(paramLocal,
-                                LongConstant.v(0)));
+                        units.add(jimple.newAssignStmt(paramLocal, LongConstant.v(0)));
                     } else if (t instanceof FloatType) {
-                        units.add(jimple.newAssignStmt(paramLocal,
-                                FloatConstant.v(0.0f)));
+                        units.add(jimple.newAssignStmt(paramLocal, FloatConstant.v(0.0f)));
                     } else if (t instanceof DoubleType) {
-                        units.add(jimple.newAssignStmt(paramLocal,
-                                DoubleConstant.v(0.0)));
+                        units.add(jimple.newAssignStmt(paramLocal, DoubleConstant.v(0.0)));
                     } else if (t instanceof BooleanType) {
-                        units.add(jimple.newAssignStmt(paramLocal,
-                                IntConstant.v(1))); // 1 is true
+                        units.add(jimple.newAssignStmt(paramLocal, IntConstant.v(1))); // 1
+                                                                                       // is
+                                                                                       // true
                     }
 
                 } else if (t instanceof RefType) {
                     if (t.equals(stringType)) {
-                        units.add(jimple.newAssignStmt(paramLocal,
-                                StringConstant.v("")));
+                        units.add(jimple.newAssignStmt(paramLocal, StringConstant.v("")));
                     } else {
-                        units.add(jimple.newAssignStmt(paramLocal,
-                                jimple.newNewExpr((RefType) t)));
-                        units.add(jimple.newInvokeStmt(jimple
-                                .newSpecialInvokeExpr(
-                                        paramLocal,
-                                        ((RefType) t).getSootClass()
-                                                .getMethod("void <init>()")
-                                                .makeRef())));
+                        units.add(jimple.newAssignStmt(paramLocal, jimple.newNewExpr((RefType) t)));
+                        units.add(jimple.newInvokeStmt(jimple.newSpecialInvokeExpr(paramLocal,
+                                ((RefType) t).getSootClass().getMethod("void <init>()").makeRef())));
                     }
                 }
                 arguments.add(paramLocal);// TODO
             }
-            units.add(jimple.newInvokeStmt(jimple.newVirtualInvokeExpr(
-                    generatedLocals.get(sm.getDeclaringClass()), sm.makeRef(),
-                    arguments)));
+            units.add(jimple.newInvokeStmt(jimple.newVirtualInvokeExpr(generatedLocals.get(sm.getDeclaringClass()), sm.makeRef(), arguments)));
         }
-        PrintWriter pw = new PrintWriter(new EscapedWriter(
-                new OutputStreamWriter(G.v().out)));
-        Printer.v().printTo(clazz, pw);
-        pw.close();
+        // Save to the same dir as the templates
+        try {
+            File dir = new File((String) options.get("output-dir"));
+            if (!dir.exists())
+                dir.mkdir();
+            PrintWriter pw = new PrintWriter(new File(dir, clazz.getName() + ".jimple"));
+            Printer.v().printTo(clazz, pw);
+            pw.close();
+        } catch (IOException e) {
+            logger.error("Unable to export WSCaller", e);
+        }
 
+        logger.info("Generated class calling the web services: {}", clazz.getJavaStyleName());
         return clazz;
     }
-	
-	/**
-	 * Creates a Servlet that only calls the web services
-	 * 
-	 * @return a class
-	 */
-	private SootClass synthetizeWSServlet() {
-	    return synthetizeWSServlet("doGet", 
-	            Arrays.asList(
-                  (Type) scene.getRefType(HTTP_SERVLET_REQUEST_CLASS_NAME),
-                  (Type) scene.getRefType(HTTP_SERVLET_RESPONSE_CLASS_NAME)), 
-                false);
-	}
-
-	 /**
-     * Creates a Servlet that only calls the web services and offers a main method
-     * 
-     * @return a class
-     */
-    private SootClass synthetizeWSServletMain() {
-        return synthetizeWSServlet("main", 
-                Arrays.asList((Type) scene.getRefType("java.lang.String").getArrayType()), 
-                true);
-    }
-
 
 	@Override
 	public void detectFromConfig(Web web) {
