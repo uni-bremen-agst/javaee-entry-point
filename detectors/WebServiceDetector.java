@@ -1,5 +1,6 @@
 package soot.jimple.toolkits.javaee.detectors;
 
+import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.util.ArrayList;
@@ -10,6 +11,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import java.io.File;
+import java.io.IOException;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import soot.BooleanType;
 import soot.DoubleType;
 import soot.FloatType;
@@ -17,12 +24,14 @@ import soot.G;
 import soot.IntType;
 import soot.Local;
 import soot.LongType;
+import soot.Modifier;
 import soot.PhaseOptions;
 import soot.PrimType;
 import soot.Printer;
 import soot.RefType;
 import soot.Scene;
 import soot.SootClass;
+import soot.SootField;
 import soot.SootMethod;
 import soot.Type;
 import soot.Unit;
@@ -46,146 +55,100 @@ import soot.util.EscapedWriter;
 public class WebServiceDetector extends AbstractServletDetector implements
 		HttpServletSignatures {
 
-	/**
+	public static final String GENERATED_CLASS_NAME = "WSCaller";
+
+    /**
 	 * For creation of jimple nodes.
 	 */
 	private final Jimple jimple = Jimple.v();
 
 	private final Scene scene = Scene.v();
 
-	private Collection<SootClass> wsClasses = new ArrayList<SootClass>();
-	private Collection<SootMethod> wsMethods = new ArrayList<SootMethod>();
+	private final Collection<SootClass> wsClasses = new ArrayList<SootClass>();
+	private final Collection<SootMethod> wsMethods = new ArrayList<SootMethod>();
+	
+	private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
 	@Override
 	public void detectFromSource(Web web) {
-		for (final SootClass clazz : Scene.v().getApplicationClasses()) {
-			if (!clazz.isConcrete()) // ignore interfaces and abstract classes
-				continue;
+	    findWSInApplication();
 
-			if (clazz.hasTag("VisibilityAnnotationTag")) { // for web services
-				VisibilityAnnotationTag vat = (VisibilityAnnotationTag) clazz
-						.getTag("VisibilityAnnotationTag");
-				for (AnnotationTag at : vat.getAnnotations()) {
-
-					// Handling @WebService and @WebMethod
-					if ("Ljavax/jws/WebService;".equals(at.getType())) {
-						wsClasses.add(clazz);
-						Collection<SootClass> interfaces = getClassesAnnotatedWithWebService(getInterfacesTransitively(clazz));
-						for (SootMethod sm : clazz.getMethods()) {
-
-							// Case #1: The annotation is on the class itself
-							if (getWebMethodAnnotation(sm) != null) {
-								wsMethods.add(sm);
-								G.v().out.println("Found web method: " + sm);
-								continue;
-							}
-
-							// Case #2: The annotation is on the interface's
-							// method
-							for (SootClass sc : interfaces) {
-								if (sc.declaresMethod(sm.getSubSignature())
-										&& getWebMethodAnnotation(sc
-												.getMethod(sm.getSubSignature())) != null) {
-									wsMethods.add(sm);
-									G.v().out
-											.println("Found web method: " + sm);
-									break; // no need to check the other
-											// interfaces
-								}
-							}
-						}
-
-						// Handling @WebServiceProvider
-					} else if ("Ljavax/jws/WebServiceProvider;".equals(at
-							.getType())) {
-						SootClass providerClass = Scene.v().getSootClass(
-								"javax.xml.ws.Provider");
-						if (Scene
-								.v()
-								.getFastHierarchy()
-								.canStoreType(clazz.getType(),
-										providerClass.getType())
-								&& clazz.declaresMethodByName("invoke")) {
-							wsMethods.add(clazz.getMethodByName("invoke"));
-							wsClasses.add(clazz);
-						}
-					}
-				}
-
-			}
-		}
-
-		if (!wsClasses.isEmpty()) {
-			SootClass theClass = synthetizeWSServlet(wsClasses, wsMethods);
-			HttpServletDetector.registerServlet(web, theClass);
-		}
+	    if (!wsClasses.isEmpty()) {
+	        SootClass theClass = synthetizeWSServlet();
+	        HttpServletDetector.registerServlet(web, theClass);
+	    }
 	}
 
-	
-	   public SootClass detectFromSource() {
-	        for (final SootClass clazz : Scene.v().getApplicationClasses()) {
-	            if (!clazz.isConcrete()) // ignore interfaces and abstract classes
-	                continue;
 
-	            if (clazz.hasTag("VisibilityAnnotationTag")) { // for web services
-	                VisibilityAnnotationTag vat = (VisibilityAnnotationTag) clazz
-	                        .getTag("VisibilityAnnotationTag");
-	                for (AnnotationTag at : vat.getAnnotations()) {
+	public SootClass detectFromSource() {
+	    findWSInApplication();
 
-	                    // Handling @WebService and @WebMethod
-	                    if ("Ljavax/jws/WebService;".equals(at.getType())) {
-	                        wsClasses.add(clazz);
-	                        Collection<SootClass> interfaces = getClassesAnnotatedWithWebService(getInterfacesTransitively(clazz));
-	                        for (SootMethod sm : clazz.getMethods()) {
-
-	                            // Case #1: The annotation is on the class itself
-	                            if (getWebMethodAnnotation(sm) != null) {
-	                                wsMethods.add(sm);
-	                                G.v().out.println("Found web method: " + sm);
-	                                continue;
-	                            }
-
-	                            // Case #2: The annotation is on the interface's
-	                            // method
-	                            for (SootClass sc : interfaces) {
-	                                if (sc.declaresMethod(sm.getSubSignature())
-	                                        && getWebMethodAnnotation(sc
-	                                                .getMethod(sm.getSubSignature())) != null) {
-	                                    wsMethods.add(sm);
-	                                    G.v().out
-	                                            .println("Found web method: " + sm);
-	                                    break; // no need to check the other
-	                                            // interfaces
-	                                }
-	                            }
-	                        }
-
-	                        // Handling @WebServiceProvider
-	                    } else if ("Ljavax/jws/WebServiceProvider;".equals(at
-	                            .getType())) {
-	                        SootClass providerClass = Scene.v().getSootClass(
-	                                "javax.xml.ws.Provider");
-	                        if (Scene
-	                                .v()
-	                                .getFastHierarchy()
-	                                .canStoreType(clazz.getType(),
-	                                        providerClass.getType())
-	                                && clazz.declaresMethodByName("invoke")) {
-	                            wsMethods.add(clazz.getMethodByName("invoke"));
-	                            wsClasses.add(clazz);
-	                        }
-	                    }
-	                }
-
-	            }
-	        }
-
-	        if (!wsClasses.isEmpty()) {
-	            return synthetizeWSServletMain(wsClasses, wsMethods);
-	            // main
-	        }
-	        return null;
+	    if (!wsClasses.isEmpty()) {
+	        return synthetizeWSServletMain();
+	        // main
 	    }
+	    return null;
+	}
+
+
+    private void findWSInApplication() {
+        for (final SootClass clazz : Scene.v().getApplicationClasses()) {
+            if (!clazz.isConcrete()) // ignore interfaces and abstract classes
+                continue;
+
+            if (clazz.hasTag("VisibilityAnnotationTag")) { // for web services
+                VisibilityAnnotationTag vat = (VisibilityAnnotationTag) clazz
+                        .getTag("VisibilityAnnotationTag");
+                for (AnnotationTag at : vat.getAnnotations()) {
+
+                    // Handling @WebService and @WebMethod
+                    if ("Ljavax/jws/WebService;".equals(at.getType())) {
+                        wsClasses.add(clazz);
+                        Collection<SootClass> interfaces = getClassesAnnotatedWithWebService(getInterfacesTransitively(clazz));
+                        for (SootMethod sm : clazz.getMethods()) {
+
+                            // Case #1: The annotation is on the class itself
+                            if (getWebMethodAnnotation(sm) != null) {
+                                wsMethods.add(sm);
+                                G.v().out.println("Found web method: " + sm);
+                                continue;
+                            }
+
+                            // Case #2: The annotation is on the interface's
+                            // method
+                            for (SootClass sc : interfaces) {
+                                if (sc.declaresMethod(sm.getSubSignature())
+                                        && getWebMethodAnnotation(sc
+                                                .getMethod(sm.getSubSignature())) != null) {
+                                    wsMethods.add(sm);
+                                    G.v().out
+                                            .println("Found web method: " + sm);
+                                    break; // no need to check the other
+                                            // interfaces
+                                }
+                            }
+                        }
+
+                        // Handling @WebServiceProvider
+                    } else if ("Ljavax/jws/WebServiceProvider;".equals(at
+                            .getType())) {
+                        SootClass providerClass = Scene.v().getSootClass(
+                                "javax.xml.ws.Provider");
+                        if (Scene
+                                .v()
+                                .getFastHierarchy()
+                                .canStoreType(clazz.getType(),
+                                        providerClass.getType())
+                                && clazz.declaresMethodByName("invoke")) {
+                            wsMethods.add(clazz.getMethodByName("invoke"));
+                            wsClasses.add(clazz);
+                        }
+                    }
+                }
+
+            }
+        }
+    }
 	
 	/**
 	 * Filters a collection of classes to keep only those annotated with @WebService
@@ -260,187 +223,112 @@ public class WebServiceDetector extends AbstractServletDetector implements
 		return retVal;
 	}
 
-	/**
-	 * Creates a Servlet that only calls the web services
-	 * 
-	 * @param wsClasses
-	 *            the Web Service classes found
-	 * @param wsMethods
-	 *            the Web service methods found
-	 * @return a class
-	 */
-	private SootClass synthetizeWSServlet(Collection<SootClass> wsClasses,
-			Collection<SootMethod> wsMethods) {
-		JimpleClassGenerator classGen = new JimpleClassGenerator(PhaseOptions.getString(options, "root-package")
-				+ ".WSCaller", HTTP_SERVLET_CLASS_NAME, true);
-		final SootClass clazz = classGen.getClazz();
-
-		// create default constructor
-		final JimpleBodyGenerator constructor = classGen.method("<init>",
-				Collections.EMPTY_LIST, VoidType.v());
-		final Local thisLocal = constructor.local(false, clazz.getType());
-		constructor.getUnits().add(
-				jimple.newIdentityStmt(thisLocal,
-						jimple.newThisRef(clazz.getType())));
-
-		final List<Type> parameterTypes = Arrays.asList(
-				(Type) scene.getRefType(HTTP_SERVLET_REQUEST_CLASS_NAME),
-				(Type) scene.getRefType(HTTP_SERVLET_RESPONSE_CLASS_NAME));
-		final JimpleBodyGenerator serviceMethod = classGen.method("doGet",
-				parameterTypes, VoidType.v());
-		serviceMethod.setPublic();
-
-		final Local serviceThisLocal = serviceMethod.local(true,
-				clazz.getType());
-		final Local requestLocal = serviceMethod.local(true,
-				parameterTypes.get(0));
-		final Local responseLocal = serviceMethod.local(true,
-				parameterTypes.get(1));
-		final Chain<Unit> units = serviceMethod.getUnits();
-		final Map<SootClass, Local> generatedLocals = new HashMap<SootClass, Local>(
-				wsClasses.size());
-
-		// Add this object ref
-		units.add(jimple.newIdentityStmt(serviceThisLocal,
-				jimple.newThisRef(clazz.getType())));
-
-		// init parameters
-		units.add(jimple.newIdentityStmt(requestLocal,
-				jimple.newParameterRef(parameterTypes.get(0), 0)));
-		units.add(jimple.newIdentityStmt(responseLocal,
-				jimple.newParameterRef(parameterTypes.get(1), 1)));
-
-		// Construct the instances
-		for (SootClass sc : wsClasses) {
-			final Local newLocal = serviceMethod.local(false, sc.getType());
-			generatedLocals.put(sc, newLocal);
-			serviceMethod.createInstance(newLocal, sc);
-			units.add(jimple.newInvokeStmt(jimple.newSpecialInvokeExpr(
-					newLocal, sc.getMethod("void <init>()").makeRef())));
-		}
-
-		final RefType stringType = Scene.v().getSootClass("java.lang.String")
-				.getType();
-
-		// Add the calls to the WS methods
-		// TODO we need to figure out the parameters and get them from the
-		// request
-		for (SootMethod sm : wsMethods) {
-
-			List<Type> argTypes = sm.getParameterTypes();
-			List<Value> arguments = new ArrayList<Value>(argTypes.size());
-			for (Type t : argTypes) {
-
-				Local paramLocal = serviceMethod.local(false, t);
-				if (t instanceof PrimType) {
-					if (t instanceof IntType) {
-						units.add(jimple.newAssignStmt(paramLocal,
-								IntConstant.v(0)));
-					} else if (t instanceof LongType) {
-						units.add(jimple.newAssignStmt(paramLocal,
-								LongConstant.v(0)));
-					} else if (t instanceof FloatType) {
-						units.add(jimple.newAssignStmt(paramLocal,
-								FloatConstant.v(0.0f)));
-					} else if (t instanceof DoubleType) {
-						units.add(jimple.newAssignStmt(paramLocal,
-								DoubleConstant.v(0.0)));
-					} else if (t instanceof BooleanType) {
-						units.add(jimple.newAssignStmt(paramLocal,
-								IntConstant.v(1))); // 1 is true
-					}
-
-				} else if (t instanceof RefType) {
-					if (t.equals(stringType)) {
-						units.add(jimple.newAssignStmt(paramLocal,
-								StringConstant.v("")));
-					} else {
-						units.add(jimple.newAssignStmt(paramLocal,
-								jimple.newNewExpr((RefType) t)));
-						units.add(jimple.newInvokeStmt(jimple
-								.newSpecialInvokeExpr(
-										paramLocal,
-										((RefType) t).getSootClass()
-												.getMethod("void <init>()")
-												.makeRef())));
-					}
-				}
-				arguments.add(paramLocal);// TODO
-			}
-			units.add(jimple.newInvokeStmt(jimple.newVirtualInvokeExpr(
-					generatedLocals.get(sm.getDeclaringClass()), sm.makeRef(),
-					arguments)));
-		}
-		PrintWriter pw = new PrintWriter(new EscapedWriter(
-				new OutputStreamWriter(G.v().out)));
-		Printer.v().printTo(clazz, pw);
-		pw.close();
-
-		return clazz;
-	}
-
-	   /**
+    /**
      * Creates a Servlet that only calls the web services
      * 
-     * @param wsClasses
-     *            the Web Service classes found
-     * @param wsMethods
-     *            the Web service methods found
      * @return a class
      */
-    @SuppressWarnings({ "deprecation", "unchecked" })
-    private SootClass synthetizeWSServletMain(Collection<SootClass> wsClasses,
-            Collection<SootMethod> wsMethods) {
-        JimpleClassGenerator classGen = new JimpleClassGenerator(PhaseOptions.getString(options, "root-package")
-                + ".WSCaller", HTTP_SERVLET_CLASS_NAME, true);
+    @SuppressWarnings("deprecation")
+    private SootClass synthetizeWSServlet() {
+        JimpleClassGenerator classGen = new JimpleClassGenerator(PhaseOptions.getString(options, "root-package") + "."
+                + GENERATED_CLASS_NAME, HTTP_SERVLET_CLASS_NAME, true);
         final SootClass clazz = classGen.getClazz();
 
-        // create default constructor
-        final JimpleBodyGenerator constructor = classGen.method("<init>",
-                Collections.EMPTY_LIST, VoidType.v());
-        final Local thisLocal = constructor.local(false, clazz.getType());
-        constructor.getUnits().add(
-                jimple.newIdentityStmt(thisLocal,
-                        jimple.newThisRef(clazz.getType())));
+        final JimpleBodyGenerator staticInit = classGen.method("<clinit>", Collections.<Type> emptyList(), VoidType.v());
 
-        final List<Type> parameterTypes = Arrays.asList(
-                (Type) scene.getRefType("java.lang.String").getArrayType());
-        final JimpleBodyGenerator serviceMethod = classGen.method("main",
-                parameterTypes, VoidType.v());
+        Map<SootClass, SootField> generatedFields = new HashMap<SootClass, SootField>();
+        for (SootClass sc : wsClasses) {
+            SootField sf = classGen.field("ws" + sc.getShortName(), sc);
+            generatedFields.put(sc, sf);
+            sf.setModifiers(Modifier.STATIC | Modifier.FINAL | Modifier.PUBLIC);
+            Local sfLocal = staticInit.local(false, sc.getType());
+            staticInit.createInstance(sfLocal, sc);
+            staticInit.getUnits().addLast(
+                    jimple.newInvokeStmt(jimple.newSpecialInvokeExpr(sfLocal, sc.getMethod("void <init>()").makeRef())));
+            staticInit.getUnits().addLast(jimple.newAssignStmt(jimple.newStaticFieldRef(sf.makeRef()), sfLocal));
+        }
+
+        // create default constructor
+        final JimpleBodyGenerator constructor = classGen.method("<init>", Collections.<Type> emptyList(), VoidType.v());
+        final Local thisLocal = constructor.local(false, clazz.getType());
+        constructor.getUnits().add(jimple.newIdentityStmt(thisLocal, jimple.newThisRef(clazz.getType())));
+
+        // Save to the same dir as the templates
+        try {
+            File dir = new File((String) options.get("output-dir"));
+            if (!dir.exists())
+                dir.mkdir();
+            PrintWriter pw = new PrintWriter(new File(dir, clazz.getName() + ".jimple"));
+            Printer.v().printTo(clazz, pw);
+            pw.close();
+        } catch (IOException e) {
+            logger.error("Unable to export WSCaller", e);
+        }
+
+        return clazz;
+    }
+
+    /**
+     * Creates a Servlet that only calls the web services and offers a main method
+     * 
+     * @return a class
+     */
+    @SuppressWarnings("deprecation")
+    private SootClass synthetizeWSServletMain() {
+        JimpleClassGenerator classGen = new JimpleClassGenerator(PhaseOptions.getString(options, "root-package") + "."
+                + GENERATED_CLASS_NAME, HTTP_SERVLET_CLASS_NAME, true);
+        final SootClass clazz = classGen.getClazz();
+
+        final JimpleBodyGenerator staticInit = classGen.method("<clinit>", Collections.<Type> emptyList(), VoidType.v());
+
+        Map<SootClass, SootField> generatedFields = new HashMap<SootClass, SootField>();
+        for (SootClass sc : wsClasses) {
+            SootField sf = classGen.field("ws" + sc.getShortName(), sc);
+            generatedFields.put(sc, sf);
+            sf.setModifiers(Modifier.STATIC | Modifier.FINAL | Modifier.PUBLIC);
+            Local sfLocal = staticInit.local(false, sc.getType());
+            staticInit.createInstance(sfLocal, sc);
+            staticInit.getUnits().addLast(
+                    jimple.newInvokeStmt(jimple.newSpecialInvokeExpr(sfLocal, sc.getMethod("void <init>()").makeRef())));
+            staticInit.getUnits().addLast(jimple.newAssignStmt(jimple.newStaticFieldRef(sf.makeRef()), sfLocal));
+        }
+
+        // create default constructor
+        final JimpleBodyGenerator constructor = classGen.method("<init>", Collections.<Type> emptyList(), VoidType.v());
+        final Local thisLocal = constructor.local(false, clazz.getType());
+        constructor.getUnits().add(jimple.newIdentityStmt(thisLocal, jimple.newThisRef(clazz.getType())));
+
+        List<Type> parameterTypes = Arrays.asList((Type) scene.getRefType("java.lang.String").getArrayType());
+
+        final JimpleBodyGenerator serviceMethod = classGen.method("main", parameterTypes, VoidType.v());
         serviceMethod.setPublic();
         serviceMethod.setStatic();
 
-        final Local serviceThisLocal = serviceMethod.local(true,
-                clazz.getType());
-        final Local argArrayLocal = serviceMethod.local(true,
-                parameterTypes.get(0));
+        final Local serviceThisLocal = serviceMethod.local(true, clazz.getType());
+        final Local requestLocal = serviceMethod.local(true, parameterTypes.get(0));
+        final Local responseLocal = serviceMethod.local(true, parameterTypes.get(1));
         final Chain<Unit> units = serviceMethod.getUnits();
-        final Map<SootClass, Local> generatedLocals = new HashMap<SootClass, Local>(
-                wsClasses.size());
+        final Map<SootClass, Local> generatedLocals = new HashMap<SootClass, Local>(wsClasses.size());
 
         // Add this object ref
-        units.add(jimple.newIdentityStmt(serviceThisLocal,
-                jimple.newThisRef(clazz.getType())));
+        units.add(jimple.newIdentityStmt(serviceThisLocal, jimple.newThisRef(clazz.getType())));
 
         // init parameters
-        units.add(jimple.newIdentityStmt(argArrayLocal,
-                jimple.newParameterRef(parameterTypes.get(0), 0)));
+        units.add(jimple.newIdentityStmt(requestLocal, jimple.newParameterRef(parameterTypes.get(0), 0)));
+        units.add(jimple.newIdentityStmt(responseLocal, jimple.newParameterRef(parameterTypes.get(1), 1)));
 
-        // Construct the instances
         for (SootClass sc : wsClasses) {
             final Local newLocal = serviceMethod.local(false, sc.getType());
             generatedLocals.put(sc, newLocal);
-            serviceMethod.createInstance(newLocal, sc);
-            units.add(jimple.newInvokeStmt(jimple.newSpecialInvokeExpr(
-                    newLocal, sc.getMethod("void <init>()").makeRef())));
+            units.add(jimple.newAssignStmt(newLocal, jimple.newStaticFieldRef(generatedFields.get(sc).makeRef())));
         }
 
-        final RefType stringType = Scene.v().getSootClass("java.lang.String")
-                .getType();
+        final RefType stringType = Scene.v().getSootClass("java.lang.String").getType();
 
         // Add the calls to the WS methods
         // TODO we need to figure out the parameters and get them from the
         // request
+
         for (SootMethod sm : wsMethods) {
 
             List<Type> argTypes = sm.getParameterTypes();
@@ -450,51 +338,47 @@ public class WebServiceDetector extends AbstractServletDetector implements
                 Local paramLocal = serviceMethod.local(false, t);
                 if (t instanceof PrimType) {
                     if (t instanceof IntType) {
-                        units.add(jimple.newAssignStmt(paramLocal,
-                                IntConstant.v(0)));
+                        units.add(jimple.newAssignStmt(paramLocal, IntConstant.v(0)));
                     } else if (t instanceof LongType) {
-                        units.add(jimple.newAssignStmt(paramLocal,
-                                LongConstant.v(0)));
+                        units.add(jimple.newAssignStmt(paramLocal, LongConstant.v(0)));
                     } else if (t instanceof FloatType) {
-                        units.add(jimple.newAssignStmt(paramLocal,
-                                FloatConstant.v(0.0f)));
+                        units.add(jimple.newAssignStmt(paramLocal, FloatConstant.v(0.0f)));
                     } else if (t instanceof DoubleType) {
-                        units.add(jimple.newAssignStmt(paramLocal,
-                                DoubleConstant.v(0.0)));
+                        units.add(jimple.newAssignStmt(paramLocal, DoubleConstant.v(0.0)));
                     } else if (t instanceof BooleanType) {
-                        units.add(jimple.newAssignStmt(paramLocal,
-                                IntConstant.v(1))); // 1 is true
+                        units.add(jimple.newAssignStmt(paramLocal, IntConstant.v(1))); // 1
+                                                                                       // is
+                                                                                       // true
                     }
 
                 } else if (t instanceof RefType) {
                     if (t.equals(stringType)) {
-                        units.add(jimple.newAssignStmt(paramLocal,
-                                StringConstant.v("")));
+                        units.add(jimple.newAssignStmt(paramLocal, StringConstant.v("")));
                     } else {
-                        units.add(jimple.newAssignStmt(paramLocal,
-                                jimple.newNewExpr((RefType) t)));
-                        units.add(jimple.newInvokeStmt(jimple
-                                .newSpecialInvokeExpr(
-                                        paramLocal,
-                                        ((RefType) t).getSootClass()
-                                                .getMethod("void <init>()")
-                                                .makeRef())));
+                        units.add(jimple.newAssignStmt(paramLocal, jimple.newNewExpr((RefType) t)));
+                        units.add(jimple.newInvokeStmt(jimple.newSpecialInvokeExpr(paramLocal,
+                                ((RefType) t).getSootClass().getMethod("void <init>()").makeRef())));
                     }
                 }
                 arguments.add(paramLocal);// TODO
             }
-            units.add(jimple.newInvokeStmt(jimple.newVirtualInvokeExpr(
-                    generatedLocals.get(sm.getDeclaringClass()), sm.makeRef(),
-                    arguments)));
+            units.add(jimple.newInvokeStmt(jimple.newVirtualInvokeExpr(generatedLocals.get(sm.getDeclaringClass()), sm.makeRef(), arguments)));
         }
-        PrintWriter pw = new PrintWriter(new EscapedWriter(
-                new OutputStreamWriter(G.v().out)));
-        Printer.v().printTo(clazz, pw);
-        pw.close();
+        // Save to the same dir as the templates
+        try {
+            File dir = new File((String) options.get("output-dir"));
+            if (!dir.exists())
+                dir.mkdir();
+            PrintWriter pw = new PrintWriter(new File(dir, clazz.getName() + ".jimple"));
+            Printer.v().printTo(clazz, pw);
+            pw.close();
+        } catch (IOException e) {
+            logger.error("Unable to export WSCaller", e);
+        }
 
+        logger.info("Generated class calling the web services: {}", clazz.getJavaStyleName());
         return clazz;
     }
-
 
 	@Override
 	public void detectFromConfig(Web web) {

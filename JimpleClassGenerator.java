@@ -74,9 +74,7 @@ public class JimpleClassGenerator {
 	 */
 	public SootField field(final String name, final SootClass type) {
 		final SootField field = new SootField(name, type.getType());
-
 		clazz.addField(field);
-		
 		return field;
 	}
 
