@@ -6,11 +6,9 @@ import java.util.Set;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathException;
 import javax.xml.xpath.XPathExpression;
-import javax.xml.xpath.XPathFactory;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,9 +37,27 @@ import soot.jimple.toolkits.javaee.model.servlet.http.ServletSignatures;
  * @author Bernhard Berger
  */
 public class WebXMLReader implements ServletSignatures {
+	/**
+	 * Logger instance.
+	 */
 	private static final Logger LOG = LoggerFactory.getLogger(WebXMLReader.class);
 	
-	public static Web readWebXML(final FileLoader loader, final Web web) throws Exception {
+	/**
+	 * XML document.
+	 */
+	private Document doc;
+
+	/**
+	 * Provider for all necessary XPaths.
+	 */
+	private XPathExpressionProvider provider;
+
+	/**
+	 * Model to fill.
+	 */
+	private Web web;
+	
+	public Web readWebXML(final FileLoader loader, final Web web) throws Exception {
 	    final DocumentBuilderFactory domFactory = DocumentBuilderFactory.newInstance();
 	    domFactory.setNamespaceAware(true); // never forget this!
 	    domFactory.setValidating(false);
@@ -50,18 +66,14 @@ public class WebXMLReader implements ServletSignatures {
 
 	    try {
 		    final InputStream is = loader.getInputStream("WEB-INF/web.xml");
-		    System.out.println("Number of bytes " + is.available());
-		    final Document doc = builder.parse(is);
-		    
-		    System.out.println("Document is " + doc + " " + doc.getChildNodes().item(0).getNamespaceURI());
+		    doc = builder.parse(is);
+		    provider = ProviderFactory.create(doc);
+			this.web = web;
 			
-			readFilters(doc, web);
-		    
-			readServlets(doc, web.getServlets(), loader);
-			
-			readServletMappings(doc, web);
-			
-			readListeners(doc, web);
+			readFilters();
+			readServlets(loader);
+			readServletMappings();
+			readListeners();
 	    } catch(final FileNotFoundException e) {
 	    	LOG.error("Cannot find web.xml in {}.", loader);
 	    }
@@ -69,10 +81,8 @@ public class WebXMLReader implements ServletSignatures {
 		return web;
 	}
 
-	private static void readListeners(final Document doc, final Web web) throws XPathException {
-	    final XPathFactory factory = XPathFactory.newInstance();
-	    final XPath xpath = factory.newXPath();
-	    final XPathExpression listenerExpr = xpath.compile("//web-app/listener");
+	private void readListeners() throws XPathException {
+	    final XPathExpression listenerExpr = provider.getListenerExpression();
 
 	    final NodeList listenerNodes = (NodeList)listenerExpr.evaluate(doc, XPathConstants.NODESET);
 	    
@@ -110,12 +120,10 @@ public class WebXMLReader implements ServletSignatures {
 	/**
 	 * Reads the filter settings and their mappings.
 	 */
-	private static void readFilters(final Document doc, final Web web) throws XPathException {
+	private void readFilters() throws XPathException {
 		LOG.info("Reading filters from web.xml");
 		
-		final XPathFactory factory = XPathFactory.newInstance();
-		final XPath xpath = factory.newXPath();
-		final XPathExpression filterExpr = xpath.compile("//web-app/filter");
+		final XPathExpression filterExpr = provider.getFilterExpression();
 
 		final NodeList filterNodes = (NodeList)filterExpr.evaluate(doc, XPathConstants.NODESET);
 
@@ -153,7 +161,7 @@ public class WebXMLReader implements ServletSignatures {
 			}
 		}
 
-		final XPathExpression filterMappingExpr = xpath.compile("//web-app/filter-mapping");
+		final XPathExpression filterMappingExpr = provider.getFilterMappingExpression();
 		final NodeList mappingNodes = (NodeList)filterMappingExpr.evaluate(doc, XPathConstants.NODESET);
 
 		for (int i = 0; i < mappingNodes.getLength(); i++) {
@@ -187,11 +195,9 @@ public class WebXMLReader implements ServletSignatures {
 	/**
 	 * Reads the servlet-mappings.
 	 */
-	private static void readServletMappings(final Document doc, final Web web) throws XPathException {
-	    final XPathFactory factory = XPathFactory.newInstance();
-	    final XPath xpath = factory.newXPath();
-	    final XPathExpression servletMappingExpr = xpath.compile("//web-app/servlet-mapping");
-	    
+	private void readServletMappings() throws XPathException {
+	    final XPathExpression servletMappingExpr = provider.getServletMappingExpression();
+
 	    final NodeList mappingNodes = (NodeList)servletMappingExpr.evaluate(doc, XPathConstants.NODESET);
 
 	    for (int i = 0; i < mappingNodes.getLength(); i++) {
@@ -233,12 +239,12 @@ public class WebXMLReader implements ServletSignatures {
 	 * Reads all servlets
 	 * @param loader 
 	 */
-	private static void readServlets(final Document doc, final Set<Servlet> servlets, FileLoader loader) throws XPathException {
+	private void readServlets(FileLoader loader) throws XPathException {
 		LOG.info("Reading servlets from web.xml");
 		
-	    final XPathFactory factory = XPathFactory.newInstance();
-	    final XPath xpath = factory.newXPath();
-	    final XPathExpression servletExpr = xpath.compile("//web-app/servlet");
+		final Set<Servlet> servlets = web.getServlets();
+		
+	    final XPathExpression servletExpr = provider.getServletExpression();
 
 	    final NodeList servletNodes = (NodeList)servletExpr.evaluate(doc, XPathConstants.NODESET);
 

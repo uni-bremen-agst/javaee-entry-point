@@ -21,7 +21,7 @@ public class ReaderTest {
 		final FileLoader  loader = new FileLoader(args[0]);
 		final Web web = new Web();
 		
-		WebXMLReader.readWebXML(loader, web);
+		new WebXMLReader ().readWebXML(loader, web);
 
 		final JAXBContext context = JAXBContext.newInstance( Web.class ); 
 		final Marshaller m = context.createMarshaller();

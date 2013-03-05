@@ -67,7 +67,7 @@ public class HttpServletDetector extends AbstractServletDetector implements Serv
 			final FileLoader loader = new FileLoader(part.substring(0, part.length() - 15));
 
 			try {
-				WebXMLReader.readWebXML(loader, web);
+				new WebXMLReader ().readWebXML(loader, web);
 			} catch (final Exception e) {
 				LOG.error("Cannot read web.xml:", e);
 			}
