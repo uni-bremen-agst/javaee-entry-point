@@ -26,4 +26,9 @@ public class FilterMapping {
 	public void setURLPattern(final String urlPattern) {
 		this.urlPattern = urlPattern;
 	}
+	
+	@Override
+	public String toString() {
+		return "FilterMapping [" + urlPattern + " to " + filter + "]";
+	}
 }
