@@ -7,12 +7,22 @@ import java.io.InputStream;
 
 import javax.xml.bind.annotation.XmlAttribute;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * A simple fake class loader.
+ * 
+ * TODO Add support for real projects.
  * 
  * @author Bernhard Berger
  */
 public class FileLoader {
+	/**
+	 * Logger.
+	 */
+	private final static Logger LOG = LoggerFactory.getLogger(FileLoader.class);
+	
 	private String basepath;
 
 	public FileLoader() {
@@ -24,7 +34,11 @@ public class FileLoader {
 
 	public InputStream getInputStream(final String path)
 			throws FileNotFoundException {
-		return new FileInputStream(this.basepath + File.separator + path);
+		final File file = new File(this.basepath + File.separator + path);
+		
+		LOG.info("Searching for file " + file + " exists " + file.exists());
+		
+		return new FileInputStream(file);
 	}
 	
 	@XmlAttribute(name="basepath", required=true)
@@ -34,5 +48,10 @@ public class FileLoader {
 	
 	public void setBasepath(final String path) {
 		this.basepath = path;
+	}
+	
+	@Override
+	public String toString() {
+		return "[FileLoader " + basepath + "]";
 	}
 }

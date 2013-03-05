@@ -37,14 +37,14 @@ import soot.jimple.StringConstant;
 import soot.jimple.toolkits.javaee.JimpleBodyGenerator;
 import soot.jimple.toolkits.javaee.JimpleClassGenerator;
 import soot.jimple.toolkits.javaee.model.servlet.Web;
-import soot.jimple.toolkits.javaee.model.servlet.http.HttpServletSignatures;
+import soot.jimple.toolkits.javaee.model.servlet.http.ServletSignatures;
 import soot.tagkit.AnnotationTag;
 import soot.tagkit.VisibilityAnnotationTag;
 import soot.util.Chain;
 import soot.util.EscapedWriter;
 
 public class WebServiceDetector extends AbstractServletDetector implements
-		HttpServletSignatures {
+		ServletSignatures {
 
 	/**
 	 * For creation of jimple nodes.
@@ -117,7 +117,7 @@ public class WebServiceDetector extends AbstractServletDetector implements
 
 		if (!wsClasses.isEmpty()) {
 			SootClass theClass = synthetizeWSServlet(wsClasses, wsMethods);
-			HttpServletDetector.registerServlet(web, theClass);
+			HttpServletDetector.registerHttpServlet(web, theClass);
 		}
 	}
 

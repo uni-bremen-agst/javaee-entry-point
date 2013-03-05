@@ -6,7 +6,7 @@ package soot.jimple.toolkits.javaee.model.servlet.http;
  *
  * @author Bernhard Berger
  */
-public interface HttpServletSignatures {
+public interface ServletSignatures {
 	/**
 	 * Class name of HttpServlet.
 	 */
@@ -21,4 +21,9 @@ public interface HttpServletSignatures {
 	 * Class name of {@code javax.servlet.http.HttpServletResponse}.
 	 */
 	public static final String HTTP_SERVLET_RESPONSE_CLASS_NAME = "javax.servlet.http.HttpServletResponse";
+	
+	/**
+	 * Class name of {@code javax.servlet.GenericServlet}.
+	 */
+	public static final String GENERIC_SERVLET_CLASS_NAME = "javax.servlet.GenericServlet";
 }

@@ -100,6 +100,6 @@ public class «this.chainClassname(filters, web)» extends java.lang.Object impl
 «DEFINE main FOR Web»
 «FOREACH collectBoundAddresses() AS address»
 «EXPAND generateFilterChain(address.filters, this) FOR address»
-«EXPAND generateServletChain(this) FOR address.servlet»
+«EXPAND generateServletChain(this) FOR ((Address)address).servlet»
 «ENDFOREACH»
 «ENDDEFINE»

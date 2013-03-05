@@ -1,5 +1,7 @@
 package soot.jimple.toolkits.javaee.model.servlet.http.io;
 
+import java.io.FileNotFoundException;
+import java.io.InputStream;
 import java.util.Set;
 
 import javax.xml.parsers.DocumentBuilder;
@@ -16,21 +18,27 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 
+import soot.Hierarchy;
+import soot.Scene;
+import soot.SootClass;
 import soot.jimple.toolkits.javaee.model.servlet.Filter;
 import soot.jimple.toolkits.javaee.model.servlet.FilterMapping;
 import soot.jimple.toolkits.javaee.model.servlet.Listener;
 import soot.jimple.toolkits.javaee.model.servlet.Parameter;
 import soot.jimple.toolkits.javaee.model.servlet.Servlet;
 import soot.jimple.toolkits.javaee.model.servlet.Web;
+import soot.jimple.toolkits.javaee.model.servlet.http.AbstractServlet;
 import soot.jimple.toolkits.javaee.model.servlet.http.FileLoader;
+import soot.jimple.toolkits.javaee.model.servlet.http.GenericServlet;
 import soot.jimple.toolkits.javaee.model.servlet.http.HttpServlet;
+import soot.jimple.toolkits.javaee.model.servlet.http.ServletSignatures;
 
 /**
  * A reader for {@code web.xml} files.
  * 
  * @author Bernhard Berger
  */
-public class WebXMLReader {
+public class WebXMLReader implements ServletSignatures {
 	private static final Logger LOG = LoggerFactory.getLogger(WebXMLReader.class);
 	
 	public static Web readWebXML(final FileLoader loader, final Web web) throws Exception {
@@ -39,15 +47,24 @@ public class WebXMLReader {
 	    domFactory.setValidating(false);
 	    domFactory.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
 	    final DocumentBuilder builder = domFactory.newDocumentBuilder();
-	    final Document doc = builder.parse(loader.getInputStream("WEB-INF/web.xml"));
-		
-		readFilters(doc, web);
-	    
-		readServlets(doc, web.getServlets(), loader);
-		
-		readServletMappings(doc, web);
-		
-		readListeners(doc, web);
+
+	    try {
+		    final InputStream is = loader.getInputStream("WEB-INF/web.xml");
+		    System.out.println("Number of bytes " + is.available());
+		    final Document doc = builder.parse(is);
+		    
+		    System.out.println("Document is " + doc + " " + doc.getChildNodes().item(0).getNamespaceURI());
+			
+			readFilters(doc, web);
+		    
+			readServlets(doc, web.getServlets(), loader);
+			
+			readServletMappings(doc, web);
+			
+			readListeners(doc, web);
+	    } catch(final FileNotFoundException e) {
+	    	LOG.error("Cannot find web.xml in {}.", loader);
+	    }
 		
 		return web;
 	}
@@ -94,12 +111,15 @@ public class WebXMLReader {
 	 * Reads the filter settings and their mappings.
 	 */
 	private static void readFilters(final Document doc, final Web web) throws XPathException {
+		LOG.info("Reading filters from web.xml");
+		
 		final XPathFactory factory = XPathFactory.newInstance();
 		final XPath xpath = factory.newXPath();
 		final XPathExpression filterExpr = xpath.compile("//web-app/filter");
 
 		final NodeList filterNodes = (NodeList)filterExpr.evaluate(doc, XPathConstants.NODESET);
 
+		LOG.info("Found {} filter nodes.", filterNodes.getLength());
 		for (int i = 0; i < filterNodes.getLength(); i++) {
 			final Element node = (Element)filterNodes.item(i);
 			final NodeList children = node.getChildNodes();
@@ -214,18 +234,21 @@ public class WebXMLReader {
 	 * @param loader 
 	 */
 	private static void readServlets(final Document doc, final Set<Servlet> servlets, FileLoader loader) throws XPathException {
+		LOG.info("Reading servlets from web.xml");
+		
 	    final XPathFactory factory = XPathFactory.newInstance();
 	    final XPath xpath = factory.newXPath();
 	    final XPathExpression servletExpr = xpath.compile("//web-app/servlet");
 
 	    final NodeList servletNodes = (NodeList)servletExpr.evaluate(doc, XPathConstants.NODESET);
 
+	    LOG.info("Found {} servlet nodes.", servletNodes.getLength());
 	    for (int i = 0; i < servletNodes.getLength(); i++) {
 	        final Element node = (Element)servletNodes.item(i);
 	        
 	        final NodeList children = node.getChildNodes();
-	        
-	        HttpServlet servlet = new HttpServlet();
+	        final AbstractServlet servlet = newServlet(node);
+
 	        for(int j = 0; j < children.getLength(); j++) {
 	        	if(!(children.item(j) instanceof Element)) {
 	        		continue;
@@ -268,5 +291,44 @@ public class WebXMLReader {
 	        	LOG.error("Servlet not configured correctly {}.", servlet);
 	        }
 	    }
+	}
+
+	/**
+	 * Creates a new model servlet instance (either GenericServlet or HttpServlet).
+	 * 
+	 * @param servletNode XML servlet node.
+	 * 
+	 * @return A new instance.
+	 */
+	private static AbstractServlet newServlet(final Element servletNode) {
+		final NodeList classNodes = servletNode.getElementsByTagName("servlet-class");
+		
+		if(classNodes.getLength() == 0) {
+			LOG.error("Cannot find servlet-class for servlet {}.", servletNode);
+			return new GenericServlet();
+		}
+		
+		if(classNodes.getLength() > 1) {
+			LOG.warn("Multiple classes for servlet {} found. Choosing first one.", servletNode);
+		}
+		
+    	final String className = classNodes.item(0).getFirstChild().getNodeValue();
+
+    	final SootClass implementationClass = Scene.v().forceResolve(className, SootClass.HIERARCHY);
+
+	    final Hierarchy cha = Scene.v().getActiveHierarchy();
+	    final SootClass servletClass = Scene.v().getSootClass(HTTP_SERVLET_CLASS_NAME);
+	    final SootClass genericClass = Scene.v().getSootClass(GENERIC_SERVLET_CLASS_NAME);
+	    
+        if (cha.isClassSubclassOf(implementationClass, servletClass)){
+        	LOG.info("Found http servlet class {}.", servletClass);
+            return new HttpServlet();
+        } else if(cha.isClassSubclassOf(implementationClass, genericClass)) {
+        	LOG.info("Found generic servlet class {}.", servletClass);
+            return new GenericServlet();
+        } else {
+        	LOG.warn("Class '{}' is neither a http nor a generic servlet.", implementationClass);
+        	return new GenericServlet();
+        }
 	}
 }

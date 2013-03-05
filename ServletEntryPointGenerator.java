@@ -32,7 +32,6 @@ import org.eclipse.xpand2.Generator;
 import org.eclipse.xpand2.output.Outlet;
 import org.eclipse.xtend.check.CheckComponent;
 import org.eclipse.xtend.type.impl.java.JavaBeansMetaModel;
-import org.eclipse.xtend.type.impl.java.JavaTypeStrategy;
 import org.eclipse.xtend.type.impl.java.beans.JavaBeansStrategy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,7 +47,7 @@ import soot.jimple.toolkits.javaee.detectors.ServletDetector;
 import soot.jimple.toolkits.javaee.detectors.StrutsServletDetector;
 import soot.jimple.toolkits.javaee.detectors.WebServiceDetector;
 import soot.jimple.toolkits.javaee.model.servlet.Web;
-import soot.jimple.toolkits.javaee.model.servlet.http.HttpServletSignatures;
+import soot.jimple.toolkits.javaee.model.servlet.http.ServletSignatures;
 
 /**
  * This class drives the generation of a main method that creates and calls
@@ -57,7 +56,7 @@ import soot.jimple.toolkits.javaee.model.servlet.http.HttpServletSignatures;
  *
  * @author Bernhard Berger
  */
-public class ServletEntryPointGenerator extends SceneTransformer implements HttpServletSignatures {
+public class ServletEntryPointGenerator extends SceneTransformer implements ServletSignatures {
  
 	/**
 	 * Logging facility.
@@ -102,8 +101,6 @@ public class ServletEntryPointGenerator extends SceneTransformer implements Http
 	/**
 	 * Loads the {@code web.xml} or fakes it if the corresponding command line
 	 *   parameter was given.
-	 *   
-	 * @todo Implement proper war support for locator.
 	 */
 	private void loadWebXML(@SuppressWarnings("rawtypes") final Map options) {
 		web.getGeneratorInfos().initializeFromOptions(options);
@@ -122,9 +119,7 @@ public class ServletEntryPointGenerator extends SceneTransformer implements Http
 	}
 
 	@Override
-	protected void internalTransform(final String phaseName,
-			@SuppressWarnings("rawtypes") final Map options) {
-		// configure logging
+	protected void internalTransform(final String phaseName, @SuppressWarnings("rawtypes") final Map options) {
 		LOG.info("Running {}", phaseName);
 
 		final boolean wsOnly = PhaseOptions.getBoolean(options, "wsonly");
@@ -160,8 +155,6 @@ public class ServletEntryPointGenerator extends SceneTransformer implements Http
 			}
 		}
 	}
-
-
 
     /**
 	 * Processes all templates.
@@ -274,16 +267,16 @@ public class ServletEntryPointGenerator extends SceneTransformer implements Http
 		}
 	}
 	
-	   private void processWs(@SuppressWarnings("rawtypes") Map options) {
-	        WebServiceDetector detector = new WebServiceDetector();
-	        detector.setOptions(options);
-	        SootClass sc = detector.detectFromSource();
-	        if (sc != null){
-	            //set as main class
-	            final SootClass sootClass = scene.forceResolve(sc.getName(), SootClass.BODIES);
-	            scene.setMainClass(sootClass);
-	        }
-	    }
+	private void processWs(@SuppressWarnings("rawtypes") Map options) {
+		WebServiceDetector detector = new WebServiceDetector();
+		detector.setOptions(options);
+		SootClass sc = detector.detectFromSource();
+		if (sc != null) {
+			// set as main class
+			final SootClass sootClass = scene.forceResolve(sc.getName(), SootClass.BODIES);
+			scene.setMainClass(sootClass);
+		}
+	}
 
 	/**
 	 * Stores the model into a file name {@code modelName}.

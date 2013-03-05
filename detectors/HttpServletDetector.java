@@ -12,9 +12,11 @@ import soot.Scene;
 import soot.SootClass;
 import soot.SourceLocator;
 import soot.jimple.toolkits.javaee.model.servlet.Web;
+import soot.jimple.toolkits.javaee.model.servlet.http.AbstractServlet;
 import soot.jimple.toolkits.javaee.model.servlet.http.FileLoader;
+import soot.jimple.toolkits.javaee.model.servlet.http.GenericServlet;
 import soot.jimple.toolkits.javaee.model.servlet.http.HttpServlet;
-import soot.jimple.toolkits.javaee.model.servlet.http.HttpServletSignatures;
+import soot.jimple.toolkits.javaee.model.servlet.http.ServletSignatures;
 import soot.jimple.toolkits.javaee.model.servlet.http.io.WebXMLReader;
 
 /**
@@ -25,7 +27,7 @@ import soot.jimple.toolkits.javaee.model.servlet.http.io.WebXMLReader;
  * 
  * @author Bernhard Berger
  */
-public class HttpServletDetector extends AbstractServletDetector implements HttpServletSignatures {
+public class HttpServletDetector extends AbstractServletDetector implements ServletSignatures {
 	/**
 	 * Logger.
 	 */
@@ -36,14 +38,18 @@ public class HttpServletDetector extends AbstractServletDetector implements Http
 		LOG.info("Detecting servlets from source code.");
 	    final Hierarchy cha = Scene.v().getActiveHierarchy();
 	    final SootClass servletClass = Scene.v().getSootClass(HTTP_SERVLET_CLASS_NAME);
-
+	    final SootClass genericClass = Scene.v().getSootClass(GENERIC_SERVLET_CLASS_NAME);
+	    
 	    for(final SootClass clazz : Scene.v().getApplicationClasses()) {
 	        if (!clazz.isConcrete()) //ignore interfaces and abstract classes
 	            continue;
 	        
 	        if (cha.isClassSubclassOf(clazz, servletClass)){
-	        	LOG.info("Found servlet class {}.", servletClass);
-	            registerServlet(web, clazz);
+	        	LOG.info("Found http servlet class {}.", servletClass);
+	            registerHttpServlet(web, clazz);
+	        } else if(cha.isClassSubclassOf(clazz, genericClass)) {
+	        	LOG.info("Found generic servlet class {}.", servletClass);
+	            registerGenericServlet(web, clazz);
 	        }
 		}
 	}
@@ -68,25 +74,37 @@ public class HttpServletDetector extends AbstractServletDetector implements Http
 		}
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
 	public List<Class<?>> getModelExtensions() {
-		return (List<Class<?>>)(List<?>)Collections.singletonList(HttpServlet.class);
+		final Class<?> [] extensions = {HttpServlet.class, GenericServlet.class};
+		
+		return Arrays.asList(extensions);
 	}
 	
 	/**
-	 * Registers a servlet as if it was declared in web.xml
+	 * Registers a http servlet as if it was declared in web.xml
 	 * 
-	 * @param clazz
-	 *            the class
+	 * @param clazz the class
 	 */
-	public static void registerServlet(final Web web, final SootClass clazz) {
+	public static void registerHttpServlet(final Web web, final SootClass clazz) {
 		final HttpServlet servlet = new HttpServlet(clazz.getName(), clazz.getName());
 		web.getServlets().add(servlet);
 		
 		web.bindServlet(servlet, "/" + clazz.getName());
 	}
 
+	/**
+	 * Registers a generic servlet as if it was declared in web.xml
+	 * 
+	 * @param clazz
+	 *            the class
+	 */
+	public static void registerGenericServlet(final Web web, final SootClass clazz) {
+		final AbstractServlet servlet = new GenericServlet(clazz.getName(), clazz.getName());
+		web.getServlets().add(servlet);
+		
+		web.bindServlet(servlet, "/" + clazz.getName());
+	}
 	@Override
 	public String getTemplateFile() {
 		throw new RuntimeException("Not implemented.");
