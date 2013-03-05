@@ -327,10 +327,10 @@ public class WebXMLReader implements ServletSignatures {
 	    final SootClass genericClass = Scene.v().getSootClass(GENERIC_SERVLET_CLASS_NAME);
 	    
         if (cha.isClassSubclassOf(implementationClass, servletClass)){
-        	LOG.info("Found http servlet class {}.", servletClass);
+        	LOG.info("Found http servlet class {}.", implementationClass);
             return new HttpServlet();
         } else if(cha.isClassSubclassOf(implementationClass, genericClass)) {
-        	LOG.info("Found generic servlet class {}.", servletClass);
+        	LOG.info("Found generic servlet class {}.", implementationClass);
             return new GenericServlet();
         } else {
         	LOG.warn("Class '{}' is neither a http nor a generic servlet.", implementationClass);
