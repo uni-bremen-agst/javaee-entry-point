@@ -60,6 +60,11 @@ public final class SchemaProvider extends XPathExpressionProvider {
     }
     
     @Override
+    public XPathExpression getSecurityConstraintExpression() throws XPathExpressionException {
+    	return xpath.compile("//javaee:web-app/javaee:security-constraint");
+    }
+    
+    @Override
     public XPathExpression getServletExpression() throws XPathExpressionException {
     	return xpath.compile("//javaee:web-app/javaee:servlet");
     }

@@ -40,6 +40,11 @@ public abstract class XPathExpressionProvider {
 	public abstract XPathExpression getListenerExpression() throws XPathExpressionException;
 
 	/**
+	 * @return A XPath expression to select all available security-constraint nodes.
+	 */
+	public abstract XPathExpression getSecurityConstraintExpression() throws XPathExpressionException;
+
+	/**
 	 * @return A XPath expression to select all available servlet nodes.
 	 */
 	public abstract XPathExpression getServletExpression() throws XPathExpressionException;
@@ -48,5 +53,4 @@ public abstract class XPathExpressionProvider {
 	 * @return A XPath expression to select all available servlet-mapping nodes.
 	 */
 	public abstract XPathExpression getServletMappingExpression() throws XPathExpressionException;
-
 }

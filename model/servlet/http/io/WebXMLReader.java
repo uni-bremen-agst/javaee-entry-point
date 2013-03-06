@@ -23,8 +23,10 @@ import soot.jimple.toolkits.javaee.model.servlet.Filter;
 import soot.jimple.toolkits.javaee.model.servlet.FilterMapping;
 import soot.jimple.toolkits.javaee.model.servlet.Listener;
 import soot.jimple.toolkits.javaee.model.servlet.Parameter;
+import soot.jimple.toolkits.javaee.model.servlet.SecurityConstraint;
 import soot.jimple.toolkits.javaee.model.servlet.Servlet;
 import soot.jimple.toolkits.javaee.model.servlet.Web;
+import soot.jimple.toolkits.javaee.model.servlet.WebResourceCollection;
 import soot.jimple.toolkits.javaee.model.servlet.http.AbstractServlet;
 import soot.jimple.toolkits.javaee.model.servlet.http.FileLoader;
 import soot.jimple.toolkits.javaee.model.servlet.http.GenericServlet;
@@ -71,6 +73,7 @@ public class WebXMLReader implements ServletSignatures {
 			this.web = web;
 			
 			readFilters();
+			readSecurityConstraints();
 			readServlets(loader);
 			readServletMappings();
 			readListeners();
@@ -79,6 +82,83 @@ public class WebXMLReader implements ServletSignatures {
 	    }
 		
 		return web;
+	}
+
+	private void readSecurityConstraints() throws XPathException {
+		LOG.info("Reading security constraints from web.xml.");
+		
+		final XPathExpression constraintExpression = provider.getSecurityConstraintExpression();	
+	    final NodeList constraintNodes = (NodeList)constraintExpression.evaluate(doc, XPathConstants.NODESET);
+	    
+		LOG.info("Found {} security-constraint nodes.", constraintNodes.getLength());
+
+		SecurityConstraint constraint = new SecurityConstraint();
+		for (int i = 0; i < constraintNodes.getLength(); i++) {
+	        final Element node = (Element)constraintNodes.item(i);
+	        
+	        final NodeList children = node.getChildNodes();
+	        for(int j = 0; j < children.getLength(); j++) {
+	        	if(!(children.item(j) instanceof Element)) {
+	        		continue;
+	        	}
+	        	
+	        	final Element childNode = (Element)children.item(j);
+		        if(childNode.getNodeName().equals("auth-constraint")) {
+		        	readAuthConstraint(childNode, constraint);
+		        } else if (childNode.getNodeName().equals("display-name")) {
+		        	constraint.setName(childNode.getFirstChild().getNodeValue());
+		        } else if(childNode.getNodeName().equals("web-resource-collection")) {
+		        	final WebResourceCollection collection = new WebResourceCollection();
+		        	readWebResourceCollection(childNode, collection);
+		        	constraint.getWebResourceCollections().add(collection);
+		        } else {
+		        	LOG.info("Unhandled child of a security-constraint {}.", childNode.getNodeName());
+		        }
+	        }
+	    }
+		
+		web.getSecurityConstraints().add(constraint);
+	}
+
+	private void readWebResourceCollection(final Element collectionNode, final WebResourceCollection collection) {
+		final NodeList children = collectionNode.getChildNodes();
+		
+		for(int i = 0; i < children.getLength(); ++i) {
+			if(!(children.item(i) instanceof Element)) {
+				continue;
+			}
+			
+			final Element child = (Element)children.item(i);
+			
+			if(child.getLocalName().equals("web-resource-name")) {
+				collection.setName(child.getFirstChild().getNodeValue());
+			} else if(child.getLocalName().equals("url-pattern")) {
+				collection.getUrlPatterns().add(child.getFirstChild().getNodeValue());
+			} else if(child.getLocalName().equals("http-method")) {
+				collection.getHttpMethods().add(child.getFirstChild().getNodeValue());
+			} else {
+				LOG.info("Unhandled child '{}' in web-resource-name.", child.getLocalName());
+			}
+		}
+	}
+
+	private void readAuthConstraint(final Element authNode, SecurityConstraint constraint) {
+		final NodeList children = authNode.getChildNodes();
+		
+		for(int i = 0; i < children.getLength(); ++i) {
+			if(!(children.item(i) instanceof Element)) {
+				continue;
+			}
+			
+			final Element child = (Element)children.item(i);
+			
+			if(child.getLocalName().equals("role-name")) {
+				LOG.info("Found required role '{}'.",  child.getFirstChild().getNodeValue());
+				constraint.getRequiredRoles().add(child.getFirstChild().getNodeValue());
+			} else {
+				LOG.info("unhandled child '{}' in auth-constraint.", child.getLocalName());
+			}
+		}
 	}
 
 	private void readListeners() throws XPathException {
@@ -128,6 +208,7 @@ public class WebXMLReader implements ServletSignatures {
 		final NodeList filterNodes = (NodeList)filterExpr.evaluate(doc, XPathConstants.NODESET);
 
 		LOG.info("Found {} filter nodes.", filterNodes.getLength());
+
 		for (int i = 0; i < filterNodes.getLength(); i++) {
 			final Element node = (Element)filterNodes.item(i);
 			final NodeList children = node.getChildNodes();

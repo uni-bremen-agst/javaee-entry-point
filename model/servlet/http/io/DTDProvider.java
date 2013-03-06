@@ -21,6 +21,11 @@ public class DTDProvider extends XPathExpressionProvider {
     }
     
     @Override
+    public XPathExpression getSecurityConstraintExpression() throws XPathExpressionException {
+    	return xpath.compile("//web-app/security-constraint");
+    }
+    
+    @Override
     public XPathExpression getServletExpression() throws XPathExpressionException {
     	return xpath.compile("//web-app/servlet");
     }

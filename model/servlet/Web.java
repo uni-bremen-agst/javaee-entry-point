@@ -31,6 +31,8 @@ public class Web {
 	private Set<Filter> filters = new TreeSet<Filter>(new NamedElementComparator<Filter>());
 
 	private Set<Servlet> servlets = new TreeSet<Servlet>(new NamedElementComparator<Servlet>());
+	
+	private Set<SecurityConstraint> constraints = new TreeSet<SecurityConstraint>(new NamedElementComparator<SecurityConstraint>());
 
 	private Set<Listener> listeners = new HashSet<Listener>();
 	
@@ -70,6 +72,12 @@ public class Web {
 	@XmlElementWrapper(name="listeners")
 	public Set<Listener> getListeners() {
 		return listeners;
+	}
+
+	@XmlElement(name="security-constraint")
+	@XmlElementWrapper(name="security-constraints")
+	public Set<SecurityConstraint> getSecurityConstraints() {
+		return constraints;
 	}
 
 	public Filter getFilter(final String name) {
