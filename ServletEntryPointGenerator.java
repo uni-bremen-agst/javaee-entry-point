@@ -144,6 +144,7 @@ public class ServletEntryPointGenerator extends SceneTransformer implements Serv
 								+ "."
 								+ PhaseOptions.getString(options,"main-class"), SootClass.BODIES);
 				scene.setMainClass(sootClass);
+				sootClass.setApplicationClass();
 				LOG.info("Loading main class.");
 			} catch (final ResourceNotFoundException e) {
 				LOG.error("Could not find template file.");

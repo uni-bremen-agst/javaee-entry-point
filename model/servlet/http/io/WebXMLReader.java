@@ -16,9 +16,11 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 
+import soot.FastHierarchy;
 import soot.Hierarchy;
 import soot.Scene;
 import soot.SootClass;
+import soot.SootMethod;
 import soot.jimple.toolkits.javaee.model.servlet.Filter;
 import soot.jimple.toolkits.javaee.model.servlet.FilterMapping;
 import soot.jimple.toolkits.javaee.model.servlet.Listener;
@@ -409,7 +411,11 @@ public class WebXMLReader implements ServletSignatures {
 	    
         if (cha.isClassSubclassOf(implementationClass, servletClass)){
         	LOG.info("Found http servlet class {}.", implementationClass);
-            return new HttpServlet();
+            final HttpServlet servlet = new HttpServlet();
+            
+            scanMethods(implementationClass, servlet);
+            
+            return servlet;
         } else if(cha.isClassSubclassOf(implementationClass, genericClass)) {
         	LOG.info("Found generic servlet class {}.", implementationClass);
             return new GenericServlet();
@@ -417,5 +423,51 @@ public class WebXMLReader implements ServletSignatures {
         	LOG.warn("Class '{}' is neither a http nor a generic servlet.", implementationClass);
         	return new GenericServlet();
         }
+	}
+
+	public static void scanMethods(final SootClass clazz, final HttpServlet servlet) {
+		final Scene scene = Scene.v();
+		
+		final SootMethod serviceMethod1 = scene.getMethod("<javax.servlet.GenericServlet: void service(javax.servlet.ServletRequest,javax.servlet.ServletResponse)>");
+		final SootMethod serviceMethod2 = scene.getMethod("<javax.servlet.http.HttpServlet: void service(javax.servlet.http.HttpServletRequest,javax.servlet.http.HttpServletResponse)>");
+		final SootMethod doGetMethod = scene.getMethod("<javax.servlet.http.HttpServlet: void doGet(javax.servlet.http.HttpServletRequest,javax.servlet.http.HttpServletResponse)>");
+		final SootMethod doHeadMethod = scene.getMethod("<javax.servlet.http.HttpServlet: void doHead(javax.servlet.http.HttpServletRequest,javax.servlet.http.HttpServletResponse)>");
+		final SootMethod doPostMethod = scene.getMethod("<javax.servlet.http.HttpServlet: void doPost(javax.servlet.http.HttpServletRequest,javax.servlet.http.HttpServletResponse)>");
+		final SootMethod doPutMethod = scene.getMethod("<javax.servlet.http.HttpServlet: void doPut(javax.servlet.http.HttpServletRequest,javax.servlet.http.HttpServletResponse)>");
+		final SootMethod doDeleteMethod = scene.getMethod("<javax.servlet.http.HttpServlet: void doDelete(javax.servlet.http.HttpServletRequest,javax.servlet.http.HttpServletResponse)>");
+		final SootMethod doOptionsMethod = scene.getMethod("<javax.servlet.http.HttpServlet: void doOptions(javax.servlet.http.HttpServletRequest,javax.servlet.http.HttpServletResponse)>");
+		final SootMethod doTraceMethod = scene.getMethod("<javax.servlet.http.HttpServlet: void doTrace(javax.servlet.http.HttpServletRequest,javax.servlet.http.HttpServletResponse)>");
+
+		Hierarchy hierarchy = scene.getActiveHierarchy();
+		SootMethod callee = hierarchy.resolveConcreteDispatch(clazz, serviceMethod1);
+		
+		if(hierarchy.isClassSubclassOf(callee.getDeclaringClass(), doGetMethod.getDeclaringClass())) {
+			LOG.info("Have to call service for " + callee);
+			servlet.getMethods().add(callee.getSignature());
+			return;
+		}
+		
+		callee = hierarchy.resolveConcreteDispatch(clazz, serviceMethod2);
+
+		if(hierarchy.isClassSubclassOf(callee.getDeclaringClass(), serviceMethod2.getDeclaringClass())) {
+			LOG.info("Have to call service2 for " + callee);
+			servlet.getMethods().add(callee.getSignature());
+		} else {
+			checkForMethod(clazz, doGetMethod, servlet);
+			checkForMethod(clazz, doHeadMethod, servlet);
+			checkForMethod(clazz, doPostMethod, servlet);
+			checkForMethod(clazz, doPutMethod, servlet);
+			checkForMethod(clazz, doDeleteMethod, servlet);
+			checkForMethod(clazz, doOptionsMethod, servlet);
+			checkForMethod(clazz, doTraceMethod, servlet);
+		}
+	}
+
+	private static void checkForMethod(final SootClass clazz, final SootMethod method, final HttpServlet servlet) {
+		SootMethod callee = Scene.v().getActiveHierarchy().resolveConcreteDispatch(clazz, method);
+		if(!callee.getDeclaringClass().equals(method.getDeclaringClass())) {
+			LOG.info("Method {} is overriden.", method);
+			servlet.getMethods().add(callee.getSignature());
+		}
 	}
 }

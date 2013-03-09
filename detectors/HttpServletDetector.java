@@ -121,7 +121,8 @@ public class HttpServletDetector extends AbstractServletDetector implements Serv
 	}
 
 	private String [] templates = {"soot::jimple::toolkits::javaee::templates::http::MainClass::main",
-			"soot::jimple::toolkits::javaee::templates::http::ServletWrapper::main",
+			"soot::jimple::toolkits::javaee::templates::http::GenericServletWrapper::main",
+			"soot::jimple::toolkits::javaee::templates::http::HttpServletWrapper::main",
 			"soot::jimple::toolkits::javaee::templates::http::FilterWrapper::main",
 			"soot::jimple::toolkits::javaee::templates::http::FilterChain::main"
 	};

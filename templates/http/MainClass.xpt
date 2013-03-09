@@ -1,5 +1,4 @@
 «IMPORT soot::jimple::toolkits::javaee::model::servlet»
-«IMPORT soot::jimple::toolkits::javaee::model::servlet::http»
 
 «EXTENSION soot::jimple::toolkits::javaee::templates::http::Address»
 «EXTENSION soot::jimple::toolkits::javaee::templates::http::Filter»
