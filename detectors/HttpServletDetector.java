@@ -36,7 +36,6 @@ public class HttpServletDetector extends AbstractServletDetector implements Serv
 	@Override
 	public void detectFromSource(final Web web) {
 		LOG.info("Detecting servlets from source code.");
-	    final Hierarchy cha = Scene.v().getActiveHierarchy();
 	    final SootClass servletClass = Scene.v().getSootClass(HTTP_SERVLET_CLASS_NAME);
 	    final SootClass genericClass = Scene.v().getSootClass(GENERIC_SERVLET_CLASS_NAME);
 	    
@@ -44,10 +43,10 @@ public class HttpServletDetector extends AbstractServletDetector implements Serv
 	        if (!clazz.isConcrete()) //ignore interfaces and abstract classes
 	            continue;
 	        
-	        if (cha.isClassSubclassOf(clazz, servletClass)){
+	        if (Scene.v().getActiveHierarchy().isClassSubclassOf(clazz, servletClass)){
 	        	LOG.info("Found http servlet class {}.", servletClass);
 	            registerHttpServlet(web, clazz);
-	        } else if(cha.isClassSubclassOf(clazz, genericClass)) {
+	        } else if(Scene.v().getActiveHierarchy().isClassSubclassOf(clazz, genericClass)) {
 	        	LOG.info("Found generic servlet class {}.", servletClass);
 	            registerGenericServlet(web, clazz);
 	        }

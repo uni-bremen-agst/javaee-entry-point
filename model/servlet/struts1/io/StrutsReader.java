@@ -158,17 +158,10 @@ public class StrutsReader {
 			}
 
 			// scan for methods
+			final FormBean formbean = servlet.getFormBean();
 			SootClass actionClass = Scene.v().forceResolve(type, SootClass.SIGNATURES);
 			for(final SootMethod method : actionClass.getMethods()) {
-				final FormBean formbean = servlet.getFormBean();
-				if(method.isPublic()
-						&& method.getParameterCount() == 4
-						&& method.getReturnType().toString().equals("org.apache.struts.action.ActionForward")
-						&& method.getParameterType(0).toString().equals("org.apache.struts.action.ActionMapping")
-						&& (method.getParameterType(1).toString().equals("org.apache.struts.action.ActionForm")
-								|| (formbean != null && method.getParameterType(1).toString().equals(formbean.getClazz())))
-						&& method.getParameterType(2).toString().equals("javax.servlet.http.HttpServletRequest")
-						&& method.getParameterType(3).toString().equals("javax.servlet.http.HttpServletResponse")) {
+				if(isActionMethod(method, formbean)) {
 					servlet.getMethods().add(method.getSubSignature());
 				}
 			}
@@ -179,6 +172,23 @@ public class StrutsReader {
 			servlet.getForwards().addAll(globalForwards);
 			readForwards(actionNode, servlet.getForwards());
 		}
+	}
+
+	/**
+	 * Checks if method is a valid action method that can be called by a client.
+	 * 
+	 * @param method Soots method representation.
+	 * @param formbean The formbean parameter if present. Otherwise {@code null}.
+	 */
+	private static boolean isActionMethod(final SootMethod method, final FormBean formbean) {
+		return method.isPublic()
+				&& method.getParameterCount() == 4
+				&& method.getReturnType().toString().equals("org.apache.struts.action.ActionForward")
+				&& method.getParameterType(0).toString().equals("org.apache.struts.action.ActionMapping")
+				&& (method.getParameterType(1).toString().equals("org.apache.struts.action.ActionForm")
+						|| (formbean != null && method.getParameterType(1).toString().equals(formbean.getClazz())))
+				&& method.getParameterType(2).toString().equals("javax.servlet.http.HttpServletRequest")
+				&& method.getParameterType(3).toString().equals("javax.servlet.http.HttpServletResponse");
 	}
 
 	/**

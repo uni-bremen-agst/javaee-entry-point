@@ -1,0 +1,7 @@
+import soot::jimple::toolkits::javaee::model::servlet::struts1;
+
+actionFormClassname(ActionServlet this) :
+  if formBean != null then
+    formBean.clazz
+  else
+    "org.apache.struts.action.ActionForm";
