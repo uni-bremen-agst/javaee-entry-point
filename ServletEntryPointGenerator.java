@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
@@ -139,13 +140,22 @@ public class ServletEntryPointGenerator extends SceneTransformer implements Serv
 			try {
 				LOG.info("Processing templates");
 				processTemplate(options);
-				final SootClass sootClass = scene.forceResolve(
+				
+				final Set<SootClass> allClasses = new HashSet<SootClass>(scene.getClasses());
+				
+				LOG.info("Loading main class.");
+				final SootClass mainClass = scene.forceResolve(
 						PhaseOptions.getString(options, "root-package")
 								+ "."
 								+ PhaseOptions.getString(options,"main-class"), SootClass.BODIES);
-				scene.setMainClass(sootClass);
-				sootClass.setApplicationClass();
-				LOG.info("Loading main class.");
+				scene.setMainClass(mainClass);
+
+				// all classes loaded are application classes
+				for(final SootClass sootClass : scene.getClasses()) {
+					if(!allClasses.contains(sootClass)) {
+						sootClass.setApplicationClass();
+					}
+				}
 			} catch (final ResourceNotFoundException e) {
 				LOG.error("Could not find template file.");
 			} catch (final ParseErrorException e) {
