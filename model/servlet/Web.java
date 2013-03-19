@@ -1,5 +1,6 @@
 package soot.jimple.toolkits.javaee.model.servlet;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -33,6 +34,8 @@ public class Web {
 	private Set<Servlet> servlets = new TreeSet<Servlet>(new NamedElementComparator<Servlet>());
 
 	private Set<Listener> listeners = new HashSet<Listener>();
+	
+	private List<String> services = new ArrayList<String>();
 	
 	public Web() {
 		root.setFullPath("/");
@@ -167,5 +170,13 @@ public class Web {
 
 	public void setGeneratorInfos(GeneratorInfos generatorInfos) {
 		this.generatorInfos = generatorInfos;
+	}
+
+	public void addWebServices(List<String> services) {
+		this.services.addAll(services);	
+	}
+	
+	public List<String> getServices(){
+		return services;
 	}
 }

@@ -79,12 +79,27 @@ public class HttpServletDetector extends AbstractServletDetector implements Http
 	 * @param clazz
 	 *            the class
 	 */
+    @Deprecated
 	public static void registerServlet(final Web web, final SootClass clazz) {
 		final HttpServlet servlet = new HttpServlet(clazz.getName(), clazz.getName());
 		web.getServlets().add(servlet);
 		
 		web.bindServlet(servlet, "/" + clazz.getName());
 	}
+
+    /**
+     * Registers a servlet as if it was declared in web.xml
+     *
+     * @param web the web.xml representation to augment
+     * @param className the class' name
+     *            the class
+     */
+    public static void registerServlet(final Web web, final String className) {
+        final HttpServlet servlet = new HttpServlet(className, className);
+        web.getServlets().add(servlet);
+
+        web.bindServlet(servlet, "/" + className);
+    }
 
 	@Override
 	public String getTemplateFile() {

@@ -1,48 +1,9 @@
 package soot.jimple.toolkits.javaee.detectors;
 
-import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import java.io.File;
-import java.io.IOException;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import soot.BooleanType;
-import soot.DoubleType;
-import soot.FloatType;
-import soot.G;
-import soot.IntType;
-import soot.Local;
-import soot.LongType;
-import soot.Modifier;
-import soot.PhaseOptions;
-import soot.PrimType;
-import soot.Printer;
-import soot.RefType;
-import soot.Scene;
-import soot.SootClass;
-import soot.SootField;
-import soot.SootMethod;
-import soot.Type;
-import soot.Unit;
-import soot.Value;
-import soot.VoidType;
-import soot.jimple.DoubleConstant;
-import soot.jimple.FloatConstant;
-import soot.jimple.IntConstant;
-import soot.jimple.Jimple;
-import soot.jimple.LongConstant;
-import soot.jimple.StringConstant;
+import soot.*;
+import soot.jimple.*;
 import soot.jimple.toolkits.javaee.JimpleBodyGenerator;
 import soot.jimple.toolkits.javaee.JimpleClassGenerator;
 import soot.jimple.toolkits.javaee.model.servlet.Web;
@@ -50,7 +11,11 @@ import soot.jimple.toolkits.javaee.model.servlet.http.HttpServletSignatures;
 import soot.tagkit.AnnotationTag;
 import soot.tagkit.VisibilityAnnotationTag;
 import soot.util.Chain;
-import soot.util.EscapedWriter;
+
+import java.io.File;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.*;
 
 public class WebServiceDetector extends AbstractServletDetector implements
 		HttpServletSignatures {
@@ -69,16 +34,54 @@ public class WebServiceDetector extends AbstractServletDetector implements
 	
 	private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
+	// --------------------- Detection part of the interface
 	@Override
 	public void detectFromSource(Web web) {
 	    findWSInApplication();
-
-	    if (!wsClasses.isEmpty()) {
-	        SootClass theClass = synthetizeWSServlet();
-	        HttpServletDetector.registerServlet(web, theClass);
+	    List<String> services = new ArrayList<String>(wsClasses.size());
+	    for (SootClass sc : wsClasses){
+	    	services.add(sc.getName());
 	    }
+	    web.addWebServices(services);
+        HttpServletDetector.registerServlet(web, web.getGeneratorInfos().getRootPackage()+"."+GENERATED_CLASS_NAME);
 	}
 
+	@Override
+	public void detectFromConfig(Web web) {
+		// TODO Auto-generated method stub
+
+	}
+	// ----------------------- Template part of the interface
+
+	@Override
+	public List<Class<?>> getModelExtensions() {
+		return Collections.emptyList();
+	}
+
+	@Override
+	public String getTemplateFile() {
+		throw new RuntimeException("Not implemented.");
+	}
+
+	@Override
+	public boolean isXpandTemplate() {
+		return true;
+	}
+
+	@Override
+	public List<String> getCheckFiles() {
+		return Collections.<String>emptyList();
+	}
+
+	@Override
+	public List<String> getTemplateFiles() {
+		return Arrays.asList(
+				"soot::jimple::toolkits::javaee::templates::ws::WSWrapper::main");
+	}
+
+	
+	
+	// ----------------------- Old implementation
 
 	public SootClass detectFromSource() {
 	    findWSInApplication();
@@ -306,7 +309,7 @@ public class WebServiceDetector extends AbstractServletDetector implements
 
         final Local serviceThisLocal = serviceMethod.local(true, clazz.getType());
         final Local requestLocal = serviceMethod.local(true, parameterTypes.get(0));
-        final Local responseLocal = serviceMethod.local(true, parameterTypes.get(1));
+//        final Local responseLocal = serviceMethod.local(true, parameterTypes.get(1));
         final Chain<Unit> units = serviceMethod.getUnits();
         final Map<SootClass, Local> generatedLocals = new HashMap<SootClass, Local>(wsClasses.size());
 
@@ -315,7 +318,7 @@ public class WebServiceDetector extends AbstractServletDetector implements
 
         // init parameters
         units.add(jimple.newIdentityStmt(requestLocal, jimple.newParameterRef(parameterTypes.get(0), 0)));
-        units.add(jimple.newIdentityStmt(responseLocal, jimple.newParameterRef(parameterTypes.get(1), 1)));
+       // units.add(jimple.newIdentityStmt(responseLocal, jimple.newParameterRef(parameterTypes.get(1), 1)));
 
         for (SootClass sc : wsClasses) {
             final Local newLocal = serviceMethod.local(false, sc.getType());
@@ -379,39 +382,5 @@ public class WebServiceDetector extends AbstractServletDetector implements
         logger.info("Generated class calling the web services: {}", clazz.getJavaStyleName());
         return clazz;
     }
-
-	@Override
-	public void detectFromConfig(Web web) {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
-	public List<Class<?>> getModelExtensions() {
-		return Collections.emptyList();
-	}
-
-	@Override
-	public String getTemplateFile() {
-		return null;
-	}
-
-	@Override
-	public boolean isXpandTemplate() {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
-	@Override
-	public List<String> getCheckFiles() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public List<String> getTemplateFiles() {
-		// TODO Auto-generated method stub
-		return null;
-	}
 
 }
