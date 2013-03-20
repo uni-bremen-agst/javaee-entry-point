@@ -113,7 +113,7 @@ public class WebServiceDetector extends AbstractServletDetector implements
                             // Case #1: The annotation is on the class itself
                             if (getWebMethodAnnotation(sm) != null) {
                                 wsMethods.add(sm);
-                                G.v().out.println("Found web method: " + sm);
+                                logger.debug("Found web method: {}", sm);
                                 continue;
                             }
 
@@ -124,8 +124,7 @@ public class WebServiceDetector extends AbstractServletDetector implements
                                         && getWebMethodAnnotation(sc
                                                 .getMethod(sm.getSubSignature())) != null) {
                                     wsMethods.add(sm);
-                                    G.v().out
-                                            .println("Found web method: " + sm);
+                                    logger.debug("Found web method: {}", sm);
                                     break; // no need to check the other
                                             // interfaces
                                 }
