@@ -44,9 +44,9 @@ import soot.SceneTransformer;
 import soot.Singletons;
 import soot.SootClass;
 import soot.jimple.toolkits.javaee.detectors.HttpServletDetector;
+import soot.jimple.toolkits.javaee.detectors.JaxWsServiceDetector;
 import soot.jimple.toolkits.javaee.detectors.ServletDetector;
 import soot.jimple.toolkits.javaee.detectors.StrutsServletDetector;
-import soot.jimple.toolkits.javaee.detectors.WebServiceDetector;
 import soot.jimple.toolkits.javaee.model.servlet.Web;
 import soot.jimple.toolkits.javaee.model.servlet.http.HttpServletSignatures;
 
@@ -90,7 +90,7 @@ public class ServletEntryPointGenerator extends SceneTransformer implements Http
 	
 	public ServletEntryPointGenerator(final Singletons.Global g) {
 		servletDetectors.add(new HttpServletDetector());
-		servletDetectors.add(new WebServiceDetector());
+		servletDetectors.add(new JaxWsServiceDetector());
 		servletDetectors.add(new StrutsServletDetector());
 	}
 	
@@ -130,35 +130,32 @@ public class ServletEntryPointGenerator extends SceneTransformer implements Http
 		final boolean wsOnly = PhaseOptions.getBoolean(options, "wsonly");
 		considerAllServlets = PhaseOptions.getBoolean(options, "consider-all-servlets");
 
-		if (wsOnly) {
-			processWs(options);
-		} else {
-			loadWebXML(options);
+        loadWebXML(options);
 
-			final String modelDestination = PhaseOptions.getString(options,
-					"dump-model");
-			if (!modelDestination.isEmpty()) {
-				storeModel(modelDestination);
-			}
+        final String modelDestination = PhaseOptions.getString(options,
+                "dump-model");
+        if (!modelDestination.isEmpty()) {
+            storeModel(modelDestination);
+        }
 
-			try {
-				LOG.info("Processing templates");
-				processTemplate(options);
-				final SootClass sootClass = scene.forceResolve(
-						PhaseOptions.getString(options, "root-package")
-								+ "."
-								+ PhaseOptions.getString(options,"main-class"), SootClass.BODIES);
-				scene.setMainClass(sootClass);
-				LOG.info("Loading main class.");
-			} catch (final ResourceNotFoundException e) {
-				LOG.error("Could not find template file.");
-			} catch (final ParseErrorException e) {
-				LOG.error("Failed to parse the template.");
-			} catch (final MethodInvocationException e) {
-				LOG.error("Error while calling Java code from template.");
-				e.printStackTrace();
-			}
-		}
+        try {
+            LOG.info("Processing templates");
+            processTemplate(options);
+            final SootClass sootClass = scene.forceResolve(
+                    PhaseOptions.getString(options, "root-package")
+                            + "."
+                            + PhaseOptions.getString(options,"main-class"), SootClass.BODIES);
+            scene.setMainClass(sootClass);
+            LOG.info("Loading main class.");
+        } catch (final ResourceNotFoundException e) {
+            LOG.error("Could not find template file.");
+        } catch (final ParseErrorException e) {
+            LOG.error("Failed to parse the template.");
+        } catch (final MethodInvocationException e) {
+            LOG.error("Error while calling Java code from template.");
+            e.printStackTrace();
+        }
+
 	}
 
 
@@ -273,17 +270,6 @@ public class ServletEntryPointGenerator extends SceneTransformer implements Http
 			}
 		}
 	}
-	
-	   private void processWs(@SuppressWarnings("rawtypes") Map options) {
-	        WebServiceDetector detector = new WebServiceDetector();
-	        detector.setOptions(options);
-	        SootClass sc = detector.detectFromSource();
-	        if (sc != null){
-	            //set as main class
-	            final SootClass sootClass = scene.forceResolve(sc.getName(), SootClass.BODIES);
-	            scene.setMainClass(sootClass);
-	        }
-	    }
 
 	/**
 	 * Stores the model into a file name {@code modelName}.

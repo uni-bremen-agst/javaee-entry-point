@@ -17,6 +17,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import soot.jimple.toolkits.javaee.model.servlet.struts1.ActionServlet;
+import soot.jimple.toolkits.javaee.model.ws.WebService;
 
 /**
  * Root element of the model.
@@ -35,7 +36,7 @@ public class Web {
 
 	private Set<Listener> listeners = new HashSet<Listener>();
 	
-	private List<String> services = new ArrayList<String>();
+	private List<WebService> services = new ArrayList<WebService>();
 	
 	public Web() {
 		root.setFullPath("/");
@@ -172,11 +173,11 @@ public class Web {
 		this.generatorInfos = generatorInfos;
 	}
 
-	public void addWebServices(List<String> services) {
+	public void addWebServices(List<WebService> services) {
 		this.services.addAll(services);	
 	}
 	
-	public List<String> getServices(){
+	public List<WebService> getServices(){
 		return services;
 	}
 }

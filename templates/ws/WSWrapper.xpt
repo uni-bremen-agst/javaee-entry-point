@@ -7,21 +7,21 @@
 public class «clazzName» extends javax.servlet.http.HttpServlet
 {
 «FOREACH services AS service»
-    public static final «service» ws«service.split('\\.').last()»;
+    public static final «service.implementationName» ws«service.implementationName.split('\\.').last()»;
 «ENDFOREACH»
 
     static void <clinit>()
     {
 «FOREACH services AS service ITERATOR iter»
-       «service» $r«iter.counter1»;
+       «service.implementationName» $r«iter.counter1»;
 «ENDFOREACH»
 «FOREACH services AS service ITERATOR iter»
-       $r«iter.counter1» = new «service»;
-       specialinvoke $r«iter.counter1».<«service»: void <init>()>();
+       $r«iter.counter1» = new «service.implementationName»;
+       specialinvoke $r«iter.counter1».<«service.implementationName»: void <init>()>();
 «ENDFOREACH»
 
 «FOREACH services AS service ITERATOR iter»
-       <«clazzName»: «service» ws«service.split("\\.").last()»> = $r«iter.counter1»;
+       <«clazzName»: «service.implementationName» ws«service.implementationName.split("\\.").last()»> = $r«iter.counter1»;
 «ENDFOREACH»
     }
 
