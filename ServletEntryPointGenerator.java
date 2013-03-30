@@ -14,12 +14,6 @@ import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 
-import org.apache.common.tools.FileTool;
-import org.apache.velocity.VelocityContext;
-import org.apache.velocity.app.VelocityEngine;
-import org.apache.velocity.exception.MethodInvocationException;
-import org.apache.velocity.exception.ParseErrorException;
-import org.apache.velocity.exception.ResourceNotFoundException;
 import org.eclipse.emf.mwe.core.WorkflowContext;
 import org.eclipse.emf.mwe.core.WorkflowContextDefaultImpl;
 import org.eclipse.emf.mwe.core.WorkflowInterruptedException;
@@ -43,9 +37,9 @@ import soot.SceneTransformer;
 import soot.Singletons;
 import soot.SootClass;
 import soot.jimple.toolkits.javaee.detectors.HttpServletDetector;
+import soot.jimple.toolkits.javaee.detectors.JaxWsServiceDetector;
 import soot.jimple.toolkits.javaee.detectors.ServletDetector;
 import soot.jimple.toolkits.javaee.detectors.StrutsServletDetector;
-import soot.jimple.toolkits.javaee.detectors.WebServiceDetector;
 import soot.jimple.toolkits.javaee.model.servlet.Web;
 import soot.jimple.toolkits.javaee.model.servlet.http.ServletSignatures;
 
@@ -89,7 +83,7 @@ public class ServletEntryPointGenerator extends SceneTransformer implements Serv
 	
 	public ServletEntryPointGenerator(final Singletons.Global g) {
 		servletDetectors.add(new HttpServletDetector());
-		servletDetectors.add(new WebServiceDetector());
+		servletDetectors.add(new JaxWsServiceDetector());
 		servletDetectors.add(new StrutsServletDetector());
 	}
 	
@@ -125,49 +119,30 @@ public class ServletEntryPointGenerator extends SceneTransformer implements Serv
 		final boolean wsOnly = PhaseOptions.getBoolean(options, "wsonly");
 		considerAllServlets = PhaseOptions.getBoolean(options, "consider-all-servlets");
 
-		if (wsOnly) {
-			processWs(options);
-		} else {
-			loadWebXML(options);
+        loadWebXML(options);
 
-			final String modelDestination = PhaseOptions.getString(options,
-					"dump-model");
-			if (!modelDestination.isEmpty()) {
-				storeModel(modelDestination);
-			}
+        final String modelDestination = PhaseOptions.getString(options,
+                "dump-model");
+        if (!modelDestination.isEmpty()) {
+            storeModel(modelDestination);
+        }
 
-			try {
-				LOG.info("Processing templates");
-				processTemplate(options);
-				final SootClass sootClass = scene.forceResolve(
-						PhaseOptions.getString(options, "root-package")
-								+ "."
-								+ PhaseOptions.getString(options,"main-class"), SootClass.BODIES);
-				scene.setMainClass(sootClass);
-				sootClass.setApplicationClass();
-				LOG.info("Loading main class.");
-			} catch (final ResourceNotFoundException e) {
-				LOG.error("Could not find template file.");
-			} catch (final ParseErrorException e) {
-				LOG.error("Failed to parse the template.");
-			} catch (final MethodInvocationException e) {
-				LOG.error("Error while calling Java code from template.");
-				e.printStackTrace();
-			}
-		}
+
+        LOG.info("Processing templates");
+        processTemplate(options);
+        LOG.info("Loading main class.");
+        final SootClass sootClass = scene.forceResolve(
+                PhaseOptions.getString(options, "root-package")
+                        + "."
+                        + PhaseOptions.getString(options,"main-class"), SootClass.BODIES);
+        scene.setMainClass(sootClass);
+        sootClass.setApplicationClass();
 	}
 
     /**
 	 * Processes all templates.
 	 */
 	private void processTemplate(@SuppressWarnings("rawtypes") final Map options) {
-		final VelocityEngine engine = new VelocityEngine();
-		engine.setProperty("resource.loader", "class");
-		//engine.setProperty("file.resource.loader.path", "/");
-		engine.setProperty("class.resource.loader.class", "org.apache.velocity.runtime.resource.loader.ClasspathResourceLoader");
-		
-		engine.init();
-
 		for(final ServletDetector detector : servletDetectors) {
 			if(detector.isXpandTemplate()) {
 				final JavaBeansMetaModel metaModel = new JavaBeansMetaModel();
@@ -225,58 +200,8 @@ public class ServletEntryPointGenerator extends SceneTransformer implements Serv
 						LOG.info("{}", diag);
 					}
 				}
-				
-			} else {
-				final String templateFile = detector.getTemplateFile();
-
-				if(templateFile == null) {
-					continue; // skip if there is no template
-				}
-				final VelocityContext context = new VelocityContext();
-	
-				context.put("root", web);
-				context.put("root-package", PhaseOptions.getString(options, "root-package"));
-				context.put("main-class", PhaseOptions.getString(options, "main-class"));
-				context.put("output-dir", PhaseOptions.getString(options, "output-dir"));
-				context.put("FileTool", FileTool.class);
-				context.put("filter-config-impl", PhaseOptions.getString(options, "filter-config-class"));
-				context.put("servlet-config-impl", PhaseOptions.getString(options, "servlet-config-class"));
-				context.put("servlet-request-impl", PhaseOptions.getString(options, "servlet-request-class"));
-				context.put("servlet-response-impl", PhaseOptions.getString(options, "servlet-response-class"));
-	
-				final InputStream input = getClass().getClassLoader().getResourceAsStream(templateFile);
-				if (input == null) {
-					LOG.error("Cannot open template '{}' - Skipping.", templateFile);
-					continue;
-				}
-	
-				final InputStreamReader reader = new InputStreamReader(input); 
-	
-				try {
-					LOG.info("Processing template {}.", templateFile);
-					if (!engine.evaluate(context, new NullWriter(), templateFile, reader)) {
-						LOG.error("Failed to process template " + templateFile);
-					}
-				} catch(final ParseErrorException e) {
-					LOG.error("Failed to parse template {}.", templateFile, e);
-				} catch(final MethodInvocationException e) {
-					LOG.error("Failed to call java method in template {}.", templateFile, e);
-				} catch(final ResourceNotFoundException e) {
-					LOG.error("Failed to find a resource in template {}.", templateFile, e);
-				}
-			}
-		}
-	}
-	
-	private void processWs(@SuppressWarnings("rawtypes") Map options) {
-		WebServiceDetector detector = new WebServiceDetector();
-		detector.setOptions(options);
-		SootClass sc = detector.detectFromSource();
-		if (sc != null) {
-			// set as main class
-			final SootClass sootClass = scene.forceResolve(sc.getName(), SootClass.BODIES);
-			scene.setMainClass(sootClass);
-		}
+			} //end if XPand template
+		} //end for
 	}
 
 	/**
