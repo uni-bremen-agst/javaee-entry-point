@@ -153,7 +153,19 @@ public class JimpleTransformer extends SceneTransformer {
 			int numberOfReplacemens = 0;
 			
 			for(final Match match : matcher) {
-				LOG.info("Found match {}.", match);
+				LOG.info("Found match {} checking condition.", match);
+				
+				if(model.getCondition() != null) {
+					ConditionChecker checker = new ConditionChecker(model.getCondition(), match.getSymbolTable());
+					
+					if(!checker.holds()) {
+						LOG.info("Condition does not hold. - Skipping");
+						continue;
+					} else {
+						LOG.info("Condition holds. Going to replace the match.");
+					}
+				}
+				
 				Transformer transformator = TransformerFactory.create(model.getReplacement());
 				transformator.setMatch(match);
 				transformator.transform();

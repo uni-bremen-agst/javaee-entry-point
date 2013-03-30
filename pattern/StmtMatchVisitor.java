@@ -58,6 +58,11 @@ public class StmtMatchVisitor extends AbstractStmtSwitch {
 	 * Bindings for wildcards.
 	 */
 	private SymbolTable symbolTable;
+	
+	/**
+	 * Matcher for subexpressions.
+	 */
+	private ExprMatchVisitor visitor = new ExprMatchVisitor();
 
 	public void setPatternUnit(final LabelOrStatement current) {
 		this.stmtPattern = current;
@@ -65,6 +70,7 @@ public class StmtMatchVisitor extends AbstractStmtSwitch {
 
 	public void setSymbolTable(SymbolTable symbolTable) {
 		this.symbolTable = symbolTable;
+		visitor.setSymbolTable(symbolTable);
 	}
 
 	@Override
@@ -76,22 +82,32 @@ public class StmtMatchVisitor extends AbstractStmtSwitch {
 	@Override
 	public void caseInvokeStmt(final InvokeStmt stmt) {
 		if(!(stmtPattern instanceof soot.jimple.toolkits.transformation.dsl.transformationLanguage.InvokeStmt)) {
-			setResult(Boolean.FALSE);
-			return;
+			setResult(false);
 		} else {
-			InvokeExprVisitor visitor = new InvokeExprVisitor();
-			visitor.setSymbolTable(symbolTable);
-			visitor.setPatternInvokeExpr(((soot.jimple.toolkits.transformation.dsl.transformationLanguage.InvokeStmt)stmtPattern).getInvokeExpr());
-			
+			visitor.setPatternExpr(((soot.jimple.toolkits.transformation.dsl.transformationLanguage.InvokeStmt)stmtPattern).getInvokeExpr());			
 			stmt.getInvokeExpr().apply(visitor);
 			setResult(visitor.getResult());
 		}
 	}
 
 	@Override
-	public void caseAssignStmt(AssignStmt stmt) {
-		// TODO Auto-generated method stub
-		super.caseAssignStmt(stmt);
+	public void caseAssignStmt(final AssignStmt stmt) {
+		if(!(stmtPattern instanceof soot.jimple.toolkits.transformation.dsl.transformationLanguage.AssignStmt)) {
+			setResult(false);
+			return;
+		}
+
+		visitor.setPatternExpr(((soot.jimple.toolkits.transformation.dsl.transformationLanguage.AssignStmt)stmtPattern).getLhs());			
+		stmt.getLeftOp().apply(visitor);
+		
+		if(!(Boolean)visitor.getResult()) {
+			setResult(visitor.getResult());
+			return;
+		}
+
+		visitor.setPatternExpr(((soot.jimple.toolkits.transformation.dsl.transformationLanguage.AssignStmt)stmtPattern).getRhs());			
+		stmt.getRightOp().apply(visitor);
+		setResult(visitor.getResult());
 	}
 
 	@Override
@@ -114,8 +130,7 @@ public class StmtMatchVisitor extends AbstractStmtSwitch {
 
 	@Override
 	public void caseGotoStmt(GotoStmt stmt) {
-		// TODO Auto-generated method stub
-		super.caseGotoStmt(stmt);
+		setResult(stmtPattern instanceof soot.jimple.toolkits.transformation.dsl.transformationLanguage.NopStmt);
 	}
 
 	@Override
@@ -131,7 +146,7 @@ public class StmtMatchVisitor extends AbstractStmtSwitch {
 	}
 
 	@Override
-	public void caseNopStmt(NopStmt stmt) {
+	public void caseNopStmt(final NopStmt stmt) {
 		// TODO Auto-generated method stub
 		super.caseNopStmt(stmt);
 	}
@@ -168,9 +183,7 @@ public class StmtMatchVisitor extends AbstractStmtSwitch {
 
 	@Override
 	public void defaultCase(Object obj) {
-		LOG.info("Unhandled stmt type {}", obj.getClass());
-		setResult(Boolean.FALSE);
+		//LOG.info("Unhandled stmt type {}", obj.getClass());
+		setResult(false);
 	}
-
-	
 }

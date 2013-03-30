@@ -18,6 +18,9 @@ package soot.jimple.toolkits.transformation.pattern;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import soot.Value;
 
 /**
@@ -27,6 +30,11 @@ import soot.Value;
  * @author Bernhard Berger
  */
 public class SymbolTable {
+	/**
+	 * Logger instance.
+	 */
+	private final static Logger LOG = LoggerFactory.getLogger(SymbolTable.class);
+	
 	/**
 	 * Stores all bindings.
 	 */
@@ -50,6 +58,7 @@ public class SymbolTable {
 	 * Binds {@code wildcardName} to {@code jimpleValue}.
 	 */
 	public void bind(final String wildcardName, final Value jimpleValue) {
+		LOG.debug("Binding {} to {}.", wildcardName, jimpleValue);
 		bindings.put(wildcardName, jimpleValue);
 	}
 }
