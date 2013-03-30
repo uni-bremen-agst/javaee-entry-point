@@ -33,13 +33,6 @@ class JaxWsServiceDetector extends AbstractServletDetector with Logging{
   // ----------------------- Template part of the interface
   override def getModelExtensions: java.util.List[Class[_]] = List[Class[_]]()
 
-  override def getTemplateFile: String = {
-    throw new RuntimeException("Not implemented.")
-  }
-
-  override def isXpandTemplate: Boolean = true
-
-
   override def getCheckFiles: java.util.List[String] = return List[String]()
 
   override def getTemplateFiles: java.util.List[String] =

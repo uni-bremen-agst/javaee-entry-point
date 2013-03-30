@@ -150,7 +150,6 @@ public class ServletEntryPointGenerator extends SceneTransformer implements Serv
 	 */
 	private void processTemplate(@SuppressWarnings("rawtypes") final Map options) {
 		for(final ServletDetector detector : servletDetectors) {
-			if(detector.isXpandTemplate()) {
 				final JavaBeansMetaModel metaModel = new JavaBeansMetaModel();
 				metaModel.setTypeStrategy(new JavaBeansStrategy());
 				
@@ -206,7 +205,6 @@ public class ServletEntryPointGenerator extends SceneTransformer implements Serv
 						LOG.info("{}", diag);
 					}
 				}
-			} //end if XPand template
 		} //end for
 	}
 

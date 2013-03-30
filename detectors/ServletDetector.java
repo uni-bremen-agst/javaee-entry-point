@@ -40,18 +40,6 @@ public interface ServletDetector {
 	 * @param web The web instance where the servlets have to be registered. 
 	 */
 	public void detectFromConfig(final Web web);
-
-	/**
-	 * Returns the name of the template file.
-	 *
-	 * @return Name of the template file.
-	 */
-	public String getTemplateFile();
-
-	/**
-	 * @return Iff the template is a XPand template.
-	 */
-	public boolean isXpandTemplate();
 	
 	/**
 	 * @return A list of supported check files.

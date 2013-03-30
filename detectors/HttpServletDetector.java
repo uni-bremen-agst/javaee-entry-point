@@ -107,16 +107,6 @@ public class HttpServletDetector extends AbstractServletDetector implements Serv
 	}
 
 	@Override
-	public String getTemplateFile() {
-		throw new RuntimeException("Not implemented.");
-	}
-
-	@Override
-	public boolean isXpandTemplate() {
-		return true;
-	}
-
-	@Override
 	public List<String> getCheckFiles() {
 		return Collections.<String>emptyList();
 	}

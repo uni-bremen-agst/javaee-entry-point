@@ -70,16 +70,6 @@ public class StrutsServletDetector extends AbstractServletDetector {
 	}
 
 	@Override
-	public String getTemplateFile() {
-		return null;
-	}
-
-	@Override
-	public boolean isXpandTemplate() {
-		return true;
-	}
-
-	@Override
 	public List<String> getCheckFiles() {
 		return Collections.emptyList();
 	}
