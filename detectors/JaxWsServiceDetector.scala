@@ -18,34 +18,32 @@ import JaxWsServiceDetector._
  */
 class JaxWsServiceDetector extends AbstractServletDetector with Logging{
 
-  def detectFromSource(web: Web) {
-    web.addWebServices(findWSInApplication)
-    HttpServletDetector.registerServlet(web, web.getGeneratorInfos.getRootPackage + "." + GENERATED_CLASS_NAME)
+  override def detectFromSource(web: Web) {
+    val foundWs = findWSInApplication
+    if (! foundWs.isEmpty){
+      web.addWebServices(findWSInApplication)
+      HttpServletDetector.registerServlet(web, web.getGeneratorInfos.getRootPackage + "." + GENERATED_CLASS_NAME)
+    }
   }
 
-  def detectFromConfig(web: Web) {
+  override def detectFromConfig(web: Web) {
+    //TODO
   }
 
   // ----------------------- Template part of the interface
-  override def getModelExtensions: java.util.List[Class[_]] = {
-    return List[Class[_]]()
-  }
+  override def getModelExtensions: java.util.List[Class[_]] = List[Class[_]]()
 
   override def getTemplateFile: String = {
     throw new RuntimeException("Not implemented.")
   }
 
-  override def isXpandTemplate: Boolean = {
-    return true
-  }
+  override def isXpandTemplate: Boolean = true
 
-  override def getCheckFiles: java.util.List[String] = {
-    return List[String]()
-  }
 
-  override def getTemplateFiles: java.util.List[String] = {
-    return List[String]("soot::jimple::toolkits::javaee::templates::ws::WSWrapper::main")
-  }
+  override def getCheckFiles: java.util.List[String] = return List[String]()
+
+  override def getTemplateFiles: java.util.List[String] =
+    List[String]("soot::jimple::toolkits::javaee::templates::ws::WSWrapper::main")
 
   // ------------------------ Implementation
 
@@ -61,7 +59,6 @@ class JaxWsServiceDetector extends AbstractServletDetector with Logging{
 
     val serviceInterface = sc.getInterfaces.par.find(SootAnnotationUtils.hasSootAnnotation(_, SootAnnotationUtils.WEBSERVICE_ANNOTATION))
 
-    val interfaceName = serviceInterface.getOrElse(sc).getName
     return new WebService(
       serviceInterface.getOrElse(sc).getName,
       sc.getName,
