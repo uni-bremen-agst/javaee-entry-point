@@ -22,7 +22,7 @@ class JaxWsServiceDetector extends AbstractServletDetector with Logging{
     val foundWs = findWSInApplication
     if (! foundWs.isEmpty){
       web.addWebServices(findWSInApplication)
-      HttpServletDetector.registerServlet(web, web.getGeneratorInfos.getRootPackage + "." + GENERATED_CLASS_NAME)
+      HttpServletDetector.registerHttpServlet(web, Scene.v().getSootClass(web.getGeneratorInfos.getRootPackage + "." + GENERATED_CLASS_NAME))
     }
   }
 
