@@ -97,7 +97,7 @@ public class ServletEntryPointGenerator extends SceneTransformer implements Http
 	 * Loads the {@code web.xml} or fakes it if the corresponding command line
 	 *   parameter was given.
 	 *   
-	 * @todo Implement proper war support for locator.
+	 * TODO Implement proper war support for locator.
 	 */
 	private void loadWebXML(@SuppressWarnings("rawtypes") final Map options) {
 		web.getGeneratorInfos().initializeFromOptions(options);
@@ -132,15 +132,18 @@ public class ServletEntryPointGenerator extends SceneTransformer implements Http
             storeModel(modelDestination);
         }
 
-
-        LOG.info("Processing templates");
-        processTemplate(options);
-        final SootClass sootClass = scene.forceResolve(
-                PhaseOptions.getString(options, "root-package")
-                        + "."
-                        + PhaseOptions.getString(options,"main-class"), SootClass.BODIES);
-        scene.setMainClass(sootClass);
-        LOG.info("Loading main class.");
+        if (web.getServlets().isEmpty()){
+            LOG.error("No servlets/WS detected.");
+        } else {
+            LOG.info("Processing templates");
+            processTemplate(options);
+            final SootClass sootClass = scene.forceResolve(
+                    PhaseOptions.getString(options, "root-package")
+                            + "."
+                            + PhaseOptions.getString(options,"main-class"), SootClass.BODIES);
+            scene.setMainClass(sootClass);
+            LOG.info("Loading main class.");
+        }
 
 	}
 
