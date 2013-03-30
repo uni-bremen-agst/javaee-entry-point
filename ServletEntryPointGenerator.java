@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
@@ -117,30 +118,42 @@ public class ServletEntryPointGenerator extends SceneTransformer implements Serv
 		LOG.info("Running {}", phaseName);
 
 		final boolean wsOnly = PhaseOptions.getBoolean(options, "wsonly");
-		considerAllServlets = PhaseOptions.getBoolean(options, "consider-all-servlets");
+		considerAllServlets = PhaseOpftions.getBoolean(options, "consider-all-servlets");
 
-        loadWebXML(options);
+		if (wsOnly) {
+			processWs(options);
+		} else {
+			loadWebXML(options);
 
-        final String modelDestination = PhaseOptions.getString(options,
-                "dump-model");
-        if (!modelDestination.isEmpty()) {
-            storeModel(modelDestination);
-        }
+			final String modelDestination = PhaseOptions.getString(options,
+					"dump-model");
+			if (!modelDestination.isEmpty()) {
+				storeModel(modelDestination);
+			}
 
-        if (web.getServlets().isEmpty()){
-            LOG.error("No servlets/WS detected.");
-        } else {
+            if (web.getServlets().isEmpty()){
+                LOG.error("No servlets/WS detected.");
+            }
+			
             LOG.info("Processing templates");
             processTemplate(options);
-            
+				
+            final Set<SootClass> allClasses = new HashSet<SootClass>(scene.getClasses());
+				
             LOG.info("Loading main class.");
-            final SootClass sootClass = scene.forceResolve(
+            final SootClass mainClass = scene.forceResolve(
                     PhaseOptions.getString(options, "root-package")
                             + "."
                             + PhaseOptions.getString(options,"main-class"), SootClass.BODIES);
-            scene.setMainClass(sootClass);
-            sootClass.setApplicationClass();
-        }
+            scene.setMainClass(mainClass);
+
+            // all classes loaded are application classes
+            for(final SootClass sootClass : scene.getClasses()) {
+                if(!allClasses.contains(sootClass)) {
+                    sootClass.setApplicationClass();
+                }
+            }
+		}
 	}
 
     /**

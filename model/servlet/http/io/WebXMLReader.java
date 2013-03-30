@@ -404,9 +404,9 @@ public class WebXMLReader implements ServletSignatures {
 
     	final SootClass implementationClass = Scene.v().forceResolve(className, SootClass.HIERARCHY);
 
-	    final Hierarchy cha = Scene.v().getActiveHierarchy();
 	    final SootClass servletClass = Scene.v().getSootClass(HTTP_SERVLET_CLASS_NAME);
 	    final SootClass genericClass = Scene.v().getSootClass(GENERIC_SERVLET_CLASS_NAME);
+	    final Hierarchy cha = Scene.v().getActiveHierarchy();
 	    
         if (cha.isClassSubclassOf(implementationClass, servletClass)){
         	LOG.info("Found http servlet class {}.", implementationClass);
