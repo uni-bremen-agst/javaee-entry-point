@@ -9,7 +9,7 @@ import com.typesafe.scalalogging.slf4j.Logging
 import scala.collection.JavaConversions._
 import soot.{SootClass, Scene}
 import soot.util.SootAnnotationUtils
-import soot.jimple.toolkits.javaee.model.ws.WebService
+import soot.jimple.toolkits.javaee.model.ws.{WsServlet, WebService}
 import JaxWsServiceDetector._
 
 /**
@@ -21,8 +21,12 @@ class JaxWsServiceDetector extends AbstractServletDetector with Logging{
   override def detectFromSource(web: Web) {
     val foundWs = findWSInApplication
     if (! foundWs.isEmpty){
-      web.addWebServices(findWSInApplication)
-      HttpServletDetector.registerHttpServlet(web, Scene.v().getSootClass(web.getGeneratorInfos.getRootPackage + "." + GENERATED_CLASS_NAME))
+      val newServlet = new WsServlet(foundWs)
+      val fullName = web.getGeneratorInfos.getRootPackage + "." + GENERATED_CLASS_NAME
+      newServlet.setClazz(fullName)
+      newServlet.setName(fullName)
+      web.getServlets.add(newServlet)
+      web.bindServlet(newServlet, fullName)
     }
   }
 
@@ -31,7 +35,7 @@ class JaxWsServiceDetector extends AbstractServletDetector with Logging{
   }
 
   // ----------------------- Template part of the interface
-  override def getModelExtensions: java.util.List[Class[_]] = List[Class[_]]()
+  override def getModelExtensions: java.util.List[Class[_]] = List[Class[_]](classOf[WsServlet], classOf[WebService])
 
   override def getCheckFiles: java.util.List[String] = return List[String]()
 

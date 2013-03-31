@@ -1,10 +1,13 @@
 «IMPORT soot::jimple::toolkits::javaee::model::servlet»
+«IMPORT soot::jimple::toolkits::javaee::model::ws::WsServlet»
 
-«DEFINE main FOR Web»
-«LET generatorInfos.rootPackage + ".WSCaller" AS clazzName»
-«FILE clazzName+".jimple"»
+«DEFINE wsServlet FOR Servlet»
+«ENDDEFINE»
 
-public class «clazzName» extends javax.servlet.http.HttpServlet
+«DEFINE wsServlet FOR WsServlet»
+«FILE clazz + ".jimple"»
+
+public class «clazz» extends javax.servlet.http.HttpServlet
 {
 «FOREACH services AS service»
     public static final «service.implementationName» ws«service.implementationName.split('\\.').last()»;
@@ -21,20 +24,23 @@ public class «clazzName» extends javax.servlet.http.HttpServlet
 «ENDFOREACH»
 
 «FOREACH services AS service ITERATOR iter»
-       <«clazzName»: «service.implementationName» ws«service.implementationName.split("\\.").last()»> = $r«iter.counter1»;
+       <«clazz»: «service.implementationName» ws«service.implementationName.split("\\.").last()»> = $r«iter.counter1»;
 «ENDFOREACH»
     }
 
     void <init>()
     {
-        «clazzName» r0;
+        «clazz» r0;
 
-        r0 := @this: «clazzName»;
+        r0 := @this: «clazz»;
     }
 
     //TODO add a doGet or service call
 
 }
 «ENDFILE»
-«ENDLET»
+«ENDDEFINE»
+
+«DEFINE main FOR Web»
+«EXPAND wsServlet FOREACH servlets»
 «ENDDEFINE»

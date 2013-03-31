@@ -38,8 +38,6 @@ public class Web {
 
 	private Set<Listener> listeners = new HashSet<Listener>();
 	
-	private List<WebService> services = new ArrayList<WebService>();
-	
 	public Web() {
 		root.setFullPath("/");
 	}
@@ -179,13 +177,5 @@ public class Web {
 
 	public void setGeneratorInfos(GeneratorInfos generatorInfos) {
 		this.generatorInfos = generatorInfos;
-	}
-
-	public void addWebServices(List<WebService> services) {
-		this.services.addAll(services);	
-	}
-	
-	public List<WebService> getServices(){
-		return services;
 	}
 }
