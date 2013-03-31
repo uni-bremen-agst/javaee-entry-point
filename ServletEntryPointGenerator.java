@@ -2,13 +2,12 @@ package soot.jimple.toolkits.javaee;
 
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.Writer;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
@@ -118,30 +117,37 @@ public class ServletEntryPointGenerator extends SceneTransformer implements Serv
 	protected void internalTransform(final String phaseName, @SuppressWarnings("rawtypes") final Map options) {
 		LOG.info("Running {}", phaseName);
 
-		final boolean wsOnly = PhaseOptions.getBoolean(options, "wsonly");
 		considerAllServlets = PhaseOptions.getBoolean(options, "consider-all-servlets");
 
-        loadWebXML(options);
+		loadWebXML(options);
 
-        final String modelDestination = PhaseOptions.getString(options,
-                "dump-model");
-        if (!modelDestination.isEmpty()) {
-            storeModel(modelDestination);
-        }
+		final String modelDestination = PhaseOptions.getString(options,
+				"dump-model");
+		if (!modelDestination.isEmpty()) {
+			storeModel(modelDestination);
+		}
 
         if (web.getServlets().isEmpty()){
             LOG.error("No servlets/WS detected.");
-        } else {
-            LOG.info("Processing templates");
-            processTemplate(options);
-            
-            LOG.info("Loading main class.");
-            final SootClass sootClass = scene.forceResolve(
-                    PhaseOptions.getString(options, "root-package")
-                            + "."
-                            + PhaseOptions.getString(options,"main-class"), SootClass.BODIES);
-            scene.setMainClass(sootClass);
-            sootClass.setApplicationClass();
+        }
+		
+        LOG.info("Processing templates");
+        processTemplate(options);
+			
+        final Set<SootClass> allClasses = new HashSet<SootClass>(scene.getClasses());
+			
+        LOG.info("Loading main class.");
+        final SootClass mainClass = scene.forceResolve(
+                PhaseOptions.getString(options, "root-package")
+                        + "."
+                        + PhaseOptions.getString(options,"main-class"), SootClass.BODIES);
+        scene.setMainClass(mainClass);
+
+        // all classes loaded are application classes
+        for(final SootClass sootClass : scene.getClasses()) {
+            if(!allClasses.contains(sootClass)) {
+                sootClass.setApplicationClass();
+            }
         }
 	}
 
