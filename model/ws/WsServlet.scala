@@ -12,6 +12,7 @@ import beans.BeanProperty
 import annotation.meta.beanGetter
 import scala.collection.JavaConversions._
 import soot.jimple.toolkits.javaee.model.ws.WebService
+import java.util
 
 /**
  * Representation of a servlet for web services.
@@ -19,14 +20,14 @@ import soot.jimple.toolkits.javaee.model.ws.WebService
  * @author Marc-André Laverdière-Papineau
  */
 @XmlRootElement(name = "WsServlet")
-@XmlAccessorType(XmlAccessType.FIELD)
-case class WsServlet(@XmlElementWrapper(name="services") @XmlElement
-                     /*@(XmlElementWrapper @beanGetter)(name="services")
-                     @(XmlElement @beanGetter)(name="service")*/ services : List[WebService])
-  extends Servlet {
-
-  //For future reference: http://krasserm.blogspot.ca/2012/02/using-jaxb-for-xml-and-json-apis-in.html
+case class WsServlet( services : java.util.List[WebService]) extends Servlet {
 
   // JAXB-specific
-  def this() = this(new LinkedList[WebService]())
+  def this() = this(new java.util.ArrayList[WebService](0))
+
+  //We shouldn't need this, but the annotation magic is harder to handle
+  //than going for the simple def
+  @XmlElementWrapper
+  @XmlElement(name="service")
+  def getServices() : java.util.List[WebService] = services
 }

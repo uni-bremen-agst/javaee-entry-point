@@ -13,10 +13,9 @@ import annotation.meta.beanGetter
  * @author Marc-André Laverdière-Papineau
  */
 @XmlRootElement(name = "service")
-@XmlAccessorType(XmlAccessType.FIELD)
 case class WebService
-( @XmlAttribute val interfaceName : String, @XmlAttribute val implementationName : String,
-  @XmlAttribute val initMethodName : String = "", @XmlAttribute val destroyMethodName : String ="") {
+( @(XmlAttribute @beanGetter) @BeanProperty val interfaceName : String, @(XmlAttribute @beanGetter) @BeanProperty val implementationName : String,
+  @(XmlAttribute @beanGetter) @BeanProperty val initMethodName : String = "", @(XmlAttribute @beanGetter) @BeanProperty val destroyMethodName : String ="") {
 
   //Required by Jax-WB
   def this() = this("","","","")
