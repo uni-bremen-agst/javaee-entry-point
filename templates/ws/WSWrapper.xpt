@@ -7,7 +7,7 @@
 «DEFINE wsServlet FOR WsServlet»
 «FILE clazz + ".jimple"»
 
-public class «clazz» extends javax.servlet.http.HttpServlet
+public class «clazz» extends javax.servlet.GenericServlet
 {
 «FOREACH services AS service»
     public static final «service.implementationName» ws«service.implementationName.split('\\.').last()»;
@@ -35,7 +35,16 @@ public class «clazz» extends javax.servlet.http.HttpServlet
         r0 := @this: «clazz»;
     }
 
-    //TODO add a doGet or service call
+    void service(javax.servlet.ServletRequest req, javax.servlet.ServletResponse resp){
+        «clazz» $r0;
+        javax.servlet.ServletRequest r1;
+        javax.servlet.ServletResponse r2;
+
+        r0 := @this: «clazz»;
+        r1 := @parameter0: javax.servlet.ServletRequest;
+        r2 := @parameter1: javax.servlet.ServletResponse;
+        //TODO fill in this blank
+    }
 
 }
 «ENDFILE»
