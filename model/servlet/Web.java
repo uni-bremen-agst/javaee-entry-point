@@ -1,6 +1,22 @@
+/**
+ * Copyright 2013 Bernhard Berger - Universität Bremen
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package soot.jimple.toolkits.javaee.model.servlet;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -99,7 +115,7 @@ public class Web {
 	}
 
 	public void bindServlet(Servlet servlet, String url) {
-		LOG.info("Bindung {} to {}.", url, servlet);
+		LOG.info("Binding {} to {}.", url, servlet);
         // TODO I think we need to filter for handled servlets, such as struts actions etc
         Address address = resolveAddress(url);
         
@@ -127,6 +143,7 @@ public class Web {
 	        	address.getChildren().add(child);
 	        	
 	        	applyFilters(child);
+	        	applySecurityConstraints(child);
         	}
 
         	address = child;
@@ -135,10 +152,28 @@ public class Web {
         return address;
  	}
 
+	/**
+	 * Applies all registered filters to {@code address}.
+	 */
 	private void applyFilters(final Address address) {
 		for(final FilterMapping mapping : filterMappings) {
 			if(address.getFullPath().matches(mapping.getURLPattern())) {
 				address.getFilters().add(mapping.getFilter());
+			}
+		}
+	}
+
+	/**
+	 * Applies all registered filters to {@code address}.
+	 */
+	private void applySecurityConstraints(final Address address) {
+		for(final SecurityConstraint constraint : constraints) {
+			for(final WebResourceCollection collection : constraint.getWebResourceCollections()) {
+				for(final String urlPattern : collection.getUrlPatterns()) {
+					if(address.getFullPath().matches(urlPattern)) {
+						address.getSecurityConstraints().add(constraint);
+					}
+				}
 			}
 		}
 	}
