@@ -5,7 +5,7 @@
 package soot.jimple.toolkits.javaee.model.ws
 
 import java.util.LinkedList
-import scala.collection.immutable.List
+import java.util.List
 import javax.xml.bind.annotation._
 import soot.jimple.toolkits.javaee.model.servlet.Servlet
 import beans.BeanProperty
@@ -28,5 +28,5 @@ case class WsServlet(@XmlElementWrapper(name="services") @XmlElement
   //For future reference: http://krasserm.blogspot.ca/2012/02/using-jaxb-for-xml-and-json-apis-in.html
 
   // JAXB-specific
-  private def this() = this(List[WebService]())
+  def this() = this(new LinkedList[WebService]())
 }

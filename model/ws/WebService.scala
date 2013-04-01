@@ -19,6 +19,6 @@ case class WebService
   @XmlAttribute val initMethodName : String = "", @XmlAttribute val destroyMethodName : String ="") {
 
   //Required by Jax-WB
-  private def this() = this("","","","")
+  def this() = this("","","","")
 
 }
