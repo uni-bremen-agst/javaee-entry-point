@@ -13,6 +13,7 @@ import annotation.meta.beanGetter
 import scala.collection.JavaConversions._
 import soot.jimple.toolkits.javaee.model.ws.WebService
 import java.util
+import soot.jimple.toolkits.javaee.model.servlet.http.GenericServlet
 
 /**
  * Representation of a servlet for web services.
@@ -20,7 +21,7 @@ import java.util
  * @author Marc-André Laverdière-Papineau
  */
 @XmlRootElement(name = "WsServlet")
-case class WsServlet( services : java.util.List[WebService]) extends Servlet {
+case class WsServlet( val services : java.util.List[WebService]) extends GenericServlet {
 
   // JAXB-specific
   def this() = this(new java.util.ArrayList[WebService](0))

@@ -24,9 +24,9 @@ class JaxWsServiceDetector extends AbstractServletDetector with Logging{
       val newServlet = new WsServlet(foundWs)
       val fullName = web.getGeneratorInfos.getRootPackage + "." + GENERATED_CLASS_NAME
       newServlet.setClazz(fullName)
-      newServlet.setName(fullName)
+      newServlet.setName(GENERATED_CLASS_NAME)
       web.getServlets.add(newServlet)
-      web.bindServlet(newServlet, fullName)
+      web.bindServlet(newServlet, "/wscaller")
     }
   }
 
