@@ -102,6 +102,7 @@ public class HttpServletDetector extends AbstractServletDetector implements Serv
     @Deprecated
 	public static void registerHttpServlet(final Web web, final SootClass clazz) {
 		final HttpServlet servlet = new HttpServlet(clazz.getName(), clazz.getName());
+		WebXMLReader.scanMethods(clazz, servlet);
 		web.getServlets().add(servlet);
 		
 		web.bindServlet(servlet, "/" + clazz.getName());
