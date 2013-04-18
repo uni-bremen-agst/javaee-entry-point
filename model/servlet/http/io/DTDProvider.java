@@ -49,4 +49,10 @@ public class DTDProvider extends XPathExpressionProvider {
     public XPathExpression getServletMappingExpression() throws XPathExpressionException {
     	return xpath.compile("//web-app/servlet-mapping");
     }
+
+    @Override
+    public XPathExpression getServiceExpression() throws XPathExpressionException {
+        //TODO
+        return xpath.compile("//javaee:web-app/javaee:service-ref");
+    }
 }

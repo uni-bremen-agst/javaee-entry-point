@@ -68,4 +68,10 @@ public abstract class XPathExpressionProvider {
 	 * @return A XPath expression to select all available servlet-mapping nodes.
 	 */
 	public abstract XPathExpression getServletMappingExpression() throws XPathExpressionException;
+
+    /**
+     * @return A XPath expression to select all available servlet-mapping nodes.
+     */
+    public abstract XPathExpression getServiceExpression() throws XPathExpressionException;
+
 }

@@ -88,4 +88,11 @@ public final class SchemaProvider extends XPathExpressionProvider {
     public XPathExpression getServletMappingExpression() throws XPathExpressionException {
     	return xpath.compile("//javaee:web-app/javaee:servlet-mapping");
     }
+
+    @Override
+    public XPathExpression getServiceExpression() throws XPathExpressionException {
+        //Defined here: http://www.oracle.com/webfolder/technetwork/jsc/xml/ns/javaee/javaee_web_services_client_1_3.xsd
+        return xpath.compile("//javaee:web-app/javaee:service-ref");
+    }
+
 }

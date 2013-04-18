@@ -31,25 +31,30 @@ import org.slf4j.LoggerFactory;
  * TODO Add support for real projects.
  * 
  * @author Bernhard Berger
+ * @author Marc-André Laverdière-Papineau
  */
 public class FileLoader {
 	/**
 	 * Logger.
 	 */
 	private final static Logger LOG = LoggerFactory.getLogger(FileLoader.class);
-	
-	private String basepath;
+
+    private File basePath;
 
 	public FileLoader() {
 	}
 	
 	public FileLoader(final String path) {
-		this.basepath = path;
+        this.basePath = new File(path);
 	}
+
+    public FileLoader(final File path) {
+        this.basePath = path;
+    }
 
 	public InputStream getInputStream(final String path)
 			throws FileNotFoundException {
-		final File file = new File(this.basepath + File.separator + path);
+		final File file = new File(this.basePath,path);
 		
 		LOG.info("Searching for file " + file + " exists " + file.exists());
 		
@@ -58,15 +63,15 @@ public class FileLoader {
 	
 	@XmlAttribute(name="basepath", required=true)
 	public String getBasepath() {
-		return basepath;
+		return basePath.getAbsolutePath();
 	}
 	
 	public void setBasepath(final String path) {
-		this.basepath = path;
+		this.basePath = new File(path);
 	}
 	
 	@Override
 	public String toString() {
-		return "[FileLoader " + basepath + "]";
+		return "[FileLoader " + basePath.getAbsolutePath() + "]";
 	}
 }

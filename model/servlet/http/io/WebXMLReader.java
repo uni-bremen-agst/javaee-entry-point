@@ -17,6 +17,8 @@ package soot.jimple.toolkits.javaee.model.servlet.http.io;
 
 import java.io.FileNotFoundException;
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 
 import javax.xml.parsers.DocumentBuilder;
@@ -48,6 +50,8 @@ import soot.jimple.toolkits.javaee.model.servlet.http.FileLoader;
 import soot.jimple.toolkits.javaee.model.servlet.http.GenericServlet;
 import soot.jimple.toolkits.javaee.model.servlet.http.HttpServlet;
 import soot.jimple.toolkits.javaee.model.servlet.http.ServletSignatures;
+import soot.jimple.toolkits.javaee.model.ws.WebService;
+import soot.jimple.toolkits.javaee.model.ws.WsServlet;
 
 /**
  * A reader for {@code web.xml} files.
@@ -93,6 +97,7 @@ public class WebXMLReader implements ServletSignatures {
 			readServlets(loader);
 			readServletMappings();
 			readListeners();
+            readServices();
 	    } catch(final FileNotFoundException e) {
 	    	LOG.error("Cannot find web.xml in {}.", loader);
 	    }
@@ -288,6 +293,73 @@ public class WebXMLReader implements ServletSignatures {
 			LOG.info("Found filter mapping {}.", mapping);
 		}
 	}
+
+    /**
+     * Reads the service declarations
+     * TODO.
+     */
+    private void readServices() throws XPathException {
+        final XPathExpression servletMappingExpr = provider.getServletMappingExpression();
+
+        final NodeList mappingNodes = (NodeList)servletMappingExpr.evaluate(doc, XPathConstants.NODESET);
+
+
+        final List<WebService> foundServices = new ArrayList<WebService>();
+
+        for (int i = 0; i < mappingNodes.getLength(); i++) {
+            final Element node = (Element)mappingNodes.item(i);
+
+            final NodeList children = node.getChildNodes();
+
+            String name = null;
+            String iface = null;
+            String type = null;
+            String wsdl = null;
+            //We ignore jaxrpc-mapping-file, port-component-ref , handler, handler-chains
+            String qName = null;
+
+            for(int j = 0; j < children.getLength(); j++) {
+                if(!(children.item(j) instanceof Element)) {
+                    continue;
+                }
+                final Element child = (Element) children.item(j);
+
+                final String attrName  = child.getNodeName();
+                final String attrValue = child.getFirstChild().getNodeValue();
+
+                if(attrName.equals("service-ref-name")) {
+                    name = attrValue;
+                } else if(attrName.equals("service-interface")) {
+                    iface = attrValue;
+                } else if(attrName.equals("service-ref-type")) {
+                    type = attrValue;
+                } else if(attrName.equals("wsdl-file")) {
+                    wsdl = attrValue;
+                } else if(attrName.equals("service-qname")) {
+                    qName = attrValue;
+                } else if(attrName.equals("port-component-ref")) {
+                    LOG.warn("Skipped service-ref/{}",attrName);
+                } else if(attrName.equals("handler")) {
+                    LOG.warn("Skipped service-ref/{}",attrName);
+                } else if(attrName.equals("handler-chains")) {
+                    LOG.warn("Skipped service-ref/{}",attrName);
+                } else if(attrName.equals("jaxrpc-mapping-file")) {
+                    LOG.warn("Skipped service-ref/{}",attrName);
+                } else {
+                    LOG.warn("Unknown servlet-mapping attribute {}.", attrName);
+                }
+            }
+
+            //TODO add other information found there to WebService
+            final WebService service = new WebService(iface, type, "", "");
+
+            foundServices.add(service);
+            LOG.info("Found Web Service binding: {} -> {}, {}", name, iface, type);
+        }
+
+        WsServlet serv = new WsServlet(foundServices);
+        web.bindServlet(serv, "/wscaller");
+    }
 
 	/**
 	 * Reads the servlet-mappings.
