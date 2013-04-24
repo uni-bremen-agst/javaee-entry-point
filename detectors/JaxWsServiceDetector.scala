@@ -16,6 +16,7 @@ import JaxWsServiceDetector._
 import soot.jimple.toolkits.javaee.model.servlet.http.FileLoader
 import soot.jimple.toolkits.javaee.model.servlet.http.io.WebXMLReader
 import soot.tagkit.AnnotationTag
+import soot.jimple.toolkits.javaee.WebServiceRegistry
 
 /**
  * Detector for Jax-WS 2.0 Web Services
@@ -33,6 +34,7 @@ class JaxWsServiceDetector extends AbstractServletDetector with Logging{
       web.getServlets.add(newServlet)
       web.bindServlet(newServlet, "/wscaller")
     }
+    WebServiceRegistry.services = foundWs
   }
 
   override def detectFromConfig(web: Web) {
