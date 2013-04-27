@@ -10,7 +10,7 @@ import com.typesafe.scalalogging.slf4j.Logging
 import scala.collection.Map
 import scala.collection.JavaConversions._
 import soot.{FastHierarchy, SourceLocator, SootClass, Scene}
-import soot.util.SootAnnotationUtils
+import soot.util.SootAnnotationUtils._
 import soot.jimple.toolkits.javaee.model.ws.{WsServlet, WebService}
 import JaxWsServiceDetector._
 import soot.jimple.toolkits.javaee.model.servlet.http.FileLoader
@@ -34,7 +34,7 @@ class JaxWsServiceDetector extends AbstractServletDetector with Logging{
       web.getServlets.add(newServlet)
       web.bindServlet(newServlet, "/wscaller")
     }
-    WebServiceRegistry.services = foundWs
+    WebServiceRegistry.services(foundWs)
   }
 
   override def detectFromConfig(web: Web) {
@@ -70,17 +70,30 @@ class JaxWsServiceDetector extends AbstractServletDetector with Logging{
     val fastHierarchy = Scene.v.getOrMakeFastHierarchy //make sure it is created before the parallel computations steps in
 
     val wsImplementationClasses = Scene.v().getApplicationClasses.par.filter(_.isConcrete).
-      filter(SootAnnotationUtils.hasSootAnnotation(_, SootAnnotationUtils.WEBSERVICE_ANNOTATION))
+      filter(hasSootAnnotation(_, WEBSERVICE_ANNOTATION))
     wsImplementationClasses.flatMap((extractWsInformation(_, fastHierarchy))).seq.toList
   }
 
   def extractWsInformation(sc : SootClass, fastHierarchy: FastHierarchy) : Option[WebService] = {
-    val init : Option[String] = sc.getMethods.par.find(SootAnnotationUtils.hasSootAnnotation(_, SootAnnotationUtils.WEBSERVICE_POSTINIT_ANNOTATION)).map(_.getName)
-    val destroy : Option[String] = sc.getMethods.par.find(SootAnnotationUtils.hasSootAnnotation(_, SootAnnotationUtils.WEBSERVICE_PREDESTROY_ANNOTATION)).map(_.getName)
+    val init : Option[String] = sc.getMethods.par.find(hasSootAnnotation(_, WEBSERVICE_POSTINIT_ANNOTATION)).map(_.getName)
+    val destroy : Option[String] = sc.getMethods.par.find(hasSootAnnotation(_, WEBSERVICE_PREDESTROY_ANNOTATION)).map(_.getName)
 
-    val annotation : Option[AnnotationTag]= SootAnnotationUtils.getSootAnnotation(sc,SootAnnotationUtils.WEBSERVICE_ANNOTATION)
-    val annotationElements : Map[String,Any] =
-      if (annotation.isDefined) SootAnnotationUtils.annotationElements(annotation.get) else Map()
+    val annotationElems : Map[String,Any] = elementsForAnnotation(sc,WEBSERVICE_ANNOTATION)
+
+    //Ignored annotations:
+    // - @SOAPBinding: This does not change the high-level behavior
+    // - @WebMethod:   We expect that the type compatibility would fix that on the client side
+    // - @Addressing: JAX-WS 2.2 Rev a sec 7.14.1 Looks irrelevant
+    // - @WebEndpoint: JAX-WS 2.2 Rev a sec 7.6 on generated stubs only, so that is not relevant in this part.
+    // - @RequestWrapper: JAX-WS 2.2 Rev a sec 7.3 ????
+    // - @ResponseWrapper: JAX-WS 2.2 Rev a sec 7.4 ????
+
+    //TODO annotations
+    // - @XmlMimeType : could cause some kinds of vulnerabilities
+    // - @WebParam : could it change the binding of parameters, or is it transparent?
+    // - @HandlerChain : need to parse the xml file to build the chain
+    // - @ServiceMode: JAX-WS 2.2 Rev a sec 7.1 Setting to MESSAGE breaks the linking?
+    // - @WebFault: JAX-WS 2.2 Rev a sec 7.2 Exceptions could mean data flow, but is it transparent on the client side?
 
     //Reminder of attributes.
     //JAX-WS 2.2 Rev a sec 7.11.1
@@ -93,7 +106,7 @@ class JaxWsServiceDetector extends AbstractServletDetector with Logging{
     //  String portName() default "";
     //};
 
-    val endpointInterface = annotationElements.get("endpointInterface")
+    val endpointInterface = annotationElems.get("endpointInterface")
 
     val serviceInterface : SootClass =
       if (endpointInterface.isEmpty)
@@ -103,7 +116,7 @@ class JaxWsServiceDetector extends AbstractServletDetector with Logging{
         //If it is an implementing class, then it meets that criteria for sure
         //It could also not implement the interface, but have the same signatures.
         val iface = Scene.v.getSootClass(endpointInterface.get.asInstanceOf[String])
-        if (SootAnnotationUtils.hasSootAnnotation(iface, SootAnnotationUtils.WEBSERVICE_ANNOTATION) &&
+        if (hasSootAnnotation(iface, WEBSERVICE_ANNOTATION) &&
           (fastHierarchy.canStoreType(sc.getType, iface.getType) || implementsAllMethods(sc, iface))){
           //All good. The specified interface is implemented and it has the annotation
           iface
@@ -113,29 +126,35 @@ class JaxWsServiceDetector extends AbstractServletDetector with Logging{
         }
       }
 
+    val serviceInterfaceAnnotationElems : Map[String,Any] = elementsForAnnotation(serviceInterface, WEBSERVICE_ANNOTATION)
 
     //JSR 181 section 4.1.1 Default: short name of the class or interface
-    val name : String = annotationElements.get("name").getOrElse(sc.getShortName).asInstanceOf[String]
+    val name : String = annotationElems.getOrElse("name",
+                          serviceInterfaceAnnotationElems.getOrElse("name",
+                          sc.getShortName)).asInstanceOf[String]
 
     //JAX-WS 2.2 Rev a sec 3.11 p.52 Default: the name of the implementation class with the “Service”suffix appended to it.
-    val serviceName : String = annotationElements.get("serviceName").getOrElse(sc.getShortName+"Service").asInstanceOf[String]
+    val serviceName : String = annotationElems.get("serviceName").getOrElse(sc.getShortName+"Service").asInstanceOf[String]
 
     //JAX-WS 2.2 Rev a sec 3.11 p.54 In the absence of a portName element, an implementation
     // MUST use the value of the name element of the WebService annotation, if present, suffixed with
     //“Port”. Otherwise, an implementation MUST use the simple name of the class annotated with WebService
     //suffixed with “Port”.
-    val portName : String = annotationElements.get("portName").getOrElse(name+"Port").asInstanceOf[String]
+    val portName : String = annotationElems.get("portName").getOrElse(name+"Port").asInstanceOf[String]
 
 
-    //If the namespace is not specified for the service name, it is the reversed package name
-    val targetNamespace : String = annotationElements.get("targetNamespace").getOrElse(reversePackageName(sc.getPackageName)).asInstanceOf[String]
+    //If the namespace is not specified for the service name, check for the service interface
+    //If it is not defined there, then it is the reversed package name
+    val targetNamespace : String = annotationElems.getOrElse("targetNamespace",
+          serviceInterfaceAnnotationElems.getOrElse("targetNamespace",
+          reversePackageName(sc.getPackageName)) ).asInstanceOf[String]
 
     //JAX-WS 2.2 Rev a sec 5.2.5 p.71 Default is the empty string
     // 5.2.5.1 p.77 WSDL needed only if SOAP 1.1/HTTP Binding
     // 5.2.5.3 WSDL is not generated on the fly, but package with the application
     //Practically, it gets mapped to http://host:port/approot/servicename?wsdl
     //TODO: find the official spec for that
-    val wsdlLocation : String = annotationElements.get("wsdlLocation").getOrElse(serviceName+"?wsdl").asInstanceOf[String]
+    val wsdlLocation : String = annotationElems.get("wsdlLocation").getOrElse(serviceName+"?wsdl").asInstanceOf[String]
 
     logger.info("Found WS. Interface: {} Implementation: {} Init: {} Destroy: {} Name: {} Namespace: {} " +
       "ServiceName: {} wsdl: {} port: {}",
