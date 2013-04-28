@@ -129,12 +129,23 @@ class JaxWsServiceDetector extends AbstractServletDetector with Logging{
     val serviceInterfaceAnnotationElems : Map[String,Any] = elementsForAnnotation(serviceInterface, WEBSERVICE_ANNOTATION)
 
     //JSR 181 section 4.1.1 Default: short name of the class or interface
-    val name : String = annotationElems.getOrElse("name",
-                          serviceInterfaceAnnotationElems.getOrElse("name",
-                          sc.getShortName)).asInstanceOf[String]
+    val name : String = readCascadedAnnotation("name", sc.getShortName, annotationElems, serviceInterfaceAnnotationElems)
 
-    //JAX-WS 2.2 Rev a sec 3.11 p.52 Default: the name of the implementation class with the “Service”suffix appended to it.
-    val serviceName : String = annotationElems.get("serviceName").getOrElse(sc.getShortName+"Service").asInstanceOf[String]
+    val nameIsSet = name != sc.getShortName
+
+    //JAX-WS 2.2 Rev a sec 3.11 p.51
+    //In mapping a @WebService-annotated class (see 3.3) to a wsdl:service, the serviceName element
+    //of the WebService annotation are used to derive the service name. The value of the name attribute of
+    //the wsdl:service element is computed according to the JSR-181 [15] specification. It is given by the
+    //serviceName element of the WebService annotation, if present with a non-default value, otherwise the
+    //name of the implementation class with the “Service”suffix appended to it.
+    //Translation:
+    // - if serviceName is set, use that
+    // - if name is set, use that + "Service"
+    // - if name is not set, use the short class name + "Service"
+    // Since name is defaulted to the short name, it doesn't matter
+    val serviceName : String =
+      readCascadedAnnotation("serviceName", name + "Service", annotationElems, serviceInterfaceAnnotationElems)
 
     //JAX-WS 2.2 Rev a sec 3.11 p.54 In the absence of a portName element, an implementation
     // MUST use the value of the name element of the WebService annotation, if present, suffixed with
@@ -142,12 +153,15 @@ class JaxWsServiceDetector extends AbstractServletDetector with Logging{
     //suffixed with “Port”.
     val portName : String = annotationElems.get("portName").getOrElse(name+"Port").asInstanceOf[String]
 
-
+    //JAX-WS 2.2 Rev a sec 3.2 p.33-34
     //If the namespace is not specified for the service name, check for the service interface
-    //If it is not defined there, then it is the reversed package name
-    val targetNamespace : String = annotationElems.getOrElse("targetNamespace",
-          serviceInterfaceAnnotationElems.getOrElse("targetNamespace",
-          reversePackageName(sc.getPackageName)) ).asInstanceOf[String]
+    //A default value for the targetNamespace attribute is derived from the package name as follows:
+    // 1. The package name is tokenized using the “.” character as a delimiter.
+    // 2. The order of the tokens is reversed.
+    // 3. The value of the targetNamespace attribute is obtained by concatenating “http://”to the list of
+    //   tokens separated by “ . ”and “/”.
+    val targetNamespace : String =
+      readCascadedAnnotation("targetNamespace", "http://"+reversePackageName(sc.getPackageName)+"/", annotationElems, serviceInterfaceAnnotationElems)
 
     //JAX-WS 2.2 Rev a sec 5.2.5 p.71 Default is the empty string
     // 5.2.5.1 p.77 WSDL needed only if SOAP 1.1/HTTP Binding
@@ -208,5 +222,16 @@ object JaxWsServiceDetector {
     val referenceMethodSignatures = reference.getMethods.map(_.getSubSignature)
     val implementorMethodSignatures = implementor.getMethods.map(_.getSubSignature).toSet
     referenceMethodSignatures.forall(implementorMethodSignatures.contains(_))
+  }
+
+  /**
+   * Read an annotation element on the current class on or service interface
+   * @param annName name of the annotation
+   * @param localAnn the local annotation's elements
+   * @param interfaceAnn the interface annotation's elements
+   * @return an option for the value of the annotation element
+   */
+  def readCascadedAnnotation(annName: String, default : => String, localAnn : Map[String,Any], interfaceAnn : Map[String,Any]) : String = {
+    localAnn.getOrElse(annName,interfaceAnn.getOrElse(annName, default)).asInstanceOf[String]
   }
 }
