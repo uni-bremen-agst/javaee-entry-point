@@ -10,7 +10,7 @@
     public class «clazz» extends javax.servlet.GenericServlet
     {
     «FOREACH (List[WebService])services() AS service»
-        public static final «service.implementationName()» ws«service.implementationName().split('\\.').last()»;
+        public static final «service.implementationName()» ws«service.implementationName().replaceAll('\\.','_')»;
     «ENDFOREACH»
      
         static void <clinit>()
@@ -24,7 +24,7 @@
     «ENDFOREACH»
      
     «FOREACH (List[WebService])services() AS service ITERATOR iter»
-           <«clazz»: «service.implementationName()» ws«service.implementationName().split("\\.").last()»> = $r«iter.counter1»;
+           <«clazz»: «service.implementationName()» ws«service.implementationName().replaceAll('\\.','_')»> = $r«iter.counter1»;
     «ENDFOREACH»
         }
      
