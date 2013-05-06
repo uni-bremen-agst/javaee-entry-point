@@ -6,7 +6,7 @@ package soot.jimple.toolkits.javaee
 
 import soot.jimple.toolkits.javaee.model.ws.WebService
 import javax.xml.namespace.QName
-import scala.collection.Map
+import scala.collection._
 
 /**
  * A registry of the web services detected in the application under analysis
@@ -14,7 +14,7 @@ import scala.collection.Map
 object WebServiceRegistry {
 
   private var _services : Traversable[WebService] = Array[WebService]()
-  private lazy val _qnameLookup : Map[QName, WebService] = populateLookup()
+  private lazy val _qnameLookup : Map[QName, Set[WebService]] = populateLookup()
 
 
   def services(update : Traversable[WebService]) : Unit = {
@@ -27,7 +27,7 @@ object WebServiceRegistry {
    * @param localName the local name of the qualified name
    * @return an option for a WebService
    */
-  def findService(nameSpace : String , localName : String ) : Option[WebService] = {
+  def findService(nameSpace : String , localName : String ) : Option[Set[WebService]] = {
     _qnameLookup.get(new QName(nameSpace, localName))
   }
 
@@ -36,13 +36,15 @@ object WebServiceRegistry {
    * @param qName the qualified name
    * @return an option for a WebService
    */
-  def findService(qName : QName) : Option[WebService] = {
+  def findService(qName : QName) : Option[Set[WebService]] = {
     _qnameLookup.get(qName)
   }
 
-  private def populateLookup() : Map[QName, WebService] = { //TODO deal with collisions on the implementation of the service.
-   // _services.map(ws => (new QName(ws.getTargetNamespace, ws.getPortName),ws)).toMap
-    _services.map(ws => (new QName(ws.targetNamespace, ws.serviceName),ws)).toMap
+  private def populateLookup() : Map[QName, Set[WebService]] = { //TODO deal with collisions on the implementation of the service.
+
+    val multimap = new mutable.HashMap[QName, mutable.Set[WebService]] with mutable.MultiMap[QName,WebService]
+    _services.foreach(ws => multimap.addBinding(new QName(ws.targetNamespace, ws.serviceName), ws))
+    multimap
   }
 
 }
