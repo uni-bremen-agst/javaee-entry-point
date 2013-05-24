@@ -14,8 +14,13 @@ import scala.collection._
 object WebServiceRegistry {
 
   private var _services : Traversable[WebService] = Array[WebService]()
-  private lazy val _qnameLookup : Map[QName, Set[WebService]] = populateLookup()
+  private lazy val _qnameLookup : Map[QName, Set[WebService]] = {
+    val multimap = new mutable.HashMap[QName, mutable.Set[WebService]] with mutable.MultiMap[QName,WebService]
+    _services.foreach(ws => multimap.addBinding(new QName(ws.targetNamespace, ws.serviceName), ws))
+    multimap
+  }
 
+  def services : Traversable[WebService] = _services
 
   def services(update : Traversable[WebService]) : Unit = {
     _services = update
@@ -25,26 +30,19 @@ object WebServiceRegistry {
    * Lookup a service by qualified name.
    * @param nameSpace the name space for the qualified name
    * @param localName the local name of the qualified name
-   * @return an option for a WebService
+   * @return a possibly empty set of web services found for that qualified name
    */
-  def findService(nameSpace : String , localName : String ) : Option[Set[WebService]] = {
-    _qnameLookup.get(new QName(nameSpace, localName))
+  def findService(nameSpace : String , localName : String ) : Set[WebService] = {
+    _qnameLookup.getOrElse(new QName(nameSpace, localName), Set[WebService]())
   }
 
   /**
    * Lookup a service by qualified name.
    * @param qName the qualified name
-   * @return an option for a WebService
+   * @return a possibly empty set of web services found for that qualified name
    */
-  def findService(qName : QName) : Option[Set[WebService]] = {
-    _qnameLookup.get(qName)
-  }
-
-  private def populateLookup() : Map[QName, Set[WebService]] = { //TODO deal with collisions on the implementation of the service.
-
-    val multimap = new mutable.HashMap[QName, mutable.Set[WebService]] with mutable.MultiMap[QName,WebService]
-    _services.foreach(ws => multimap.addBinding(new QName(ws.targetNamespace, ws.serviceName), ws))
-    multimap
+  def findService(qName : QName) : Set[WebService] = {
+    _qnameLookup.getOrElse(qName, Set[WebService]())
   }
 
 }
