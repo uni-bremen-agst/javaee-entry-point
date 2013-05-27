@@ -17,9 +17,7 @@ package soot.jimple.toolkits.javaee.model.servlet.http.io;
 
 import java.io.FileNotFoundException;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -351,7 +349,7 @@ public class WebXMLReader implements ServletSignatures {
             }
 
             //TODO add other information found there to WebService
-            final WebService service = new WebService(iface, type, "", "","", "","", "","");
+            final WebService service = new WebService(iface, type, "", "","", "","", "","",new HashMap<String,SootMethod>());
 
             foundServices.add(service);
             LOG.info("Found Web Service binding: {} -> {}, {}", name, iface, type);

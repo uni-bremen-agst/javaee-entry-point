@@ -9,7 +9,7 @@ import soot.jimple.toolkits.javaee.model.servlet.Web
 import com.typesafe.scalalogging.slf4j.Logging
 import scala.collection.Map
 import scala.collection.JavaConversions._
-import soot.{FastHierarchy, SourceLocator, SootClass, Scene}
+import soot._
 import soot.util.SootAnnotationUtils._
 import soot.jimple.toolkits.javaee.model.ws.{WsServlet, WebService}
 import JaxWsServiceDetector._
@@ -17,6 +17,8 @@ import soot.jimple.toolkits.javaee.model.servlet.http.FileLoader
 import soot.jimple.toolkits.javaee.model.servlet.http.io.WebXMLReader
 import soot.tagkit.AnnotationTag
 import soot.jimple.toolkits.javaee.WebServiceRegistry
+import soot.jimple.toolkits.javaee.model.ws.WsServlet
+import soot.jimple.toolkits.javaee.model.ws.WebService
 
 /**
  * Detector for Jax-WS 2.0 Web Services
@@ -170,10 +172,27 @@ class JaxWsServiceDetector extends AbstractServletDetector with Logging{
     //TODO: find the official spec for that
     val wsdlLocation : String = annotationElems.get("wsdlLocation").getOrElse(serviceName+"?wsdl").asInstanceOf[String]
 
+    //Detect method names
+    // JSR-181, p. 35, section 3.5 operation name is @WebMethod.operationName. Default is in Jax-WS 2.0 section 3.5
+    // JAX-WS 2.2 Rev a sec 3.5 p.35 Default is the name of the method
+    val potentialMethods = sc.getMethods.filterNot(_.isConstructor).filter(_.isConcrete)
+    val serviceMethodTuples = for (
+      sm <-  potentialMethods;
+      subsig = sm.getSubSignature;
+      if (serviceInterface.declaresMethod(subsig));
+      seiMethod = serviceInterface.getMethod(subsig);
+      if (hasSootAnnotation(sm,WEBMETHOD_ANNOTATION) || hasSootAnnotation(seiMethod,WEBMETHOD_ANNOTATION));
+      implAnn = elementsForAnnotation(sm, WEBMETHOD_ANNOTATION);
+      seiAnn =  elementsForAnnotation(serviceInterface, WEBMETHOD_ANNOTATION)
+    ) yield (readCascadedAnnotation("operationName", sm.getName, implAnn, seiAnn), sm)
+
+    val methods : Map[String,SootMethod] = serviceMethodTuples.toMap
+
+
     logger.info("Found WS. Interface: {} Implementation: {} Init: {} Destroy: {} Name: {} Namespace: {} " +
-      "ServiceName: {} wsdl: {} port: {}",
+      "ServiceName: {} wsdl: {} port: {}.\tMethods: {}",
       serviceInterface.getName, sc.getName, init.getOrElse(""), destroy.getOrElse(""), name,targetNamespace,
-      serviceName,wsdlLocation,portName
+      serviceName,wsdlLocation,portName, methods
     )
 
     return Option(new WebService(
@@ -181,7 +200,7 @@ class JaxWsServiceDetector extends AbstractServletDetector with Logging{
       sc.getName,
       init.getOrElse(""),
       destroy.getOrElse(""),
-      name,targetNamespace,serviceName,wsdlLocation,portName
+      name,targetNamespace,serviceName,wsdlLocation,portName, methods
     ))
 
   }
@@ -227,11 +246,17 @@ object JaxWsServiceDetector {
   /**
    * Read an annotation element on the current class on or service interface
    * @param annName name of the annotation
+   * @param default a function that gives the default value, if it is not found in the annotations
    * @param localAnn the local annotation's elements
    * @param interfaceAnn the interface annotation's elements
    * @return an option for the value of the annotation element
    */
   def readCascadedAnnotation(annName: String, default : => String, localAnn : Map[String,Any], interfaceAnn : Map[String,Any]) : String = {
-    localAnn.getOrElse(annName,interfaceAnn.getOrElse(annName, default)).asInstanceOf[String]
+    if (localAnn != interfaceAnn)
+      localAnn.getOrElse(annName,interfaceAnn.getOrElse(annName, default)).asInstanceOf[String]
+    else
+      localAnn.getOrElse(annName,default).asInstanceOf[String]
   }
+
+
 }
