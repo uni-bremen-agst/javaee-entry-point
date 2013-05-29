@@ -20,6 +20,148 @@ import soot.jimple.toolkits.javaee.WebServiceRegistry
 import soot.jimple.toolkits.javaee.model.ws.WsServlet
 import soot.jimple.toolkits.javaee.model.ws.WebService
 
+
+/**
+ * Utilities to determine the values of JAX-WS services' attributes
+ * */
+object JaxWSAttributeUtils {
+  /**
+   * Reverses a package name, so that e.g. scala.collection.mutable becomes mutable.collection.scala
+   * @param pkg the package name
+   * @return the reversed package name
+   */
+  def reversePackageName(pkg: String) : String ={
+    pkg.split("\\.").reverse.mkString(".")
+  }
+
+  /**
+   * Checks if a class has all methods implemented from another as follows:
+   *
+   * m = methods of the reference
+   * c = concrete methods of the implementor
+   *
+   * This method checks that m intersection c = m.
+   *
+   * This definition means that the implementor may have additional methods that are not defined
+   * in the reference that will not affect the result of this function.
+   *
+   * @param reference the reference class - all its method must be implemented by the implementor
+   * @param implementor the implementor class.
+   * @return true if the criteria is met, false otherwise.
+   */
+  def implementsAllMethods(implementor : SootClass, reference:SootClass) : Boolean = {
+    val referenceMethodSignatures = reference.getMethods.map(_.getSubSignature)
+    val implementorMethodSignatures = implementor.getMethods.map(_.getSubSignature).toSet
+    referenceMethodSignatures.forall(implementorMethodSignatures.contains(_))
+  }
+
+  /**
+   * Read an annotation element on the current class on or service interface
+   * @param annName name of the annotation
+   * @param default a function that gives the default value, if it is not found in the annotations
+   * @param localAnn the local annotation's elements
+   * @param interfaceAnn the interface annotation's elements
+   * @return an option for the value of the annotation element
+   */
+  def readCascadedAnnotation(annName: String, default : => String, localAnn : Map[String,Any], interfaceAnn : Map[String,Any]) : String = {
+    if (localAnn != interfaceAnn)
+      localAnn.getOrElse(annName,interfaceAnn.getOrElse(annName, default)).asInstanceOf[String]
+    else
+      localAnn.getOrElse(annName,default).asInstanceOf[String]
+  }
+
+  /**
+   * Determines the local name of the service. This is not the same as the service name
+   * JSR 181 section 4.1.1 Default: short name of the class or interface
+   * @param sc the implementation class
+   * @param annotationElems the annotations on the class
+   * @param serviceInterfaceAnnotationElems the annotations on the service interface
+   * @return a non-empty string with the name of the service
+   */
+  def localName(sc: SootClass, annotationElems: Map[String, Any], serviceInterfaceAnnotationElems: Map[String, Any]): String = {
+    readCascadedAnnotation("name", sc.getShortName, annotationElems, serviceInterfaceAnnotationElems)
+  }
+
+  /**
+   * Determines the WSDL location, as a local URL only.
+   *
+   * JAX-WS 2.2 Rev a sec 5.2.5 p.71 Default is the empty string
+   * 5.2.5.1 p.77 WSDL needed only if SOAP 1.1/HTTP Binding
+   * 5.2.5.3 WSDL is not generated on the fly, but package with the application
+   * Practically, it gets mapped to http://host:port/approot/servicename?wsdlTODO: find the official spec for that
+   * @param serviceName the name of the service
+   * @param annotationElems the annotations on the implementing class
+   *
+   * @return a non-empty string
+   */
+  def wsdlLocation(serviceName: String, annotationElems: Map[String, Any]): String = {
+    annotationElems.get("wsdlLocation").getOrElse(serviceName + "?wsdl").asInstanceOf[String]
+  }
+
+  /**
+   * Determines the target namespace
+   *
+   * JAX-WS 2.2 Rev a sec 3.2 p.33-34
+   * If the namespace is not specified for the service name, check for the service interface
+   * A default value for the targetNamespace attribute is derived from the package name as follows:
+   *  1. The package name is tokenized using the “.” character as a delimiter.
+   *  2. The order of the tokens is reversed.
+   *  3. The value of the targetNamespace attribute is obtained by concatenating “http://”to the list of
+   *    tokens separated by “ . ”and “/”.
+   *
+   * @param sc the implementation class
+   * @param annotationElems the annotations on the implementation class
+   * @param serviceInterfaceAnnotationElems the annotations on the SEI
+   * @return a non-empty string
+   */
+  def targetNamespace(sc: SootClass, annotationElems: Map[String, Any], serviceInterfaceAnnotationElems: Map[String, Any]): String = {
+    readCascadedAnnotation("targetNamespace", "http://" + reversePackageName(sc.getPackageName) + "/", annotationElems, serviceInterfaceAnnotationElems)
+  }
+
+  /**
+   * Determines the port name
+   *
+   * JAX-WS 2.2 Rev a sec 3.11 p.54 In the absence of a portName element, an implementation
+   * MUST use the value of the name element of the WebService annotation, if present, suffixed with
+   * “Port”. Otherwise, an implementation MUST use the simple name of the class annotated with WebService
+   * suffixed with “Port”.
+   *
+   * @param name the name of the service
+   * @param annotationElems the annotations on the implementing class
+   *
+   * @return a non-empty string
+   */
+  def portName(name: String, annotationElems: Map[String, Any]): String = {
+    annotationElems.get("portName").getOrElse(name + "Port").asInstanceOf[String]
+  }
+
+  /**
+   * Determines the service name
+   *
+   * JAX-WS 2.2 Rev a sec 3.11 p.51
+   * In mapping a @WebService-annotated class (see 3.3) to a wsdl:service, the serviceName element
+   * of the WebService annotation are used to derive the service name. The value of the name attribute of
+   * the wsdl:service element is computed according to the JSR-181 [15] specification. It is given by the
+   * serviceName element of the WebService annotation, if present with a non-default value, otherwise the
+   * name of the implementation class with the “Service”suffix appended to it.
+   * Translation:
+   *  - if serviceName is set, use that
+   *  - if name is set, use that + "Service"
+   *  - if name is not set, use the short class name + "Service"
+   * Since name is defaulted to the short name, we can ignore the last rule
+   *
+   * @param name the name of the serice
+   * @param annotationElems the annotations on the implementation class
+   * @param serviceInterfaceAnnotationElems the annotations on the SEI
+   * @return a non-empty string
+   */
+  def serviceName(name: String, annotationElems: Map[String, Any], serviceInterfaceAnnotationElems: Map[String, Any]): String = {
+    readCascadedAnnotation("serviceName", name + "Service", annotationElems, serviceInterfaceAnnotationElems)
+  }
+}
+
+import JaxWSAttributeUtils._
+
 /**
  * Detector for Jax-WS 2.0 Web Services
  * @author Marc-André Laverdière-Papineau
@@ -130,47 +272,11 @@ class JaxWsServiceDetector extends AbstractServletDetector with Logging{
 
     val serviceInterfaceAnnotationElems : Map[String,Any] = elementsForAnnotation(serviceInterface, WEBSERVICE_ANNOTATION)
 
-    //JSR 181 section 4.1.1 Default: short name of the class or interface
-    val name : String = readCascadedAnnotation("name", sc.getShortName, annotationElems, serviceInterfaceAnnotationElems)
-
-    val nameIsSet = name != sc.getShortName
-
-    //JAX-WS 2.2 Rev a sec 3.11 p.51
-    //In mapping a @WebService-annotated class (see 3.3) to a wsdl:service, the serviceName element
-    //of the WebService annotation are used to derive the service name. The value of the name attribute of
-    //the wsdl:service element is computed according to the JSR-181 [15] specification. It is given by the
-    //serviceName element of the WebService annotation, if present with a non-default value, otherwise the
-    //name of the implementation class with the “Service”suffix appended to it.
-    //Translation:
-    // - if serviceName is set, use that
-    // - if name is set, use that + "Service"
-    // - if name is not set, use the short class name + "Service"
-    // Since name is defaulted to the short name, it doesn't matter
-    val serviceName : String =
-      readCascadedAnnotation("serviceName", name + "Service", annotationElems, serviceInterfaceAnnotationElems)
-
-    //JAX-WS 2.2 Rev a sec 3.11 p.54 In the absence of a portName element, an implementation
-    // MUST use the value of the name element of the WebService annotation, if present, suffixed with
-    //“Port”. Otherwise, an implementation MUST use the simple name of the class annotated with WebService
-    //suffixed with “Port”.
-    val portName : String = annotationElems.get("portName").getOrElse(name+"Port").asInstanceOf[String]
-
-    //JAX-WS 2.2 Rev a sec 3.2 p.33-34
-    //If the namespace is not specified for the service name, check for the service interface
-    //A default value for the targetNamespace attribute is derived from the package name as follows:
-    // 1. The package name is tokenized using the “.” character as a delimiter.
-    // 2. The order of the tokens is reversed.
-    // 3. The value of the targetNamespace attribute is obtained by concatenating “http://”to the list of
-    //   tokens separated by “ . ”and “/”.
-    val targetNamespace : String =
-      readCascadedAnnotation("targetNamespace", "http://"+reversePackageName(sc.getPackageName)+"/", annotationElems, serviceInterfaceAnnotationElems)
-
-    //JAX-WS 2.2 Rev a sec 5.2.5 p.71 Default is the empty string
-    // 5.2.5.1 p.77 WSDL needed only if SOAP 1.1/HTTP Binding
-    // 5.2.5.3 WSDL is not generated on the fly, but package with the application
-    //Practically, it gets mapped to http://host:port/approot/servicename?wsdl
-    //TODO: find the official spec for that
-    val wsdlLocation : String = annotationElems.get("wsdlLocation").getOrElse(serviceName+"?wsdl").asInstanceOf[String]
+    val name : String = localName(sc, annotationElems, serviceInterfaceAnnotationElems)
+    val srvcName : String = serviceName(name, annotationElems, serviceInterfaceAnnotationElems)
+    val prtName : String = portName(name, annotationElems)
+    val tgtNamespace : String = targetNamespace(sc, annotationElems, serviceInterfaceAnnotationElems)
+    val wsdlLoc : String = wsdlLocation(srvcName, annotationElems)
 
     //Detect method names
     // JSR-181, p. 35, section 3.5 operation name is @WebMethod.operationName. Default is in Jax-WS 2.0 section 3.5
@@ -191,8 +297,8 @@ class JaxWsServiceDetector extends AbstractServletDetector with Logging{
 
     logger.info("Found WS. Interface: {} Implementation: {} Init: {} Destroy: {} Name: {} Namespace: {} " +
       "ServiceName: {} wsdl: {} port: {}.\tMethods: {}",
-      serviceInterface.getName, sc.getName, init.getOrElse(""), destroy.getOrElse(""), name,targetNamespace,
-      serviceName,wsdlLocation,portName, methods
+      serviceInterface.getName, sc.getName, init.getOrElse(""), destroy.getOrElse(""), name,tgtNamespace,
+      srvcName,wsdlLoc,prtName, methods
     )
 
     return Option(new WebService(
@@ -200,63 +306,14 @@ class JaxWsServiceDetector extends AbstractServletDetector with Logging{
       sc.getName,
       init.getOrElse(""),
       destroy.getOrElse(""),
-      name,targetNamespace,serviceName,wsdlLocation,portName, methods
+      name,tgtNamespace,srvcName,wsdlLoc,prtName, methods
     ))
 
   }
-
-
-
 }
 
 
 object JaxWsServiceDetector {
   final val GENERATED_CLASS_NAME: String = "WSCaller"
-
-  /**
-   * Reverses a package name, so that e.g. scala.collection.mutable becomes mutable.collection.scala
-   * @param pkg the package name
-   * @return the reversed package name
-   */
-  def reversePackageName(pkg: String) : String ={
-    pkg.split("\\.").reverse.mkString(".")
-  }
-
-  /**
-   * Checks if a class has all methods implemented from another as follows:
-   *
-   * m = methods of the reference
-   * c = concrete methods of the implementor
-   *
-   * This method checks that m intersection c = m.
-   *
-   * This definition means that the implementor may have additional methods that are not defined
-   * in the reference that will not affect the result of this function.
-   *
-   * @param reference the reference class - all its method must be implemented by the implementor
-   * @param implementor the implementor class.
-   * @return true if the criteria is met, false otherwise.
-   */
-  def implementsAllMethods(implementor : SootClass, reference:SootClass) : Boolean = {
-    val referenceMethodSignatures = reference.getMethods.map(_.getSubSignature)
-    val implementorMethodSignatures = implementor.getMethods.map(_.getSubSignature).toSet
-    referenceMethodSignatures.forall(implementorMethodSignatures.contains(_))
-  }
-
-  /**
-   * Read an annotation element on the current class on or service interface
-   * @param annName name of the annotation
-   * @param default a function that gives the default value, if it is not found in the annotations
-   * @param localAnn the local annotation's elements
-   * @param interfaceAnn the interface annotation's elements
-   * @return an option for the value of the annotation element
-   */
-  def readCascadedAnnotation(annName: String, default : => String, localAnn : Map[String,Any], interfaceAnn : Map[String,Any]) : String = {
-    if (localAnn != interfaceAnn)
-      localAnn.getOrElse(annName,interfaceAnn.getOrElse(annName, default)).asInstanceOf[String]
-    else
-      localAnn.getOrElse(annName,default).asInstanceOf[String]
-  }
-
 
 }
