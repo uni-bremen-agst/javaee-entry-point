@@ -1,0 +1,81 @@
+    «IMPORT soot::jimple::toolkits::javaee::model::servlet»
+    «IMPORT soot::jimple::toolkits::javaee::model::ws»
+     
+    «DEFINE wsServlet FOR Servlet»
+    «ENDDEFINE»
+     
+    «DEFINE wsServlet FOR WsServlet»
+    «FILE clazz + ".jimple"»
+     
+    public class «clazz» extends javax.servlet.GenericServlet
+    {
+    «FOREACH (List[WebService])services() AS service»
+        public static final «service.implementationName()» ws«service.implementationName().replaceAll('\\.','_')»;
+    «ENDFOREACH»
+     
+        static void <clinit>()
+        {
+    «FOREACH (List[WebService])services() AS service ITERATOR iter»
+           «service.implementationName()» $r«iter.counter1»;
+    «ENDFOREACH»
+    «FOREACH (List[WebService])services() AS service ITERATOR iter»
+           $r«iter.counter1» = new «service.implementationName()»;
+           specialinvoke $r«iter.counter1».<«service.implementationName()»: void <init>()>();
+    «ENDFOREACH»
+     
+    «FOREACH (List[WebService])services() AS service ITERATOR iter»
+           <«clazz»: «service.implementationName()» ws«service.implementationName().replaceAll('\\.','_')»> = $r«iter.counter1»;
+    «ENDFOREACH»
+        }
+     
+        void <init>()
+        {
+            «clazz» r0;
+     
+            r0 := @this: «clazz»;
+            specialinvoke r0.<java.lang.Object: void <init>()>();
+        }
+
+        void service(javax.servlet.ServletRequest, javax.servlet.ServletResponse)
+        {
+            «clazz» r0;
+            javax.servlet.ServletRequest r1;
+            javax.servlet.ServletResponse r2;
+            int $i0;
+            java.util.Random $r3;
+    «FOREACH (List[WebService])services() AS service ITERATOR iter»
+           «service.implementationName()» $ws«iter.counter1»;
+    «ENDFOREACH»
+     
+            r0 := @this: «clazz»;
+            r1 := @parameter0: javax.servlet.ServletRequest;
+            r2 := @parameter1: javax.servlet.ServletResponse;
+            $r3 = new java.util.Random;
+
+
+
+            specialinvoke $r3.<java.util.Random: void <init>()>();
+            label0:
+              $i0 = virtualinvoke $r3.<java.util.Random: int nextInt()>();
+              tableswitch($i0)
+              {
+    «FOREACH (List[WebService])services() AS service ITERATOR iter»
+                case «iter.counter1»: goto label«iter.counter1+1»;
+    «ENDFOREACH»
+                default: goto label1;
+              };
+
+              label1:
+                return;
+    «FOREACH (List[WebService])services() AS service ITERATOR iter»
+              label«iter.counter1+1»:
+                return;//TODO
+    «ENDFOREACH»
+        }
+    }
+    «ENDFILE»
+    «ENDDEFINE»
+     
+    «DEFINE main FOR Web»
+    «EXPAND wsServlet FOREACH servlets»
+    «ENDDEFINE»
