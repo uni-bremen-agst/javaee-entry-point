@@ -1,3 +1,8 @@
+/**
+ * (c) Copyright 2013, Tata Consultancy Services & Ecole Polytechnique de Montreal
+ * All rights reserved
+ */
+
 package soot.jimple.toolkits.javaee.detectors
 
 import com.typesafe.scalalogging.slf4j.Logging
@@ -7,26 +12,33 @@ import soot.{Unit => SootUnit, _}
 import javax.xml.bind.annotation.XmlAttribute
 import scala.annotation.meta.beanGetter
 import scala.beans.BeanProperty
+import soot.jimple.toolkits.javaee.model.servlet.jboss.JBossWSTestServlet
 
-/**
- * (c) Copyright 2013, Tata Consultancy Services & Ecole Polytechnique de Montreal
- * All rights reserved
- */
+object JBossWSTestDetector {
+  final val GENERATED_CLASS_NAME = "JBossWSTestServlet"
+}
+
+import JBossWSTestDetector._
+
 class JBossWSTestDetector extends AbstractServletDetector with Logging{
-
-  @(XmlAttribute @beanGetter) @BeanProperty
-  var jBossWsClients : java.util.List[SootClass] = List()
-
-  @(XmlAttribute @beanGetter) @BeanProperty
-  var testMethods : java.util.List[SootMethod] = List()
 
   override def detectFromSource(web: Web) {
     val fastHierarchy = Scene.v.getOrMakeFastHierarchy //make sure it is created before the parallel computations steps in
     val jBossWsSuperType = Scene.v.getRefType("org.jboss.wsf.test.JBossWSTest")
-    jBossWsClients = Scene.v().getApplicationClasses.par.filter(_.isConcrete).
+    val jBossWsClients = Scene.v().getApplicationClasses.par.filter(_.isConcrete).
       filter(sc=>fastHierarchy.canStoreType(sc.getType,jBossWsSuperType)).seq.toList
+    jBossWsClients.foreach(logger.info("Found JBoss WS Test Client: {}", _))
 
-    testMethods = jBossWsClients.par.flatMap(_.getMethods).filter(_.getName.startsWith("test")).seq.toList
+    val testMethods = jBossWsClients.par.flatMap(_.getMethods).filter(_.getName.startsWith("test")).seq.toList
+    testMethods.foreach(logger.debug("Test method found: {}", _))
+
+    val fakeServlet = new JBossWSTestServlet(jBossWsClients, testMethods)
+
+    val fullName = web.getGeneratorInfos.getRootPackage + "." + GENERATED_CLASS_NAME
+    fakeServlet.setClazz(fullName)
+    fakeServlet.setName(GENERATED_CLASS_NAME)
+    web.getServlets.add(fakeServlet)
+    web.bindServlet(fakeServlet, "/jbosstester")
   }
 
   override def detectFromConfig(web: Web) {

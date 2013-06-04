@@ -1,10 +1,10 @@
     «IMPORT soot::jimple::toolkits::javaee::model::servlet»
-    «IMPORT soot::jimple::toolkits::javaee::model::ws»
+    «IMPORT soot::jimple::toolkits::javaee::model::servlet::jboss»
      
-    «DEFINE wsServlet FOR Servlet»
+    «DEFINE jbossServlet FOR Servlet»
     «ENDDEFINE»
      
-    «DEFINE wsServlet FOR WsServlet»
+    «DEFINE jbossServlet FOR JBossWSTestServlet»
     «FILE clazz + ".jimple"»
      
     public class «clazz» extends javax.servlet.GenericServlet

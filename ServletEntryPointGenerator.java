@@ -50,10 +50,7 @@ import soot.Scene;
 import soot.SceneTransformer;
 import soot.Singletons;
 import soot.SootClass;
-import soot.jimple.toolkits.javaee.detectors.HttpServletDetector;
-import soot.jimple.toolkits.javaee.detectors.JaxWsServiceDetector;
-import soot.jimple.toolkits.javaee.detectors.ServletDetector;
-import soot.jimple.toolkits.javaee.detectors.StrutsServletDetector;
+import soot.jimple.toolkits.javaee.detectors.*;
 import soot.jimple.toolkits.javaee.model.servlet.Web;
 import soot.jimple.toolkits.javaee.model.servlet.http.ServletSignatures;
 import soot.jimple.toolkits.javaee.model.ws.WebService;
@@ -101,6 +98,7 @@ public class ServletEntryPointGenerator extends SceneTransformer implements Serv
 		servletDetectors.add(new HttpServletDetector());
 		servletDetectors.add(new JaxWsServiceDetector());
 		servletDetectors.add(new StrutsServletDetector());
+        servletDetectors.add(new JBossWSTestDetector());
 	}
 	
 	/**
