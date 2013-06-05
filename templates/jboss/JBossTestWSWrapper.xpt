@@ -10,21 +10,21 @@
     public class «clazz» extends javax.servlet.GenericServlet
     {
     «FOREACH (List[SootClass])jBossWsClients() AS client»
-        public static final «client.getName()» «client.getName().replaceAll('\\.','_')»;
+        public static final «client.name()» «client.name().replaceAll('\\.','_')»;
     «ENDFOREACH»
      
         static void <clinit>()
         {
     «FOREACH (List[SootClass])jBossWsClients() AS client ITERATOR iter»
-           «client.getName()» $r«iter.counter1»;
+           «client.name()» $r«iter.counter1»;
     «ENDFOREACH»
     «FOREACH (List[SootClass])jBossWsClients() AS client ITERATOR iter»
-           $r«iter.counter1» = new «client.getName()»;
-           specialinvoke $r«iter.counter1».<«client.getName()»: void <init>()>();
+           $r«iter.counter1» = new «client.name()»;
+           specialinvoke $r«iter.counter1».<«client.name()»: void <init>()>();
     «ENDFOREACH»
      
     «FOREACH (List[SootClass])jBossWsClients() AS client ITERATOR iter»
-           <«clazz»: «client.getName()» ws«client.getName().replaceAll('\\.','_')»> = $r«iter.counter1»;
+           <«clazz»: «client.name()» ws«client.name().replaceAll('\\.','_')»> = $r«iter.counter1»;
     «ENDFOREACH»
         }
      
@@ -46,7 +46,7 @@
 
             //Declare locals that will keep the reference to the fields
     «FOREACH (List[SootClass])jBossWsClients() AS client»
-           «client.getName()» $client«client.getName().replaceAll('\\.','_')»;
+           «client.name()» $client«client.name().replaceAll('\\.','_')»;
     «ENDFOREACH»
      
             r0 := @this: «clazz»;
@@ -56,7 +56,7 @@
 
             // Assign field to the local
     «FOREACH (List[SootClass])jBossWsClients() AS client»
-            $client«client.getName().replaceAll('\\.','_')» := «client.getName().replaceAll('\\.','_')»;
+            $client«client.name().replaceAll('\\.','_')» := «client.name().replaceAll('\\.','_')»;
     «ENDFOREACH»
 
             specialinvoke $r3.<java.util.Random: void <init>()>();
@@ -74,7 +74,7 @@
                 return;
     «FOREACH (List[SootMethod])testMethods() AS tm ITERATOR iter»
                 label«iter.counter1+1»:
-                virtualinvoke $client«tm.getDeclaringClass().getName().replaceAll('\\.','_')».<«tm.getSignature()»
+                virtualinvoke $client«tm.getDeclaringClass().name().replaceAll('\\.','_')».<«tm.getSignature()»
                 goto label0;
     «ENDFOREACH»
         }
@@ -83,5 +83,5 @@
     «ENDDEFINE»
      
     «DEFINE main FOR Web»
-    «EXPAND wsServlet FOREACH servlets»
+    «EXPAND jbossServlet FOREACH servlets»
     «ENDDEFINE»
