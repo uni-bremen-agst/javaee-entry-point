@@ -7,7 +7,7 @@
     «DEFINE wsServlet FOR WsServlet»
     «FILE clazz + ".jimple"»
      
-    public class «clazz» extends javax.servlet.GenericServlet
+    public class «clazz» extends javax.servlet.http.HttpServlet
     {
     «FOREACH (List[WebService])services() AS service»
         public static final «service.implementationName()» ws«service.implementationName().replaceAll('\\.','_')»;
