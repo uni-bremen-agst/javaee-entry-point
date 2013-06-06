@@ -34,13 +34,15 @@ class JBossWSTestDetector extends AbstractServletDetector with Logging{
     val testMethods = jBossWsClients.par.flatMap(_.getMethods).filter(_.getName.startsWith("test")).seq.toList
     testMethods.foreach(logger.debug("Test method found: {}", _))
 
-    val fakeServlet = new JBossWSTestServlet(jBossWsClients, testMethods)
+    if (!testMethods.isEmpty){
+      val fakeServlet = new JBossWSTestServlet(jBossWsClients, testMethods)
 
-    val fullName = web.getGeneratorInfos.getRootPackage + "." + GENERATED_CLASS_NAME
-    fakeServlet.setClazz(fullName)
-    fakeServlet.setName(GENERATED_CLASS_NAME)
-    web.getServlets.add(fakeServlet)
-    web.bindServlet(fakeServlet, "/jbosstester")
+      val fullName = web.getGeneratorInfos.getRootPackage + "." + GENERATED_CLASS_NAME
+      fakeServlet.setClazz(fullName)
+      fakeServlet.setName(GENERATED_CLASS_NAME)
+      web.getServlets.add(fakeServlet)
+      web.bindServlet(fakeServlet, "/jbosstester")
+    }
   }
 
   override def detectFromConfig(web: Web) {
