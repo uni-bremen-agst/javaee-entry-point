@@ -9,21 +9,21 @@
      
     public class «clazz» extends javax.servlet.http.HttpServlet
     {
-    «FOREACH (List[SootClass])jBossWsClients() AS client»
+    «FOREACH (List[SootClass])jBossWsClients AS client»
         public static final «client.name» «client.name.replaceAll('\\.','_')»;
     «ENDFOREACH»
      
         static void <clinit>()
         {
-    «FOREACH (List[SootClass])jBossWsClients() AS client ITERATOR iter»
+    «FOREACH (List[SootClass])jBossWsClients AS client ITERATOR iter»
            «client.name» $r«iter.counter1»;
     «ENDFOREACH»
-    «FOREACH (List[SootClass])jBossWsClients() AS client ITERATOR iter»
+    «FOREACH (List[SootClass])jBossWsClients AS client ITERATOR iter»
            $r«iter.counter1» = new «client.name»;
            specialinvoke $r«iter.counter1».<«client.name»: void <init>()>();
     «ENDFOREACH»
      
-    «FOREACH (List[SootClass])jBossWsClients() AS client ITERATOR iter»
+    «FOREACH (List[SootClass])jBossWsClients AS client ITERATOR iter»
            <«clazz»: «client.name» «client.name.replaceAll('\\.','_')»> = $r«iter.counter1»;
     «ENDFOREACH»
         }
@@ -45,7 +45,7 @@
             java.util.Random $r3;
 
             //Declare locals that will keep the reference to the fields
-    «FOREACH (List[SootClass])jBossWsClients() AS client»
+    «FOREACH (List[SootClass])jBossWsClients AS client»
            «client.name» $client«client.name.replaceAll('\\.','_')»;
     «ENDFOREACH»
      
@@ -55,7 +55,7 @@
             $r3 = new java.util.Random;
 
             // Assign field to the local
-    «FOREACH (List[SootClass])jBossWsClients() AS client»
+    «FOREACH (List[SootClass])jBossWsClients AS client»
             $client«client.name.replaceAll('\\.','_')» = <«clazz»: «client.name» «client.name.replaceAll('\\.','_')»>;
     «ENDFOREACH»
 
@@ -64,7 +64,7 @@
               $i0 = virtualinvoke $r3.<java.util.Random: int nextInt()>();
               tableswitch($i0)
               {
-    «FOREACH (List[SootMethod])testMethods() AS service ITERATOR iter»
+    «FOREACH (List[SootMethod])testMethods AS service ITERATOR iter»
                 case «iter.counter1»: goto label«iter.counter1+1»;
     «ENDFOREACH»
                 default: goto label1;
@@ -72,7 +72,7 @@
 
               label1:
                 return;
-    «FOREACH (List[SootMethod])testMethods() AS tm ITERATOR iter»
+    «FOREACH (List[SootMethod])testMethods AS tm ITERATOR iter»
                 label«iter.counter1+1»:
                 virtualinvoke $client«tm.declaringClass.name.replaceAll('\\.','_')».«tm.signature»();
                 goto label0;

@@ -12,7 +12,7 @@ import soot.{Unit => SootUnit, _}
 import javax.xml.bind.annotation.XmlAttribute
 import scala.annotation.meta.beanGetter
 import scala.beans.BeanProperty
-import soot.jimple.toolkits.javaee.model.servlet.jboss.JBossWSTestServlet
+import soot.jimple.toolkits.javaee.model.servlet.jboss.{JBossWSTestServlet, SJBossWSTestServlet}
 
 object JBossWSTestDetector {
   final val GENERATED_CLASS_NAME = "JBossWSTestServlet"
@@ -23,8 +23,10 @@ import JBossWSTestDetector._
 class JBossWSTestDetector extends AbstractServletDetector with Logging{
 
   override def detectFromSource(web: Web) {
+
     val fastHierarchy = Scene.v.getOrMakeFastHierarchy //make sure it is created before the parallel computations steps in
-    val jBossWsSuperType = Scene.v.getRefType("org.jboss.wsf.test.JBossWSTest")
+    val jBossWsSuperClass = Scene.v.forceResolve("org.jboss.wsf.test.JBossWSTest", SootClass.HIERARCHY) //otherwise we can't load the type
+    val jBossWsSuperType = jBossWsSuperClass.getType
     val jBossWsClients = Scene.v().getApplicationClasses.par.filter(_.isConcrete).
       filter(sc=>fastHierarchy.canStoreType(sc.getType,jBossWsSuperType)).seq.toList
     jBossWsClients.foreach(logger.info("Found JBoss WS Test Client: {}", _))

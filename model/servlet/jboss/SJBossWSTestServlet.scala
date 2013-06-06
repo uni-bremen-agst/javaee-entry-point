@@ -11,10 +11,14 @@ import scala.beans.BeanProperty
 import soot.{SootMethod, SootClass}
 import scala.collection.JavaConversions._
 
-case class JBossWSTestServlet (
-@(XmlAttribute @beanGetter) @BeanProperty jBossWsClients : java.util.List[SootClass],
-@(XmlAttribute @beanGetter) @BeanProperty testMethods : java.util.List[SootMethod]
+case class SJBossWSTestServlet (
+@BeanProperty jBossWsClients : java.util.List[SootClass],
+@BeanProperty testMethods : java.util.List[SootMethod]
 ) extends GenericServlet {
+
+  //Throw in some useless no-op to force something in clinit
+  val xyz = "asdaf" + 12
+
 
   //Required by Jax-WB
   def this() = this(List(),List())
