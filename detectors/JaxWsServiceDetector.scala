@@ -213,6 +213,7 @@ class JaxWsServiceDetector extends AbstractServletDetector with Logging{
   def findWSInApplication() :  List[WebService] = {
     val fastHierarchy = Scene.v.getOrMakeFastHierarchy //make sure it is created before the parallel computations steps in
 
+    //We use getClasses because of the Flowdroid integration
     val wsImplementationClasses = Scene.v().getApplicationClasses.par.filter(_.isConcrete).
       filter(hasSootAnnotation(_, WEBSERVICE_ANNOTATION))
     wsImplementationClasses.flatMap((extractWsInformation(_, fastHierarchy))).seq.toList

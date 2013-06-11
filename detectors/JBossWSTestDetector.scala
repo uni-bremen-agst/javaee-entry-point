@@ -23,13 +23,30 @@ import JBossWSTestDetector._
 
 class JBossWSTestDetector extends AbstractServletDetector with Logging{
 
-  override def detectFromSource(web: Web) {
-
+  def minimalWorkingExample(){
     val fastHierarchy = Scene.v.getOrMakeFastHierarchy //make sure it is created before the parallel computations steps in
+    val sbType = Scene.v.getRefType("java.lang.StringBuffer")
     val jBossWsSuperClass = Scene.v.forceResolve("org.jboss.wsf.test.JBossWSTest", SootClass.HIERARCHY) //otherwise we can't load the type
     val jBossWsSuperType = jBossWsSuperClass.getType
-    logger.info("Non-dandling classes: {}", Scene.v.availableClasses.filter(_.resolvingLevel() > SootClass.DANGLING).map(_.getName))
-    val jBossWsClients = Scene.v().availableClasses.par.filter(_.resolvingLevel() > SootClass.DANGLING).filter(_.isConcrete).
+
+    System.err.println("org.jboss.wsf.test.JBossWSTest is a supertype of StringBuffer? " +
+      fastHierarchy.canStoreType(sbType, jBossWsSuperType)
+    )
+  }
+
+  override def detectFromSource(web: Web) {
+    minimalWorkingExample()
+
+    val jBossWsSuperClass = Scene.v.forceResolve("org.jboss.wsf.test.JBossWSTest", SootClass.HIERARCHY) //otherwise we can't load the type
+    val jBossWsSuperType = jBossWsSuperClass.getType
+
+    //We use getClasses because of the Flowdroid integration
+    val nonDandling = Scene.v.getApplicationClasses.par.filter(_.resolvingLevel() > SootClass.DANGLING).seq
+    logger.info("Number of non-dandling classes: {}", nonDandling.size : Integer)
+    logger.debug("Non-dandling classes: {}", nonDandling.map(_.getName))
+
+    val fastHierarchy = Scene.v.getOrMakeFastHierarchy //make sure it is created before the parallel computations steps in
+    val jBossWsClients = nonDandling.par.filter(_.isConcrete).
       filter(sc=>fastHierarchy.canStoreType(sc.getType,jBossWsSuperType)).seq.toList
     jBossWsClients.foreach(logger.info("Found JBoss WS Test Client: {}", _))
 
