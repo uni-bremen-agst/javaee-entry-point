@@ -8,8 +8,11 @@ import java.io.{IOException, File}
 import soot.jimple.toolkits.javaee.model.servlet.Web
 import com.typesafe.scalalogging.slf4j.Logging
 import scala.collection.Map
+import scala.collection.immutable.List
 import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import soot._
+import soot.jimple._
 import soot.util.SootAnnotationUtils._
 import soot.jimple.toolkits.javaee.model.ws.{WsServlet, WebService}
 import JaxWsServiceDetector._
@@ -20,6 +23,10 @@ import soot.jimple.toolkits.javaee.WebServiceRegistry
 import soot.jimple.toolkits.javaee.model.ws.WsServlet
 import soot.jimple.toolkits.javaee.model.ws.WebService
 
+import soot.util.ScalaWrappers._
+import soot.jimple.toolkits.typing.fast.{Integer32767Type, Integer127Type, Integer1Type}
+import soot.jimple.toolkits.javaee.model.ws.WsServlet
+import soot.jimple.toolkits.javaee.model.ws.WebService
 
 /**
  * Utilities to determine the values of JAX-WS services' attributes
@@ -220,8 +227,8 @@ class JaxWsServiceDetector extends AbstractServletDetector with Logging{
   }
 
   def extractWsInformation(sc : SootClass, fastHierarchy: FastHierarchy) : Option[WebService] = {
-    val init : Option[String] = sc.getMethods.par.find(hasSootAnnotation(_, WEBSERVICE_POSTINIT_ANNOTATION)).map(_.getName)
-    val destroy : Option[String] = sc.getMethods.par.find(hasSootAnnotation(_, WEBSERVICE_PREDESTROY_ANNOTATION)).map(_.getName)
+    val init : Option[String] = sc.methods.par.find(hasSootAnnotation(_, WEBSERVICE_POSTINIT_ANNOTATION)).map(_.getName)
+    val destroy : Option[String] = sc.methods.par.find(hasSootAnnotation(_, WEBSERVICE_PREDESTROY_ANNOTATION)).map(_.getName)
 
     val annotationElems : Map[String,Any] = elementsForAnnotation(sc,WEBSERVICE_ANNOTATION)
 
@@ -282,7 +289,7 @@ class JaxWsServiceDetector extends AbstractServletDetector with Logging{
     //Detect method names
     // JSR-181, p. 35, section 3.5 operation name is @WebMethod.operationName. Default is in Jax-WS 2.0 section 3.5
     // JAX-WS 2.2 Rev a sec 3.5 p.35 Default is the name of the method
-    val potentialMethods = sc.getMethods.filterNot(_.isConstructor).filter(_.isConcrete)
+    val potentialMethods = sc.methods.filterNot(_.isConstructor).filter(_.isConcrete)
     val serviceMethodTuples = for (
       sm <-  potentialMethods;
       subsig = sm.getSubSignature;
@@ -295,11 +302,29 @@ class JaxWsServiceDetector extends AbstractServletDetector with Logging{
 
     val methods : Map[String,SootMethod] = serviceMethodTuples.toMap
 
+    val stringType = Scene.v.getRefType("java.lang.String")
+
+    val methodArguments : Map[SootMethod, java.util.List[Value]] = methods.values.map(sm =>
+      (sm, sm.parameterTypes.collect{
+          case `stringType` => StringConstant.v("abc")
+          case a: IntType => IntConstant.v(1)
+          case a: Integer1Type => IntConstant.v(1)
+          case a: Integer127Type => IntConstant.v(1)
+          case a: Integer32767Type => IntConstant.v(1)
+          case a: ByteType => IntConstant.v(1)
+          case a: LongType => LongConstant.v(1)
+          case a: FloatType => FloatConstant.v(1.0f)
+          case a: DoubleType => DoubleConstant.v(1.0)
+          case a: BooleanType => IntConstant.v(1)
+          case a: ShortType => IntConstant.v(1)
+          case _ => NullConstant.v().asInstanceOf[Value] //.asInstanceOf[Value] forces the type system to be nice :)
+    }.asJava)).toMap
+
 
     logger.info("Found WS. Interface: {} Implementation: {} Init: {} Destroy: {} Name: {} Namespace: {} " +
-      "ServiceName: {} wsdl: {} port: {}.\tMethods: {}",
+      "ServiceName: {} wsdl: {} port: {}.\tMethods: {}\tMethod-Arguments: {}",
       serviceInterface.getName, sc.getName, init.getOrElse(""), destroy.getOrElse(""), name,tgtNamespace,
-      srvcName,wsdlLoc,prtName, methods
+      srvcName,wsdlLoc,prtName, methods,methodArguments
     )
 
     return Option(new WebService(
@@ -307,7 +332,7 @@ class JaxWsServiceDetector extends AbstractServletDetector with Logging{
       sc.getName,
       init.getOrElse(""),
       destroy.getOrElse(""),
-      name,tgtNamespace,srvcName,wsdlLoc,prtName, methods
+      name,tgtNamespace,srvcName,wsdlLoc,prtName, methods.asJava, methodArguments.asJava
     ))
 
   }

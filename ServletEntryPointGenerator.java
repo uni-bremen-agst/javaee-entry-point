@@ -53,8 +53,6 @@ import soot.SootClass;
 import soot.jimple.toolkits.javaee.detectors.*;
 import soot.jimple.toolkits.javaee.model.servlet.Web;
 import soot.jimple.toolkits.javaee.model.servlet.http.ServletSignatures;
-import soot.jimple.toolkits.javaee.model.ws.WebService;
-import soot.jimple.toolkits.javaee.model.ws.WsServlet;
 
 /**
  * This class drives the generation of a main method that creates and calls

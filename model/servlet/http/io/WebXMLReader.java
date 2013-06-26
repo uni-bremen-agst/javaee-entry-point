@@ -31,10 +31,7 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 
-import soot.Hierarchy;
-import soot.Scene;
-import soot.SootClass;
-import soot.SootMethod;
+import soot.*;
 import soot.jimple.toolkits.javaee.model.servlet.Filter;
 import soot.jimple.toolkits.javaee.model.servlet.FilterMapping;
 import soot.jimple.toolkits.javaee.model.servlet.Listener;
@@ -349,7 +346,7 @@ public class WebXMLReader implements ServletSignatures {
             }
 
             //TODO add other information found there to WebService
-            final WebService service = new WebService(iface, type, "", "","", "","", "","",new HashMap<String,SootMethod>());
+            final WebService service = new WebService(iface, type, "", "","", "","", "","",new HashMap<String,SootMethod>(), new HashMap<SootMethod,List<Value>>());
 
             foundServices.add(service);
             LOG.info("Found Web Service binding: {} -> {}, {}", name, iface, type);

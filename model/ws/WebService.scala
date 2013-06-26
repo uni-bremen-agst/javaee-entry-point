@@ -7,7 +7,7 @@ package soot.jimple.toolkits.javaee.model.ws
 import beans.BeanProperty
 import javax.xml.bind.annotation._
 import annotation.meta.beanGetter
-import soot.SootMethod
+import soot.{Value, Local, SootMethod}
 import scala.collection.JavaConversions._
 
 /**
@@ -35,10 +35,11 @@ case class WebService
   @(XmlAttribute @beanGetter) @BeanProperty val serviceName : String ="",
   @(XmlAttribute @beanGetter) @BeanProperty val wsdlLocation : String ="",
   @(XmlAttribute @beanGetter) @BeanProperty val portName : String ="",
-  @(XmlAttribute @beanGetter) @BeanProperty val serviceMethods : java.util.Map[String,SootMethod] = Map[String,SootMethod]()
+  @(XmlAttribute @beanGetter) @BeanProperty val serviceMethods : java.util.Map[String,SootMethod] = Map[String,SootMethod](),
+  @(XmlAttribute @beanGetter) @BeanProperty val methodParameters : java.util.Map[SootMethod,java.util.List[Value]] = Map[SootMethod,java.util.List[Value]]()
   ){
 
   //Required by Jax-WB
-  def this() = this("","","","","","","","","", Map[String,SootMethod]())
+  def this() = this("","","","","","","","","", Map[String,SootMethod](),Map[SootMethod,java.util.List[Value]]())
 
 }
