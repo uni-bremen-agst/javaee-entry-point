@@ -51,16 +51,17 @@
             r1 := @parameter0: javax.servlet.ServletRequest;
             r2 := @parameter1: javax.servlet.ServletResponse;
             $r3 = new java.util.Random;
+    «FOREACH (List[WebService])services() AS service ITERATOR iter»
+            $wsl«service.implementationName().replaceAll('\\.','_')» = <«clazz»: «service.implementationName()» ws«service.implementationName().replaceAll('\\.','_')»>;
+    «ENDFOREACH»
             specialinvoke $r3.<java.util.Random: void <init>()>();
             label0:
               $i0 = virtualinvoke $r3.<java.util.Random: int nextInt()>();
               tableswitch($i0)
               {
-  «FOREACH (List[WebService])services() AS service ITERATOR iter»
-  «FOREACH (Collection[SootMethod])service.methodParameters().keySet() AS serviceMethod ITERATOR iter2»
-                case «iter.counter1*100+iter2.counter1»: goto label«iter.counter1+1»_«iter2.counter1»;
-  «ENDFOREACH»
-  «ENDFOREACH»
+  «FOREACH (List[WebService])services() AS service ITERATOR iter»«FOREACH (Collection[SootMethod])service.methodParameters().keySet() AS serviceMethod ITERATOR iter2»
+                case «iter.counter1*1000+iter2.counter1»: goto label«iter.counter1*1000+iter2.counter1»;
+  «ENDFOREACH»«ENDFOREACH»
                 default: goto label1;
               };
 
@@ -68,8 +69,8 @@
                 return;
     «FOREACH (List[WebService])services() AS service ITERATOR iter»
     «FOREACH (Collection[WebService])service.methodParameters().keySet() AS serviceMethod ITERATOR iter2»
-              label«iter.counter1+1»_«iter2.counter1»:
-                virtualinvoke $wsl«serviceMethod.declaringClass.name.replaceAll('\\.','_')».«serviceMethod.signature»(«service.methodParameters().get(serviceMethod)»);
+              label«iter.counter1*1000+iter2.counter1»:
+                virtualinvoke $wsl«serviceMethod.declaringClass.name.replaceAll('\\.','_')».«serviceMethod.signature»(«FOREACH service.methodParameters().get(serviceMethod) AS param SEPARATOR ','»«param» «ENDFOREACH»);
                 goto label0;//TODO
     «ENDFOREACH»
     «ENDFOREACH»
