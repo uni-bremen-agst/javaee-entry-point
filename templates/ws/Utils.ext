@@ -1,0 +1,10 @@
+import soot::jimple::toolkits::javaee::model::ws;
+
+String toIdentifier(WebService this) :
+    implementationName().replaceAll('\\.','_');
+
+String toIdentifier(soot::SootMethod this) :
+    toIdentifier(declaringClass);
+
+String toIdentifier(soot::SootClass this) :
+    name.replaceAll('\\.','_');
