@@ -22,11 +22,15 @@ import soot.tagkit.AnnotationTag
 import soot.jimple.toolkits.javaee.WebServiceRegistry
 import soot.jimple.toolkits.javaee.model.ws.WsServlet
 import soot.jimple.toolkits.javaee.model.ws.WebService
+import soot.options.Options
 
 import soot.util.ScalaWrappers._
 import soot.jimple.toolkits.typing.fast.{Integer32767Type, Integer127Type, Integer1Type}
 import soot.jimple.toolkits.javaee.model.ws.WsServlet
 import soot.jimple.toolkits.javaee.model.ws.WebService
+import javax.xml.bind.{JAXBElement, JAXBContext}
+import org.jcp.xmlns.javaee.HandlerChainsType
+import java.net.{MalformedURLException, URL}
 
 /**
  * Utilities to determine the values of JAX-WS services' attributes
@@ -321,6 +325,10 @@ class JaxWsServiceDetector extends AbstractServletDetector with Logging{
     }.asJava)).toMap
 
 
+    // ------------- Detect handler chain on the server and parse it --------
+    val handlerChainOpt = handlerChainOption(sc)
+
+    // ------------- Log and create holder object                    -------
     logger.info("Found WS. Interface: {} Implementation: {} Init: {} Destroy: {} Name: {} Namespace: {} " +
       "ServiceName: {} wsdl: {} port: {}.\tMethods: {}\tMethod-Arguments: {}",
       serviceInterface.getName, sc.getName, init.getOrElse(""), destroy.getOrElse(""), name,tgtNamespace,
@@ -336,6 +344,65 @@ class JaxWsServiceDetector extends AbstractServletDetector with Logging{
     ))
 
   }
+
+  /**
+   * Checks if the given class has the @HandlerChain annotation.
+   * If so, it retrieves the file specified in the annotation
+   * and tries to locate it on the file system (relatively to the class' location)
+   * @param sc the class to get the handlers for
+   * @return an option to the handler chains
+   * */
+  def handlerChainOption(sc: SootClass) : Option[HandlerChainsType] = {
+
+    val jc = JAXBContext.newInstance("org.jcp.xmlns.javaee")
+    val unmarshaller = jc.createUnmarshaller()
+
+    def handlerChainAsURL (file : String) : Option[HandlerChainsType] = {
+      try{
+        val url = new URL(file)
+        logger.info("For class {}, handler file is located at: {}", sc, url)
+        Some(unmarshaller.unmarshal(url).asInstanceOf[HandlerChainsType])
+      } catch {
+        case _ : MalformedURLException => None
+      }
+    }
+
+    def handlerChainAsFile (file : String) : Option[HandlerChainsType] = {
+      val fName = SourceLocator.v.getFileNameFor(sc, Options.src_prec_class)
+
+      val fLocationOpt = Option(SourceLocator.v.lookupInClassPath(fName))
+      val fLocationFileOpt : Option[File] = fLocationOpt.map(_.file)
+
+      (fLocationOpt, fLocationFileOpt) match {
+
+        case (Some(fLocation), None) => logger.error("Unable to load Handler chain XML in a jar: {}", fLocation.zipFile.getName);None
+        case (Some(_),Some(fLocationFile)) => {
+          val handlerFile = new File(fLocationFile.getParent,file)
+          logger.info("For class {}, handler file is located at: {}", sc, handlerFile)
+          Some(unmarshaller.unmarshal(handlerFile).asInstanceOf[HandlerChainsType])
+        }
+        case _ => logger.error("Epic fail. Unable to find class definition in file {}", fName); None
+      }
+    }
+
+    def handlerChain(file : String) : Option[HandlerChainsType] = {
+      val isUrl = handlerChainAsURL(file)
+      if (isUrl.isDefined)
+        isUrl
+      else
+        handlerChainAsFile(file)
+    }
+
+    val tags = sc.getTags
+
+    for (handlerChainAnn <- getSootAnnotation(sc, HANDLER_CHAIN_ANNOTATION);
+         elements = annotationElements(handlerChainAnn);
+         file <- elements.get("file").asInstanceOf[Option[String]];
+         chain <- handlerChain(file)
+    ) yield chain
+
+  }
+
 }
 
 
