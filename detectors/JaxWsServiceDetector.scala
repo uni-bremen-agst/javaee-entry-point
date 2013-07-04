@@ -4,7 +4,7 @@
  */
 package soot.jimple.toolkits.javaee.detectors
 
-import java.io.{IOException, File}
+import java.io.{FileReader, IOException, File}
 import soot.jimple.toolkits.javaee.model.servlet.Web
 import com.typesafe.scalalogging.slf4j.Logging
 import scala.collection.Map
@@ -18,7 +18,7 @@ import soot.jimple.toolkits.javaee.model.ws.{WsServlet, WebService}
 import JaxWsServiceDetector._
 import soot.jimple.toolkits.javaee.model.servlet.http.FileLoader
 import soot.jimple.toolkits.javaee.model.servlet.http.io.WebXMLReader
-import soot.tagkit.AnnotationTag
+import soot.tagkit.{SourceFileTag, AnnotationTag}
 import soot.jimple.toolkits.javaee.WebServiceRegistry
 import soot.jimple.toolkits.javaee.model.ws.WsServlet
 import soot.jimple.toolkits.javaee.model.ws.WebService
@@ -31,6 +31,8 @@ import soot.jimple.toolkits.javaee.model.ws.WebService
 import javax.xml.bind.{JAXBElement, JAXBContext}
 import org.jcp.xmlns.javaee.HandlerChainsType
 import java.net.{MalformedURLException, URL}
+import javax.xml.transform.Source
+import javax.xml.transform.stream.StreamSource
 
 /**
  * Utilities to determine the values of JAX-WS services' attributes
@@ -226,15 +228,15 @@ class JaxWsServiceDetector extends AbstractServletDetector with Logging{
 
     //We use getClasses because of the Flowdroid integration
     val wsImplementationClasses = Scene.v().getApplicationClasses.par.filter(_.isConcrete).
-      filter(hasSootAnnotation(_, WEBSERVICE_ANNOTATION))
+      filter(hasJavaAnnotation(_, WEBSERVICE_ANNOTATION))
     wsImplementationClasses.flatMap((extractWsInformation(_, fastHierarchy))).seq.toList
   }
 
   def extractWsInformation(sc : SootClass, fastHierarchy: FastHierarchy) : Option[WebService] = {
-    val init : Option[String] = sc.methods.par.find(hasSootAnnotation(_, WEBSERVICE_POSTINIT_ANNOTATION)).map(_.getName)
-    val destroy : Option[String] = sc.methods.par.find(hasSootAnnotation(_, WEBSERVICE_PREDESTROY_ANNOTATION)).map(_.getName)
+    val init : Option[String] = sc.methods.par.find(hasJavaAnnotation(_, WEBSERVICE_POSTINIT_ANNOTATION)).map(_.getName)
+    val destroy : Option[String] = sc.methods.par.find(hasJavaAnnotation(_, WEBSERVICE_PREDESTROY_ANNOTATION)).map(_.getName)
 
-    val annotationElems : Map[String,Any] = elementsForAnnotation(sc,WEBSERVICE_ANNOTATION)
+    val annotationElems : Map[String,Any] = elementsForJavaAnnotation(sc,WEBSERVICE_ANNOTATION)
 
     //Ignored annotations:
     // - @SOAPBinding: This does not change the high-level behavior
@@ -272,7 +274,7 @@ class JaxWsServiceDetector extends AbstractServletDetector with Logging{
         //If it is an implementing class, then it meets that criteria for sure
         //It could also not implement the interface, but have the same signatures.
         val iface = Scene.v.getSootClass(endpointInterface.get.asInstanceOf[String])
-        if (hasSootAnnotation(iface, WEBSERVICE_ANNOTATION) &&
+        if (hasJavaAnnotation(iface, WEBSERVICE_ANNOTATION) &&
           (fastHierarchy.canStoreType(sc.getType, iface.getType) || implementsAllMethods(sc, iface))){
           //All good. The specified interface is implemented and it has the annotation
           iface
@@ -282,7 +284,7 @@ class JaxWsServiceDetector extends AbstractServletDetector with Logging{
         }
       }
 
-    val serviceInterfaceAnnotationElems : Map[String,Any] = elementsForAnnotation(serviceInterface, WEBSERVICE_ANNOTATION)
+    val serviceInterfaceAnnotationElems : Map[String,Any] = elementsForJavaAnnotation(serviceInterface, WEBSERVICE_ANNOTATION)
 
     val name : String = localName(sc, annotationElems, serviceInterfaceAnnotationElems)
     val srvcName : String = serviceName(name, annotationElems, serviceInterfaceAnnotationElems)
@@ -299,9 +301,9 @@ class JaxWsServiceDetector extends AbstractServletDetector with Logging{
       subsig = sm.getSubSignature;
       if (serviceInterface.declaresMethod(subsig));
       seiMethod = serviceInterface.getMethod(subsig);
-      if (hasSootAnnotation(sm,WEBMETHOD_ANNOTATION) || hasSootAnnotation(seiMethod,WEBMETHOD_ANNOTATION));
-      implAnn = elementsForAnnotation(sm, WEBMETHOD_ANNOTATION);
-      seiAnn =  elementsForAnnotation(serviceInterface, WEBMETHOD_ANNOTATION)
+      if (hasJavaAnnotation(sm,WEBMETHOD_ANNOTATION) || hasJavaAnnotation(seiMethod,WEBMETHOD_ANNOTATION));
+      implAnn = elementsForJavaAnnotation(sm, WEBMETHOD_ANNOTATION);
+      seiAnn =  elementsForJavaAnnotation(serviceInterface, WEBMETHOD_ANNOTATION)
     ) yield (readCascadedAnnotation("operationName", sm.getName, implAnn, seiAnn), sm)
 
     val methods : Map[String,SootMethod] = serviceMethodTuples.toMap
@@ -368,20 +370,20 @@ class JaxWsServiceDetector extends AbstractServletDetector with Logging{
     }
 
     def handlerChainAsFile (file : String) : Option[HandlerChainsType] = {
-      val fName = SourceLocator.v.getFileNameFor(sc, Options.src_prec_class)
+      val location = findAnnotation(sc,classOf[SourceFileTag]).map(_.getAbsolutePath)
+      val locationFile = location.map(new File(_))
 
-      val fLocationOpt = Option(SourceLocator.v.lookupInClassPath(fName))
-      val fLocationFileOpt : Option[File] = fLocationOpt.map(_.file)
-
-      (fLocationOpt, fLocationFileOpt) match {
-
-        case (Some(fLocation), None) => logger.error("Unable to load Handler chain XML in a jar: {}", fLocation.zipFile.getName);None
-        case (Some(_),Some(fLocationFile)) => {
-          val handlerFile = new File(fLocationFile.getParent,file)
+      locationFile.flatMap{f : File =>
+        val handlerFile = new File(f.getParent,file)
+        if (handlerFile.exists()){
           logger.info("For class {}, handler file is located at: {}", sc, handlerFile)
-          Some(unmarshaller.unmarshal(handlerFile).asInstanceOf[HandlerChainsType])
+          val src : Source = new StreamSource(new FileReader(handlerFile))
+          Some(unmarshaller.unmarshal(src,classOf[HandlerChainsType]).getValue)
         }
-        case _ => logger.error("Epic fail. Unable to find class definition in file {}", fName); None
+        else{
+          logger.warn("For class {}, handler file was wrongly located at: {}", sc, handlerFile)
+          None
+        }
       }
     }
 
@@ -393,9 +395,7 @@ class JaxWsServiceDetector extends AbstractServletDetector with Logging{
         handlerChainAsFile(file)
     }
 
-    val tags = sc.getTags
-
-    for (handlerChainAnn <- getSootAnnotation(sc, HANDLER_CHAIN_ANNOTATION);
+    for (handlerChainAnn <- findJavaAnnotation(sc, HANDLER_CHAIN_ANNOTATION);
          elements = annotationElements(handlerChainAnn);
          file <- elements.get("file").asInstanceOf[Option[String]];
          chain <- handlerChain(file)
