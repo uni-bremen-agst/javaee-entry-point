@@ -36,10 +36,11 @@ case class WebService
   @(XmlAttribute @beanGetter) @BeanProperty val wsdlLocation : String ="",
   @(XmlAttribute @beanGetter) @BeanProperty val portName : String ="",
   @(XmlAttribute @beanGetter) @BeanProperty val serviceMethods : java.util.Map[String,SootMethod] = Map[String,SootMethod](),
-  @(XmlAttribute @beanGetter) @BeanProperty val methodParameters : java.util.Map[SootMethod,java.util.List[Value]] = Map[SootMethod,java.util.List[Value]]()
+  @(XmlAttribute @beanGetter) @BeanProperty val methodParameters : java.util.Map[SootMethod,java.util.List[Value]] = Map[SootMethod,java.util.List[Value]](),
+  @(XmlAttribute @beanGetter) @BeanProperty val handlerChain : java.util.List[String] = List[String]()
   ){
 
   //Required by Jax-WB
-  def this() = this("","","","","","","","","", Map[String,SootMethod](),Map[SootMethod,java.util.List[Value]]())
+  def this() = this("","","","","","","","","", Map[String,SootMethod](),Map[SootMethod,java.util.List[Value]](), List[String]())
 
 }

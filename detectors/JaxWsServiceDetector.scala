@@ -28,7 +28,7 @@ import soot.util.ScalaWrappers._
 import soot.jimple.toolkits.typing.fast.{Integer32767Type, Integer127Type, Integer1Type}
 import soot.jimple.toolkits.javaee.model.ws.WsServlet
 import soot.jimple.toolkits.javaee.model.ws.WebService
-import javax.xml.bind.{JAXBElement, JAXBContext}
+import javax.xml.bind.{Unmarshaller, JAXBElement, JAXBContext}
 import org.jcp.xmlns.javaee.HandlerChainsType
 import java.net.{MalformedURLException, URL}
 import javax.xml.transform.Source
@@ -37,7 +37,7 @@ import javax.xml.transform.stream.StreamSource
 /**
  * Utilities to determine the values of JAX-WS services' attributes
  * */
-object JaxWSAttributeUtils {
+object JaxWSAttributeUtils extends Logging {
   /**
    * Reverses a package name, so that e.g. scala.collection.mutable becomes mutable.collection.scala
    * @param pkg the package name
@@ -171,6 +171,83 @@ object JaxWSAttributeUtils {
   def serviceName(name: String, annotationElems: Map[String, Any], serviceInterfaceAnnotationElems: Map[String, Any]): String = {
     readCascadedAnnotation("serviceName", name + "Service", annotationElems, serviceInterfaceAnnotationElems)
   }
+
+  /**
+   * Helper function that tries to read the file on that class - if it is an URL
+   * @param sc the soot class we are dealing with - used in logging
+   * @param file the handler configuration file location
+   * @return an Option over the handler chain XML type
+   * */
+  private def handlerChainAsURL (sc: SootClass, file : String) : Option[HandlerChainsType] = {
+    try{
+      val url = new URL(file)
+      logger.info("For class {}, handler file is located at: {}", sc, url)
+      val jc = JAXBContext.newInstance("org.jcp.xmlns.javaee")
+      val unmarshaller = jc.createUnmarshaller()
+      Some(unmarshaller.unmarshal(url).asInstanceOf[HandlerChainsType])
+    } catch {
+      case _ : MalformedURLException => None
+    }
+  }
+
+  /**
+   * Helper function that tries to read the file on that class - and guesses where it could be
+   * @param sc the soot class we are dealing with - used in logging
+   * @param file the handler configuration file location
+   * @return an Option over the handler chain XML type
+   * */
+  private def handlerChainAsFile (sc: SootClass, file : String) : Option[HandlerChainsType] = {
+    val location = findAnnotation(sc,classOf[SourceFileTag]).map(_.getAbsolutePath)
+    val locationFile = location.map(new File(_))
+
+    locationFile.flatMap{f : File =>
+      val handlerFile = new File(f.getParent,file)
+      if (handlerFile.exists()){
+        logger.info("For class {}, handler file is located at: {}", sc, handlerFile)
+        val jc = JAXBContext.newInstance("org.jcp.xmlns.javaee")
+        val unmarshaller = jc.createUnmarshaller()
+        val src : Source = new StreamSource(new FileReader(handlerFile))
+        Some(unmarshaller.unmarshal(src,classOf[HandlerChainsType]).getValue)
+      }
+      else{
+        logger.warn("For class {}, handler file was wrongly located at: {}", sc, handlerFile)
+        None
+      }
+    }
+  }
+
+  /**
+   * Helper function that tries to read the file on that class
+   * @param sc the soot class we are dealing with - used in logging
+   * @param file the handler configuration file location
+   * @return an Option over the handler chain XML type
+   * */
+  private def handlerChain(sc: SootClass, file : String) : Option[HandlerChainsType] = {
+    val isUrl = handlerChainAsURL(sc, file)
+    if (isUrl.isDefined)
+      isUrl
+    else
+      handlerChainAsFile(sc, file)
+  }
+
+
+  /**
+   * Checks if the given class has the @HandlerChain annotation.
+   * If so, it retrieves the file specified in the annotation
+   * and tries to locate it on the file system (relatively to the class' location)
+   * @param sc the class to get the handlers for
+   * @return an option to the handler chains
+   * */
+  def handlerChainOption(sc: SootClass) : Option[HandlerChainsType] = {
+
+    for (handlerChainAnn <- findJavaAnnotation(sc, HANDLER_CHAIN_ANNOTATION);
+         elements = annotationElements(handlerChainAnn);
+         file <- elements.get("file").asInstanceOf[Option[String]];
+         chain <- handlerChain(sc, file)
+    ) yield chain
+
+  }
+
 }
 
 import JaxWSAttributeUtils._
@@ -329,6 +406,11 @@ class JaxWsServiceDetector extends AbstractServletDetector with Logging{
 
     // ------------- Detect handler chain on the server and parse it --------
     val handlerChainOpt = handlerChainOption(sc)
+    val chain : List[String] = for (
+      handlerChain <- handlerChainOpt.toList;
+      chain <- handlerChain.getHandlerChain;
+      handler <- chain.getHandler;
+    ) yield handler.getHandlerClass.getValue
 
     // ------------- Log and create holder object                    -------
     logger.info("Found WS. Interface: {} Implementation: {} Init: {} Destroy: {} Name: {} Namespace: {} " +
@@ -337,74 +419,13 @@ class JaxWsServiceDetector extends AbstractServletDetector with Logging{
       srvcName,wsdlLoc,prtName, methods,methodArguments
     )
 
-    return Option(new WebService(
-      serviceInterface.getName,
-      sc.getName,
-      init.getOrElse(""),
-      destroy.getOrElse(""),
-      name,tgtNamespace,srvcName,wsdlLoc,prtName, methods.asJava, methodArguments.asJava
+    Some(new WebService(
+      serviceInterface.getName, sc.getName, init.getOrElse(""), destroy.getOrElse(""), name, tgtNamespace,
+      srvcName, wsdlLoc, prtName, methods.asJava, methodArguments.asJava, chain.asJava
     ))
 
   }
-
-  /**
-   * Checks if the given class has the @HandlerChain annotation.
-   * If so, it retrieves the file specified in the annotation
-   * and tries to locate it on the file system (relatively to the class' location)
-   * @param sc the class to get the handlers for
-   * @return an option to the handler chains
-   * */
-  def handlerChainOption(sc: SootClass) : Option[HandlerChainsType] = {
-
-    val jc = JAXBContext.newInstance("org.jcp.xmlns.javaee")
-    val unmarshaller = jc.createUnmarshaller()
-
-    def handlerChainAsURL (file : String) : Option[HandlerChainsType] = {
-      try{
-        val url = new URL(file)
-        logger.info("For class {}, handler file is located at: {}", sc, url)
-        Some(unmarshaller.unmarshal(url).asInstanceOf[HandlerChainsType])
-      } catch {
-        case _ : MalformedURLException => None
-      }
-    }
-
-    def handlerChainAsFile (file : String) : Option[HandlerChainsType] = {
-      val location = findAnnotation(sc,classOf[SourceFileTag]).map(_.getAbsolutePath)
-      val locationFile = location.map(new File(_))
-
-      locationFile.flatMap{f : File =>
-        val handlerFile = new File(f.getParent,file)
-        if (handlerFile.exists()){
-          logger.info("For class {}, handler file is located at: {}", sc, handlerFile)
-          val src : Source = new StreamSource(new FileReader(handlerFile))
-          Some(unmarshaller.unmarshal(src,classOf[HandlerChainsType]).getValue)
-        }
-        else{
-          logger.warn("For class {}, handler file was wrongly located at: {}", sc, handlerFile)
-          None
-        }
-      }
-    }
-
-    def handlerChain(file : String) : Option[HandlerChainsType] = {
-      val isUrl = handlerChainAsURL(file)
-      if (isUrl.isDefined)
-        isUrl
-      else
-        handlerChainAsFile(file)
-    }
-
-    for (handlerChainAnn <- findJavaAnnotation(sc, HANDLER_CHAIN_ANNOTATION);
-         elements = annotationElements(handlerChainAnn);
-         file <- elements.get("file").asInstanceOf[Option[String]];
-         chain <- handlerChain(file)
-    ) yield chain
-
-  }
-
 }
-
 
 object JaxWsServiceDetector {
   final val GENERATED_CLASS_NAME: String = "WSCaller"

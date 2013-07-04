@@ -23,19 +23,7 @@ import JBossWSTestDetector._
 
 class JBossWSTestDetector extends AbstractServletDetector with Logging{
 
-  def minimalWorkingExample(){
-    val fastHierarchy = Scene.v.getOrMakeFastHierarchy //make sure it is created before the parallel computations steps in
-    val sbType = Scene.v.getRefType("java.lang.StringBuffer")
-    val jBossWsSuperClass = Scene.v.forceResolve("org.jboss.wsf.test.JBossWSTest", SootClass.HIERARCHY) //otherwise we can't load the type
-    val jBossWsSuperType = jBossWsSuperClass.getType
-
-    System.err.println("org.jboss.wsf.test.JBossWSTest is a supertype of StringBuffer? " +
-      fastHierarchy.canStoreType(sbType, jBossWsSuperType)
-    )
-  }
-
   override def detectFromSource(web: Web) {
-    minimalWorkingExample()
 
     val jBossWsSuperClass = Scene.v.forceResolve("org.jboss.wsf.test.JBossWSTest", SootClass.HIERARCHY) //otherwise we can't load the type
     val jBossWsSuperType = jBossWsSuperClass.getType
