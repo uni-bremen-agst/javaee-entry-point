@@ -258,6 +258,8 @@ import JaxWSAttributeUtils._
  */
 class JaxWsServiceDetector extends AbstractServletDetector with Logging{
 
+  lazy val stringType = Scene.v.getRefType("java.lang.String")
+
   override def detectFromSource(web: Web) {
     val foundWs = findWSInApplication
     if (! foundWs.isEmpty){
@@ -372,6 +374,7 @@ class JaxWsServiceDetector extends AbstractServletDetector with Logging{
     //Detect method names
     // JSR-181, p. 35, section 3.5 operation name is @WebMethod.operationName. Default is in Jax-WS 2.0 section 3.5
     // JAX-WS 2.2 Rev a sec 3.5 p.35 Default is the name of the method
+    //TODO double-check this matching rule
     val potentialMethods = sc.methods.filterNot(_.isConstructor).filter(_.isConcrete)
     val serviceMethodTuples = for (
       sm <-  potentialMethods;
@@ -384,8 +387,6 @@ class JaxWsServiceDetector extends AbstractServletDetector with Logging{
     ) yield (readCascadedAnnotation("operationName", sm.getName, implAnn, seiAnn), sm)
 
     val methods : Map[String,SootMethod] = serviceMethodTuples.toMap
-
-    val stringType = Scene.v.getRefType("java.lang.String")
 
     val methodArguments : Map[SootMethod, java.util.List[Value]] = methods.values.map(sm =>
       (sm, sm.parameterTypes.collect{
@@ -409,7 +410,7 @@ class JaxWsServiceDetector extends AbstractServletDetector with Logging{
     val chain : List[String] = for (
       handlerChain <- handlerChainOpt.toList;
       chain <- handlerChain.getHandlerChain;
-      handler <- chain.getHandler;
+      handler <- chain.getHandler
     ) yield handler.getHandlerClass.getValue
 
     // ------------- Log and create holder object                    -------

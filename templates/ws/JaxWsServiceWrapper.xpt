@@ -1,0 +1,108 @@
+«IMPORT soot::jimple::toolkits::javaee::model::servlet»
+«IMPORT soot::jimple::toolkits::javaee::model::ws»
+
+«EXTENSION soot::jimple::toolkits::javaee::templates::ws::Utils»
+
+«DEFINE wsServlet FOR Servlet»
+«ENDDEFINE»
+
+«DEFINE wsServlet FOR WsServlet»
+«FOREACH (List[WebService])services() AS service»
+«FILE toIdentifier(service) + "Wrapper.jimple"»
+public class «toIdentifier(service)»Wrapper extends java.lang.Object
+{
+
+«FOREACH (List[WebMethod])methodList() AS method»
+public static «method.retType» «method.name»(«FOREACH method.argTypes() AS param SEPARATOR ','»«param»«ENDFOREACH»)
+{
+    «toIdentifier(service)»Wrapper r0;
+«FOREACH method.argTypes() AS param ITERATOR iter»
+    «param» r«iter.counter1»;
+«ENDFOREACH»
+
+//TODO add call
+}
+«ENDFOREACH»
+
+
+}
+«ENDFILE»
+«ENDFOREACH»
+
+
+
+    public class «clazz» extends javax.servlet.http.HttpServlet
+    {
+    «FOREACH (List[WebService])services() AS service»
+        public static final «service.implementationName()» ws«toIdentifier(service)»;
+    «ENDFOREACH»
+
+        static void <clinit>()
+        {
+    «FOREACH (List[WebService])services() AS service ITERATOR iter»
+           «service.implementationName()» $r«iter.counter1»;
+    «ENDFOREACH»
+    «FOREACH (List[WebService])services() AS service ITERATOR iter»
+           $r«iter.counter1» = new «service.implementationName()»;
+           specialinvoke $r«iter.counter1».<«service.implementationName()»: void <init>()>();
+    «ENDFOREACH»
+
+    «FOREACH (List[WebService])services() AS service ITERATOR iter»
+           <«clazz»: «service.implementationName()» ws«toIdentifier(service)»> = $r«iter.counter1»;
+    «ENDFOREACH»
+        }
+
+        void <init>()
+        {
+            «clazz» r0;
+
+            r0 := @this: «clazz»;
+            specialinvoke r0.<java.lang.Object: void <init>()>();
+        }
+
+        void service(javax.servlet.ServletRequest, javax.servlet.ServletResponse)
+        {
+            «clazz» r0;
+            javax.servlet.ServletRequest r1;
+            javax.servlet.ServletResponse r2;
+            int $i0;
+            java.util.Random $r3;
+    «FOREACH (List[WebService])services() AS service ITERATOR iter»
+            «service.implementationName()» $wsl«toIdentifier(service)»;
+    «ENDFOREACH»
+
+            r0 := @this: «clazz»;
+            r1 := @parameter0: javax.servlet.ServletRequest;
+            r2 := @parameter1: javax.servlet.ServletResponse;
+            $r3 = new java.util.Random;
+    «FOREACH (List[WebService])services() AS service ITERATOR iter»
+            $wsl«toIdentifier(service)» = <«clazz»: «service.implementationName()» ws«toIdentifier(service)»>;
+    «ENDFOREACH»
+            specialinvoke $r3.<java.util.Random: void <init>()>();
+            label0:
+              $i0 = virtualinvoke $r3.<java.util.Random: int nextInt()>();
+              tableswitch($i0)
+              {
+  «FOREACH (List[WebService])services() AS service ITERATOR iter»«FOREACH (Collection[SootMethod])service.methodParameters().keySet() AS serviceMethod ITERATOR iter2»
+                case «iter.counter1*1000+iter2.counter1»: goto label«iter.counter1*1000+iter2.counter1»;
+  «ENDFOREACH»«ENDFOREACH»
+                default: goto label1;
+              };
+
+              label1:
+                return;
+    «FOREACH (List[WebService])services() AS service ITERATOR iter»
+    «FOREACH (Collection[WebService])service.methodParameters().keySet() AS serviceMethod ITERATOR iter2»
+              label«iter.counter1*1000+iter2.counter1»:
+                virtualinvoke $wsl«toIdentifier(serviceMethod)».«serviceMethod.signature»(«FOREACH service.methodParameters().get(serviceMethod) AS param SEPARATOR ','»«param»«ENDFOREACH»);
+                goto label0;//TODO
+    «ENDFOREACH»
+    «ENDFOREACH»
+        }
+    }
+    «ENDFILE»
+    «ENDDEFINE»
+
+    «DEFINE main FOR Web»
+    «EXPAND wsServlet FOREACH servlets»
+    «ENDDEFINE»
