@@ -45,6 +45,7 @@ import soot.jimple.toolkits.javaee.model.servlet.http.FileLoader;
 import soot.jimple.toolkits.javaee.model.servlet.http.GenericServlet;
 import soot.jimple.toolkits.javaee.model.servlet.http.HttpServlet;
 import soot.jimple.toolkits.javaee.model.servlet.http.ServletSignatures;
+import soot.jimple.toolkits.javaee.model.ws.WebMethod;
 import soot.jimple.toolkits.javaee.model.ws.WebService;
 import soot.jimple.toolkits.javaee.model.ws.WsServlet;
 
@@ -346,7 +347,7 @@ public class WebXMLReader implements ServletSignatures {
             }
 
             //TODO add other information found there to WebService
-            final WebService service = new WebService(iface, type, "", "","", "","", "","",Collections.<String,SootMethod>emptyMap(), Collections.<SootMethod,List<Value>>emptyMap(), Collections.<String>emptyList());
+            final WebService service = new WebService(iface, type, "", "","", "","", "","",Collections.<String,SootMethod>emptyMap(), Collections.<SootMethod,List<Value>>emptyMap(), Collections.<String>emptyList(), Collections.<WebMethod>emptyList());
 
             foundServices.add(service);
             LOG.info("Found Web Service binding: {} -> {}, {}", name, iface, type);

@@ -9,30 +9,29 @@ import soot.jimple.toolkits.javaee.model.servlet.Web
 import com.typesafe.scalalogging.slf4j.Logging
 import scala.collection.Map
 import scala.collection.immutable.List
-import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
 import soot._
 import soot.jimple._
 import soot.util.SootAnnotationUtils._
-import soot.jimple.toolkits.javaee.model.ws.{WsServlet, WebService}
+import soot.jimple.toolkits.javaee.model.ws._
 import JaxWsServiceDetector._
 import soot.jimple.toolkits.javaee.model.servlet.http.FileLoader
 import soot.jimple.toolkits.javaee.model.servlet.http.io.WebXMLReader
 import soot.tagkit.{SourceFileTag, AnnotationTag}
 import soot.jimple.toolkits.javaee.WebServiceRegistry
-import soot.jimple.toolkits.javaee.model.ws.WsServlet
-import soot.jimple.toolkits.javaee.model.ws.WebService
 import soot.options.Options
 
 import soot.util.ScalaWrappers._
 import soot.jimple.toolkits.typing.fast.{Integer32767Type, Integer127Type, Integer1Type}
-import soot.jimple.toolkits.javaee.model.ws.WsServlet
-import soot.jimple.toolkits.javaee.model.ws.WebService
 import javax.xml.bind.{Unmarshaller, JAXBElement, JAXBContext}
 import org.jcp.xmlns.javaee.HandlerChainsType
 import java.net.{MalformedURLException, URL}
 import javax.xml.transform.Source
 import javax.xml.transform.stream.StreamSource
+import scala.Some
+import soot.jimple.toolkits.javaee.model.ws.WsServlet
+import soot.jimple.toolkits.javaee.model.ws.WebService
+import java.util.concurrent.Future
 
 /**
  * Utilities to determine the values of JAX-WS services' attributes
@@ -63,8 +62,8 @@ object JaxWSAttributeUtils extends Logging {
    * @return true if the criteria is met, false otherwise.
    */
   def implementsAllMethods(implementor : SootClass, reference:SootClass) : Boolean = {
-    val referenceMethodSignatures = reference.getMethods.map(_.getSubSignature)
-    val implementorMethodSignatures = implementor.getMethods.map(_.getSubSignature).toSet
+    val referenceMethodSignatures = reference.methods.map(_.getSubSignature)
+    val implementorMethodSignatures = implementor.methods.map(_.getSubSignature).toSet
     referenceMethodSignatures.forall(implementorMethodSignatures.contains(_))
   }
 
@@ -263,7 +262,7 @@ class JaxWsServiceDetector extends AbstractServletDetector with Logging{
   override def detectFromSource(web: Web) {
     val foundWs = findWSInApplication
     if (! foundWs.isEmpty){
-      val newServlet = new WsServlet(foundWs)
+      val newServlet = new WsServlet(foundWs.asJava)
       val fullName = web.getGeneratorInfos.getRootPackage + "." + GENERATED_CLASS_NAME
       newServlet.setClazz(fullName)
       newServlet.setName(GENERATED_CLASS_NAME)
@@ -279,7 +278,7 @@ class JaxWsServiceDetector extends AbstractServletDetector with Logging{
 
 
     logger.info("Detecting web services from web.xml.")
-    val webInfClassFolders = SourceLocator.v.classPath.filter(_.endsWith("WEB-INF/classes"))
+    val webInfClassFolders = SourceLocator.v.classPath.asScala.filter(_.endsWith("WEB-INF/classes"))
     val webXmlFiles = webInfClassFolders.map(new File(_).getParentFile).map(new File(_, "web.xml")).filter(_.exists())
     val webRootFiles = webXmlFiles.map(_.getParentFile)
 
@@ -293,12 +292,12 @@ class JaxWsServiceDetector extends AbstractServletDetector with Logging{
   }
 
   // ----------------------- Template part of the interface
-  override def getModelExtensions: java.util.List[Class[_]] = List[Class[_]](classOf[WsServlet], classOf[WebService])
+  override def getModelExtensions: java.util.List[Class[_]] = List[Class[_]](classOf[WsServlet], classOf[WebService]).asJava
 
-  override def getCheckFiles: java.util.List[String] = return List[String]()
+  override def getCheckFiles: java.util.List[String] = return List[String]().asJava
 
   override def getTemplateFiles: java.util.List[String] =
-    List[String]("soot::jimple::toolkits::javaee::templates::ws::WSWrapper::main")
+    List[String]("soot::jimple::toolkits::javaee::templates::ws::WSWrapper::main", "soot::jimple::toolkits::javaee::templates::ws::JaxWsServiceWrapper::main").asJava
 
   // ------------------------ Implementation
 
@@ -306,7 +305,7 @@ class JaxWsServiceDetector extends AbstractServletDetector with Logging{
     val fastHierarchy = Scene.v.getOrMakeFastHierarchy //make sure it is created before the parallel computations steps in
 
     //We use getClasses because of the Flowdroid integration
-    val wsImplementationClasses = Scene.v().getApplicationClasses.par.filter(_.isConcrete).
+    val wsImplementationClasses = Scene.v().applicationClasses.par.filter(_.isConcrete).
       filter(hasJavaAnnotation(_, WEBSERVICE_ANNOTATION))
     wsImplementationClasses.flatMap((extractWsInformation(_, fastHierarchy))).seq.toList
   }
@@ -388,6 +387,38 @@ class JaxWsServiceDetector extends AbstractServletDetector with Logging{
 
     val methods : Map[String,SootMethod] = serviceMethodTuples.toMap
 
+
+    val serviceMethods : Traversable[WebMethod] = for (
+      sm <-  potentialMethods;
+      subsig = sm.getSubSignature;
+      if (serviceInterface.declaresMethod(subsig));
+      seiMethod = serviceInterface.getMethod(subsig);
+      if (hasJavaAnnotation(sm,WEBMETHOD_ANNOTATION) || hasJavaAnnotation(seiMethod,WEBMETHOD_ANNOTATION));
+      implAnn = elementsForJavaAnnotation(sm, WEBMETHOD_ANNOTATION);
+      seiAnn =  elementsForJavaAnnotation(serviceInterface, WEBMETHOD_ANNOTATION);
+      opName = readCascadedAnnotation("operationName", sm.getName, implAnn, seiAnn)
+    ) yield {
+      val paramDefaults = sm.parameterTypes.collect{
+        case `stringType` => StringConstant.v("abc")
+        case a: IntType => IntConstant.v(1)
+        case a: Integer1Type => IntConstant.v(1)
+        case a: Integer127Type => IntConstant.v(1)
+        case a: Integer32767Type => IntConstant.v(1)
+        case a: ByteType => IntConstant.v(1)
+        case a: LongType => LongConstant.v(1)
+        case a: FloatType => FloatConstant.v(1.0f)
+        case a: DoubleType => DoubleConstant.v(1.0)
+        case a: BooleanType => IntConstant.v(1)
+        case a: ShortType => IntConstant.v(1)
+        case _ => NullConstant.v().asInstanceOf[Value] //.asInstanceOf[Value] forces the type system to be nice :)
+      }
+
+      val targetOpName = if (opName(0).isUpper) opName(0).toLower + opName.drop(1) else opName
+
+      new WebMethod(targetOpName, sm.name,sm.parameterTypes.toList.asJava,sm.returnType,paramDefaults.toList.asJava)
+    }
+
+
     val methodArguments : Map[SootMethod, java.util.List[Value]] = methods.values.map(sm =>
       (sm, sm.parameterTypes.collect{
           case `stringType` => StringConstant.v("abc")
@@ -409,8 +440,8 @@ class JaxWsServiceDetector extends AbstractServletDetector with Logging{
     val handlerChainOpt = handlerChainOption(sc)
     val chain : List[String] = for (
       handlerChain <- handlerChainOpt.toList;
-      chain <- handlerChain.getHandlerChain;
-      handler <- chain.getHandler
+      chain <- handlerChain.getHandlerChain.asScala;
+      handler <- chain.getHandler.asScala
     ) yield handler.getHandlerClass.getValue
 
     // ------------- Log and create holder object                    -------
@@ -422,7 +453,7 @@ class JaxWsServiceDetector extends AbstractServletDetector with Logging{
 
     Some(new WebService(
       serviceInterface.getName, sc.getName, init.getOrElse(""), destroy.getOrElse(""), name, tgtNamespace,
-      srvcName, wsdlLoc, prtName, methods.asJava, methodArguments.asJava, chain.asJava
+      srvcName, wsdlLoc, prtName, methods.asJava, methodArguments.asJava, chain.asJava, serviceMethods.toList.asJava
     ))
 
   }

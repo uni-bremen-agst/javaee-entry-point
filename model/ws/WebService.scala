@@ -38,7 +38,7 @@ case class WebService
   @(XmlAttribute @beanGetter) @BeanProperty val serviceMethods : java.util.Map[String,SootMethod] = Map[String,SootMethod](),
   @(XmlAttribute @beanGetter) @BeanProperty val methodParameters : java.util.Map[SootMethod,java.util.List[Value]] = Map[SootMethod,java.util.List[Value]](),
   @(XmlAttribute @beanGetter) @BeanProperty val handlerChain : java.util.List[String] = List[String](),
-  @BeanProperty val methodList : java.util.List[WebMethod] = List[WebMethod]()
+  @(XmlAttribute @beanGetter) @BeanProperty val methods : java.util.Collection[WebMethod] = List[WebMethod]()
   ){
 
   //Required by Jax-WB

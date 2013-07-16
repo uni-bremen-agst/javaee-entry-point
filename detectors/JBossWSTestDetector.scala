@@ -62,5 +62,5 @@ class JBossWSTestDetector extends AbstractServletDetector with Logging{
   override def getCheckFiles: java.util.List[String] = return List[String]()
 
   override def getTemplateFiles: java.util.List[String] =
-    List[String]("soot::jimple::toolkits::javaee::templates::jboss::JBossTestWSWrapper::main")
+    List[String]("soot::jimple::toolkits::javaee::templates::jboss::JBossTestWSWrapper::main", "soot::jimple::toolkits::javaee::templates::ws::JaxWsServiceWrapper::main")
 }

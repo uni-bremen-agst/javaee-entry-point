@@ -5,13 +5,14 @@
 package soot.jimple.toolkits.javaee.model.ws
 
 import scala.beans.BeanProperty
+import soot.{Type, Value}
 
 
 case class WebMethod (@BeanProperty val name : String,
                       @BeanProperty val targetMethodName : String,
-                      @BeanProperty val argTypes : List[String],
-                      @BeanProperty val retType: String,
-                      @BeanProperty val defaultParams:List[String])
+                      @BeanProperty val argTypes : java.util.List[Type],
+                      @BeanProperty val retType: Type,
+                      @BeanProperty val defaultParams: java.util.List[Value])
 {
 
 }
