@@ -1,4 +1,11 @@
 import soot::jimple::toolkits::javaee::model::ws;
+import soot::jimple::toolkits::javaee::model::servlet;
+
+String wrapperClassName(Web web, WebService ws) :
+    web.generatorInfos.rootPackage+"."+ws.implementationName()+"Wrapper";
+
+String wrapperFileName(Web web, WebService ws) :
+    wrapperClassName(web,ws)+".jimple";
 
 String toIdentifier(WebService this) :
     implementationName().replaceAll('\\.','_');

@@ -3,13 +3,17 @@
 
 «EXTENSION soot::jimple::toolkits::javaee::templates::ws::Utils»
 
-«DEFINE wsServlet FOR Servlet»
+«DEFINE main FOR Web»
+«EXPAND wsServlet(this) FOREACH servlets»
 «ENDDEFINE»
 
-«DEFINE wsServlet FOR WsServlet»
+«DEFINE wsServlet(Web web) FOR Servlet»
+«ENDDEFINE»
+
+«DEFINE wsServlet(Web web) FOR WsServlet»
 «FOREACH (List[WebService])services() AS service»
-«FILE toIdentifier(service) + "Wrapper.jimple"»
-public class «toIdentifier(service)»Wrapper extends java.lang.Object
+«FILE wrapperFileName(web,service)»
+public class «wrapperClassName(web,service)» extends java.lang.Object
 {
 
 «FOREACH (List[WebMethod])service.methods() AS method»
@@ -24,7 +28,7 @@ public class «toIdentifier(service)»Wrapper extends java.lang.Object
     r«iter.counter0» := @parameter«iter.counter0»: «param»;
 «ENDFOREACH»
     $wsl«toIdentifier(service)» = <«clazz»: «service.implementationName()» ws«toIdentifier(service)»>;
-    retval = invokevirtual $wsl«toIdentifier(service)».«method.targetMethodName»(«FOREACH method.argTypes() AS param ITERATOR iter SEPARATOR ','»r«iter.counter0»«ENDFOREACH»);
+    retval = invokevirtual $wsl«toIdentifier(service)».<«method.targetMethodName»(«FOREACH method.argTypes() AS param ITERATOR iter SEPARATOR ','»r«iter.counter0»«ENDFOREACH»)>(«FOREACH method.defaultParams() AS param ITERATOR iter SEPARATOR ','»r«iter.counter0»«ENDFOREACH»);
     return retval; //this is gonna be a problem with void calls
 }
 
@@ -41,8 +45,7 @@ public class «toIdentifier(service)»Wrapper extends java.lang.Object
     r«iter.counter0» := @parameter«iter.counter0»: «param»;
 «ENDFOREACH»
     $wsl«toIdentifier(service)» = <«clazz»: «service.implementationName()» ws«toIdentifier(service)»>;
-    retval = invokevirtual $wsl«toIdentifier(service)».«method.targetMethodName»(«FOREACH method.argTypes() AS param ITERATOR iter SEPARATOR ','»r«iter.counter0»«ENDFOREACH»);
-    $wrapRet = new soot.javaee.stubs.jaxws.ResponseWrapper;
+    retval = invokevirtual $wsl«toIdentifier(service)».<«method.targetMethodName»(«FOREACH method.argTypes() AS param ITERATOR iter SEPARATOR ','»r«iter.counter0»«ENDFOREACH»)>(«FOREACH method.defaultParams() AS param ITERATOR iter SEPARATOR ','»r«iter.counter0»«ENDFOREACH»);    $wrapRet = new soot.javaee.stubs.jaxws.ResponseWrapper;
     wrapRet.init(retVal);
     return wrapRet;
   }
@@ -63,7 +66,7 @@ public class «toIdentifier(service)»Wrapper extends java.lang.Object
 
     handler := @parameter«method.argTypes().size»: javax.xml.ws.AsyncHandler;
     $wsl«toIdentifier(service)» = <«clazz»: «service.implementationName()» ws«toIdentifier(service)»>;
-    $retVal = invokevirtual $wsl«toIdentifier(service)».«method.targetMethodName»(«FOREACH method.argTypes() AS param ITERATOR iter SEPARATOR ','»r«iter.counter0»«ENDFOREACH»);
+    retval = invokevirtual $wsl«toIdentifier(service)».<«method.targetMethodName»(«FOREACH method.argTypes() AS param ITERATOR iter SEPARATOR ','»«param»«ENDFOREACH»)>(«FOREACH method.defaultParams() AS param ITERATOR iter SEPARATOR ','»«param»«ENDFOREACH»);
     $wrapRet = new soot.javaee.stubs.jaxws.FutureWrapper;
     $wrapRet.init($retVal);
     handler.handleResponse($wrapRet);
@@ -77,6 +80,4 @@ public class «toIdentifier(service)»Wrapper extends java.lang.Object
 «ENDFOREACH»
 «ENDDEFINE»
 
-«DEFINE main FOR Web»
-«EXPAND wsServlet FOREACH servlets»
-«ENDDEFINE»
+
