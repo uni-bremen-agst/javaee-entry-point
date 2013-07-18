@@ -1,5 +1,6 @@
 import soot::jimple::toolkits::javaee::model::ws;
 import soot::jimple::toolkits::javaee::model::servlet;
+import soot;
 
 String wrapperClassName(Web web, WebService ws) :
     web.generatorInfos.rootPackage+"."+ws.implementationName()+"Wrapper";
@@ -15,3 +16,14 @@ String toIdentifier(soot::SootMethod this) :
 
 String toIdentifier(soot::SootClass this) :
     name.replaceAll('\\.','_');
+
+String localPrefix(soot::IntegerType  t) :
+    "i";
+String localPrefix(soot::LongType l) :
+    "l";
+String localPrefix(soot::FloatType f) :
+    "f";
+String localPrefix(soot::DoubleType d) :
+    "d";
+String localPrefix(soot::RefLikeType r) :
+    "r";
