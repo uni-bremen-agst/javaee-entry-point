@@ -347,7 +347,7 @@ public class WebXMLReader implements ServletSignatures {
             }
 
             //TODO add other information found there to WebService
-            final WebService service = new WebService(iface, type, "", "","", "","", "","",Collections.<String,SootMethod>emptyMap(), Collections.<SootMethod,List<Value>>emptyMap(), Collections.<String>emptyList(), Collections.<WebMethod>emptyList());
+            final WebService service = new WebService(iface, type, "", "","", "","", "","", Collections.<String>emptyList(), Collections.<WebMethod>emptyList());
 
             foundServices.add(service);
             LOG.info("Found Web Service binding: {} -> {}, {}", name, iface, type);

@@ -375,18 +375,6 @@ class JaxWsServiceDetector extends AbstractServletDetector with Logging{
     // JAX-WS 2.2 Rev a sec 3.5 p.35 Default is the name of the method
     //TODO double-check this matching rule
     val potentialMethods = sc.methods.filterNot(_.isConstructor).filter(_.isConcrete)
-    val serviceMethodTuples = for (
-      sm <-  potentialMethods;
-      subsig = sm.getSubSignature;
-      if (serviceInterface.declaresMethod(subsig));
-      seiMethod = serviceInterface.getMethod(subsig);
-      if (hasJavaAnnotation(sm,WEBMETHOD_ANNOTATION) || hasJavaAnnotation(seiMethod,WEBMETHOD_ANNOTATION));
-      implAnn = elementsForJavaAnnotation(sm, WEBMETHOD_ANNOTATION);
-      seiAnn =  elementsForJavaAnnotation(serviceInterface, WEBMETHOD_ANNOTATION)
-    ) yield (readCascadedAnnotation("operationName", sm.getName, implAnn, seiAnn), sm)
-
-    val methods : Map[String,SootMethod] = serviceMethodTuples.toMap
-
 
     val serviceMethods : Traversable[WebMethod] = for (
       sm <-  potentialMethods;
@@ -419,23 +407,6 @@ class JaxWsServiceDetector extends AbstractServletDetector with Logging{
     }
 
 
-    val methodArguments : Map[SootMethod, java.util.List[Value]] = methods.values.map(sm =>
-      (sm, sm.parameterTypes.collect{
-          case `stringType` => StringConstant.v("abc")
-          case a: IntType => IntConstant.v(1)
-          case a: Integer1Type => IntConstant.v(1)
-          case a: Integer127Type => IntConstant.v(1)
-          case a: Integer32767Type => IntConstant.v(1)
-          case a: ByteType => IntConstant.v(1)
-          case a: LongType => LongConstant.v(1)
-          case a: FloatType => FloatConstant.v(1.0f)
-          case a: DoubleType => DoubleConstant.v(1.0)
-          case a: BooleanType => IntConstant.v(1)
-          case a: ShortType => IntConstant.v(1)
-          case _ => NullConstant.v().asInstanceOf[Value] //.asInstanceOf[Value] forces the type system to be nice :)
-    }.asJava)).toMap
-
-
     // ------------- Detect handler chain on the server and parse it --------
     val handlerChainOpt = handlerChainOption(sc)
     val chain : List[String] = for (
@@ -445,15 +416,15 @@ class JaxWsServiceDetector extends AbstractServletDetector with Logging{
     ) yield handler.getHandlerClass.getValue
 
     // ------------- Log and create holder object                    -------
-    logger.info("Found WS. Interface: {} Implementation: {} Init: {} Destroy: {} Name: {} Namespace: {} " +
-      "ServiceName: {} wsdl: {} port: {}.\tMethods: {}\tMethod-Arguments: {}",
+    logger.debug("Found WS. Interface: {} Implementation: {} Init: {} Destroy: {} Name: {} Namespace: {} " +
+      "ServiceName: {} wsdl: {} port: {}.\tMethods: {}",
       serviceInterface.getName, sc.getName, init.getOrElse(""), destroy.getOrElse(""), name,tgtNamespace,
-      srvcName,wsdlLoc,prtName, methods,methodArguments
+      srvcName,wsdlLoc,prtName, serviceMethods
     )
 
     Some(new WebService(
       serviceInterface.getName, sc.getName, init.getOrElse(""), destroy.getOrElse(""), name, tgtNamespace,
-      srvcName, wsdlLoc, prtName, methods.asJava, methodArguments.asJava, chain.asJava, serviceMethods.toList.asJava
+      srvcName, wsdlLoc, prtName, chain.asJava, serviceMethods.toList.asJava
     ))
 
   }

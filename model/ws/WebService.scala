@@ -21,7 +21,6 @@ import scala.collection.JavaConversions._
  * @param serviceName name of the service (not the same as the local name) (`serviceName` attribute)
  * @param wsdlLocation location of the WSDL definition file (`wsdlLocation` attribute)
  * @param portName name of the service port (`portName` attribute)
- * @param serviceMethods methods that are exposed to WS clients for this WS. This is a map keyed by the `operationName` attribute
  * @author Marc-André Laverdière-Papineau
  */
 @XmlRootElement(name = "service")
@@ -35,13 +34,11 @@ case class WebService
   @(XmlAttribute @beanGetter) @BeanProperty val serviceName : String ="",
   @(XmlAttribute @beanGetter) @BeanProperty val wsdlLocation : String ="",
   @(XmlAttribute @beanGetter) @BeanProperty val portName : String ="",
-  @(XmlAttribute @beanGetter) @BeanProperty val serviceMethods : java.util.Map[String,SootMethod] = Map[String,SootMethod](),
-  @(XmlAttribute @beanGetter) @BeanProperty val methodParameters : java.util.Map[SootMethod,java.util.List[Value]] = Map[SootMethod,java.util.List[Value]](),
   @(XmlAttribute @beanGetter) @BeanProperty val handlerChain : java.util.List[String] = List[String](),
   @(XmlAttribute @beanGetter) @BeanProperty val methods : java.util.Collection[WebMethod] = List[WebMethod]()
   ){
 
   //Required by Jax-WB
-  def this() = this("","","","","","","","","", Map[String,SootMethod](),Map[SootMethod,java.util.List[Value]](), List[String](), List[WebMethod]())
+  def this() = this("","","","","","","","","", List[String](), List[WebMethod]())
 
 }
