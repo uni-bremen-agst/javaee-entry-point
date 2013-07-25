@@ -4,11 +4,9 @@
  */
 package soot.jimple.toolkits.javaee.detectors
 
-import java.io.{FileReader, IOException, File}
+import java.io.{IOException, File}
 import soot.jimple.toolkits.javaee.model.servlet.Web
 import com.typesafe.scalalogging.slf4j.Logging
-import scala.collection.Map
-import scala.collection.immutable.List
 import scala.collection.JavaConverters._
 import soot._
 import soot.jimple._
@@ -17,26 +15,26 @@ import soot.jimple.toolkits.javaee.model.ws._
 import JaxWsServiceDetector._
 import soot.jimple.toolkits.javaee.model.servlet.http.FileLoader
 import soot.jimple.toolkits.javaee.model.servlet.http.io.WebXMLReader
-import soot.tagkit.{SourceFileTag, AnnotationTag}
+import soot.tagkit.SourceFileTag
 import soot.jimple.toolkits.javaee.WebServiceRegistry
-import soot.options.Options
 
 import soot.util.ScalaWrappers._
 import soot.jimple.toolkits.typing.fast.{Integer32767Type, Integer127Type, Integer1Type}
-import javax.xml.bind.{Unmarshaller, JAXBElement, JAXBContext}
-import org.jcp.xmlns.javaee.HandlerChainsType
+import javax.xml.bind.{JAXB, JAXBContext}
 import java.net.{MalformedURLException, URL}
-import javax.xml.transform.Source
-import javax.xml.transform.stream.StreamSource
 import scala.Some
 import soot.jimple.toolkits.javaee.model.ws.WsServlet
 import soot.jimple.toolkits.javaee.model.ws.WebService
-import java.util.concurrent.Future
+import org.jcp.xmlns.javaee.HandlerChainsType
+
 
 /**
  * Utilities to determine the values of JAX-WS services' attributes
  * */
 object JaxWSAttributeUtils extends Logging {
+
+  private lazy val handlerChainJaxbContext = JAXBContext.newInstance("org.jcp.xmlns.javaee")
+
   /**
    * Reverses a package name, so that e.g. scala.collection.mutable becomes mutable.collection.scala
    * @param pkg the package name
@@ -203,10 +201,9 @@ object JaxWSAttributeUtils extends Logging {
       val handlerFile = new File(f.getParent,file)
       if (handlerFile.exists()){
         logger.info("For class {}, handler file is located at: {}", sc, handlerFile)
-        val jc = JAXBContext.newInstance("org.jcp.xmlns.javaee")
-        val unmarshaller = jc.createUnmarshaller()
-        val src : Source = new StreamSource(new FileReader(handlerFile))
-        Some(unmarshaller.unmarshal(src,classOf[HandlerChainsType]).getValue)
+        val unmarshalled = JAXB.unmarshal(handlerFile, classOf[HandlerChainsType])
+       Some(unmarshalled)
+
       }
       else{
         logger.warn("For class {}, handler file was wrongly located at: {}", sc, handlerFile)
@@ -297,7 +294,8 @@ class JaxWsServiceDetector extends AbstractServletDetector with Logging{
   override def getCheckFiles: java.util.List[String] = return List[String]().asJava
 
   override def getTemplateFiles: java.util.List[String] =
-    List[String]("soot::jimple::toolkits::javaee::templates::ws::WSWrapper::main", "soot::jimple::toolkits::javaee::templates::ws::JaxWsServiceWrapper::main").asJava
+    List[String]("soot::jimple::toolkits::javaee::templates::ws::WSWrapper::main",
+      "soot::jimple::toolkits::javaee::templates::ws::JaxWsServiceWrapper::main").asJava
 
   // ------------------------ Implementation
 
@@ -409,11 +407,20 @@ class JaxWsServiceDetector extends AbstractServletDetector with Logging{
 
     // ------------- Detect handler chain on the server and parse it --------
     val handlerChainOpt = handlerChainOption(sc)
-    val chain : List[String] = for (
+    if (handlerChainOpt.isDefined){
+      logger.warn("Service {} is using an handler chain. This is not supported by the analysis.", sc.name)
+    }
+   /* val chain : List[String] = for (
       handlerChain <- handlerChainOpt.toList;
       chain <- handlerChain.getHandlerChain.asScala;
       handler <- chain.getHandler.asScala
     ) yield handler.getHandlerClass.getValue
+
+    if (!chain.isEmpty)
+      logger.warn("Non-empty handler chain !!!!!!!!!!! {}", sc.getName)
+     */
+
+    val chain = List[String]()
 
     // ------------- Log and create holder object                    -------
     logger.debug("Found WS. Interface: {} Implementation: {} Init: {} Destroy: {} Name: {} Namespace: {} " +
