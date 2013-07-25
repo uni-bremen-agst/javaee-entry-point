@@ -6,9 +6,11 @@ package soot.jimple.toolkits.javaee.model.ws
 
 import beans.BeanProperty
 import javax.xml.bind.annotation._
-import annotation.meta.beanGetter
-import soot.{Value, Local, SootMethod}
 import scala.collection.JavaConversions._
+
+object WebService{
+  def wrapperName(rootPackage : String, implementationClassName : String) : String = rootPackage + "." + implementationClassName + "Wrapper"
+}
 
 /**
  * Data holder for the data required to generate the web service caller
@@ -25,20 +27,21 @@ import scala.collection.JavaConversions._
  */
 @XmlRootElement(name = "service")
 case class WebService
-( @(XmlAttribute @beanGetter) @BeanProperty val interfaceName : String,
-  @(XmlAttribute @beanGetter) @BeanProperty val implementationName : String,
-  @(XmlAttribute @beanGetter) @BeanProperty val initMethodName : String = "",
-  @(XmlAttribute @beanGetter) @BeanProperty val destroyMethodName : String ="",
-  @(XmlAttribute @beanGetter) @BeanProperty val name : String ="",
-  @(XmlAttribute @beanGetter) @BeanProperty val targetNamespace : String ="",
-  @(XmlAttribute @beanGetter) @BeanProperty val serviceName : String ="",
-  @(XmlAttribute @beanGetter) @BeanProperty val wsdlLocation : String ="",
-  @(XmlAttribute @beanGetter) @BeanProperty val portName : String ="",
-  @(XmlAttribute @beanGetter) @BeanProperty val handlerChain : java.util.List[String] = List[String](),
-  @(XmlAttribute @beanGetter) @BeanProperty val methods : java.util.Collection[WebMethod] = List[WebMethod]()
+( @BeanProperty val interfaceName : String,
+  @BeanProperty val implementationName : String,
+  @BeanProperty val wrapperName : String,
+  @BeanProperty val initMethodName : String = "",
+  @BeanProperty val destroyMethodName : String ="",
+  @BeanProperty val name : String ="",
+  @BeanProperty val targetNamespace : String ="",
+  @BeanProperty val serviceName : String ="",
+  @BeanProperty val wsdlLocation : String ="",
+  @BeanProperty val portName : String ="",
+  @BeanProperty val handlerChain : java.util.List[String] = List[String](),
+  @BeanProperty val methods : java.util.Collection[WebMethod] = List[WebMethod]()
   ){
 
   //Required by Jax-WB
-  def this() = this("","","","","","","","","", List[String](), List[WebMethod]())
+  def this() = this("","","","","","","","","","", List[String](), List[WebMethod]())
 
 }

@@ -12,8 +12,8 @@
 
 «DEFINE wsServlet(Web web) FOR WsServlet»
 «FOREACH (List[WebService])services() AS service»
-«FILE wrapperFileName(web,service)»
-public class «wrapperClassName(web,service)» extends java.lang.Object
+«FILE service.wrapperName+".jimple"»
+public class «service.wrapperName» extends java.lang.Object
 {
 
 «FOREACH (List[WebMethod])service.methods() AS method-»

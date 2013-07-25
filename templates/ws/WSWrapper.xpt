@@ -75,7 +75,7 @@ public class «clazz» extends javax.servlet.http.HttpServlet
             return;
 «FOREACH (List[WebService])services() AS service ITERATOR iter»«FOREACH (Collection[WebMethod])service.methods() AS method ITERATOR iter2»
           label«iter.counter1*1000+iter2.counter1»:
-            staticinvoke <«wrapperClassName(web,service)»: «method.retType» «method.name»(«FOREACH method.argTypes() AS param SEPARATOR ','»«param»«ENDFOREACH»)>(«FOREACH method.defaultParams() AS param SEPARATOR ','»«param»«ENDFOREACH»);
+            staticinvoke <«service.wrapperName»: «method.retType» «method.name»(«FOREACH method.argTypes() AS param SEPARATOR ','»«param»«ENDFOREACH»)>(«FOREACH method.defaultParams() AS param SEPARATOR ','»«param»«ENDFOREACH»);
             goto label0;
 «ENDFOREACH»«ENDFOREACH»
     }

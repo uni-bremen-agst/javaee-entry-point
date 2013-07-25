@@ -257,10 +257,11 @@ class JaxWsServiceDetector extends AbstractServletDetector with Logging{
   lazy val stringType = Scene.v.getRefType("java.lang.String")
 
   override def detectFromSource(web: Web) {
-    val foundWs = findWSInApplication
+    val rootPackage: String = web.getGeneratorInfos.getRootPackage
+    val foundWs = findWSInApplication(rootPackage)
     if (! foundWs.isEmpty){
       val newServlet = new WsServlet(foundWs.asJava)
-      val fullName = web.getGeneratorInfos.getRootPackage + "." + GENERATED_CLASS_NAME
+      val fullName = rootPackage + "." + GENERATED_CLASS_NAME
       newServlet.setClazz(fullName)
       newServlet.setName(GENERATED_CLASS_NAME)
       web.getServlets.add(newServlet)
@@ -299,16 +300,16 @@ class JaxWsServiceDetector extends AbstractServletDetector with Logging{
 
   // ------------------------ Implementation
 
-  def findWSInApplication() :  List[WebService] = {
+  def findWSInApplication(rootPackage : String) :  List[WebService] = {
     val fastHierarchy = Scene.v.getOrMakeFastHierarchy //make sure it is created before the parallel computations steps in
 
     //We use getClasses because of the Flowdroid integration
     val wsImplementationClasses = Scene.v().applicationClasses.par.filter(_.isConcrete).
       filter(hasJavaAnnotation(_, WEBSERVICE_ANNOTATION))
-    wsImplementationClasses.flatMap((extractWsInformation(_, fastHierarchy))).seq.toList
+    wsImplementationClasses.flatMap((extractWsInformation(_, fastHierarchy, rootPackage))).seq.toList
   }
 
-  def extractWsInformation(sc : SootClass, fastHierarchy: FastHierarchy) : Option[WebService] = {
+  def extractWsInformation(sc : SootClass, fastHierarchy: FastHierarchy, rootPackage : String) : Option[WebService] = {
     val init : Option[String] = sc.methods.par.find(hasJavaAnnotation(_, WEBSERVICE_POSTINIT_ANNOTATION)).map(_.getName)
     val destroy : Option[String] = sc.methods.par.find(hasJavaAnnotation(_, WEBSERVICE_PREDESTROY_ANNOTATION)).map(_.getName)
 
@@ -422,15 +423,18 @@ class JaxWsServiceDetector extends AbstractServletDetector with Logging{
 
     val chain = List[String]()
 
+    // ------------- Determine the name of the wrapper
+    val wrapperName = WebService.wrapperName(rootPackage, sc.name)
+
     // ------------- Log and create holder object                    -------
-    logger.debug("Found WS. Interface: {} Implementation: {} Init: {} Destroy: {} Name: {} Namespace: {} " +
+    logger.debug("Found WS. Interface: {} Implementation: {}. Wrapper: {}. Init: {} Destroy: {} Name: {} Namespace: {} " +
       "ServiceName: {} wsdl: {} port: {}.\tMethods: {}",
-      serviceInterface.getName, sc.getName, init.getOrElse(""), destroy.getOrElse(""), name,tgtNamespace,
+      serviceInterface.name, sc.name, wrapperName, init.getOrElse(""), destroy.getOrElse(""), name,tgtNamespace,
       srvcName,wsdlLoc,prtName, serviceMethods
     )
 
     Some(new WebService(
-      serviceInterface.getName, sc.getName, init.getOrElse(""), destroy.getOrElse(""), name, tgtNamespace,
+      serviceInterface.name, sc.name, wrapperName, init.getOrElse(""), destroy.getOrElse(""), name, tgtNamespace,
       srvcName, wsdlLoc, prtName, chain.asJava, serviceMethods.toList.asJava
     ))
 

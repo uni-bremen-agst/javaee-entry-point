@@ -47,6 +47,7 @@ import soot.jimple.toolkits.javaee.model.servlet.http.HttpServlet;
 import soot.jimple.toolkits.javaee.model.servlet.http.ServletSignatures;
 import soot.jimple.toolkits.javaee.model.ws.WebMethod;
 import soot.jimple.toolkits.javaee.model.ws.WebService;
+import soot.jimple.toolkits.javaee.model.ws.WebService$;
 import soot.jimple.toolkits.javaee.model.ws.WsServlet;
 
 /**
@@ -81,6 +82,7 @@ public class WebXMLReader implements ServletSignatures {
 	    domFactory.setValidating(false);
 	    domFactory.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
 	    final DocumentBuilder builder = domFactory.newDocumentBuilder();
+        final String rootPackage = web.getGeneratorInfos().getRootPackage();
 
 	    try {
 		    final InputStream is = loader.getInputStream("WEB-INF/web.xml");
@@ -93,7 +95,7 @@ public class WebXMLReader implements ServletSignatures {
 			readServlets(loader);
 			readServletMappings();
 			readListeners();
-            readServices();
+            readServices(rootPackage);
 	    } catch(final FileNotFoundException e) {
 	    	LOG.error("Cannot find web.xml in {}.", loader);
 	    }
@@ -294,7 +296,7 @@ public class WebXMLReader implements ServletSignatures {
      * Reads the service declarations
      * TODO.
      */
-    private void readServices() throws XPathException {
+    private void readServices(final String rootPackage) throws XPathException {
         final XPathExpression servletMappingExpr = provider.getServletMappingExpression();
 
         final NodeList mappingNodes = (NodeList)servletMappingExpr.evaluate(doc, XPathConstants.NODESET);
@@ -347,7 +349,7 @@ public class WebXMLReader implements ServletSignatures {
             }
 
             //TODO add other information found there to WebService
-            final WebService service = new WebService(iface, type, "", "","", "","", "","", Collections.<String>emptyList(), Collections.<WebMethod>emptyList());
+            final WebService service = new WebService(iface, type, WebService$.MODULE$.wrapperName(rootPackage,type) ,"", "","", "","", "","", Collections.<String>emptyList(), Collections.<WebMethod>emptyList());
 
             foundServices.add(service);
             LOG.info("Found Web Service binding: {} -> {}, {}", name, iface, type);
