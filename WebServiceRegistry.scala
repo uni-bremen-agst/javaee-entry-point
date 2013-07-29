@@ -7,6 +7,9 @@ package soot.jimple.toolkits.javaee
 import soot.jimple.toolkits.javaee.model.ws.WebService
 import javax.xml.namespace.QName
 import scala.collection._
+import soot.SootClass
+
+import soot.util.ScalaWrappers._
 
 /**
  * A registry of the web services detected in the application under analysis
@@ -19,6 +22,8 @@ object WebServiceRegistry {
     _services.foreach(ws => multimap.addBinding(new QName(ws.targetNamespace, ws.serviceName), ws))
     multimap
   }
+
+  private lazy val _serviceClassLookupByInterface : Map[String, Traversable[WebService]] = _services.groupBy(_.interfaceName)
 
   def services : Traversable[WebService] = _services
 
@@ -44,5 +49,13 @@ object WebServiceRegistry {
   def findService(qName : QName) : Set[WebService] = {
     _qnameLookup.getOrElse(qName, Set[WebService]())
   }
+
+  /**
+   * Find a service by its interface implementation
+   * @param iface the interface class
+   * @return a possibly empty set of `WebService` that represent the services implementing that interface (in the WS sense)
+   */
+  def findServiceByInterface(iface : SootClass) : Set[WebService] =
+    _serviceClassLookupByInterface.getOrElse(iface.name, Set()).toSet
 
 }

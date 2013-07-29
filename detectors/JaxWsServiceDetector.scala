@@ -375,12 +375,12 @@ class JaxWsServiceDetector extends AbstractServletDetector with Logging{
     //TODO double-check this matching rule
     val potentialMethods = sc.methods.filterNot(_.isConstructor).filter(_.isConcrete)
 
+    //JBOSS-WS Test case in org.jboss.test.ws.jaxws.samples.webservice has no @WebMethod annotation on either interface nor implementation class
     val serviceMethods : Traversable[WebMethod] = for (
-      sm <-  potentialMethods;
+      sm <-  potentialMethods.filterNot( m=> m.isConstructor || m.isClinit || m.isStatic);
       subsig = sm.getSubSignature;
-      if (serviceInterface.declaresMethod(subsig));
-      seiMethod = serviceInterface.getMethod(subsig);
-      if (hasJavaAnnotation(sm,WEBMETHOD_ANNOTATION) || hasJavaAnnotation(seiMethod,WEBMETHOD_ANNOTATION));
+      seiMethod <- serviceInterface.method(subsig);
+      //if (hasJavaAnnotation(sm,WEBMETHOD_ANNOTATION) || hasJavaAnnotation(seiMethod,WEBMETHOD_ANNOTATION));
       implAnn = elementsForJavaAnnotation(sm, WEBMETHOD_ANNOTATION);
       seiAnn =  elementsForJavaAnnotation(serviceInterface, WEBMETHOD_ANNOTATION);
       opName = readCascadedAnnotation("operationName", sm.getName, implAnn, seiAnn)
