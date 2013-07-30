@@ -1,6 +1,7 @@
     «IMPORT soot::jimple::toolkits::javaee::model::servlet»
     «IMPORT soot::jimple::toolkits::javaee::model::servlet::jboss»
      
+    «IMPORT soot»
     «DEFINE jbossServlet FOR Servlet»
     «ENDDEFINE»
      

@@ -24,3 +24,6 @@ String localPrefix(soot::DoubleType d) :
     "d";
 String localPrefix(soot::RefLikeType r) :
     "r";
+
+String localPrefix(soot::Type t):
+	"u";
