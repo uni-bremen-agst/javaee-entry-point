@@ -16,17 +16,19 @@ public class «this.mainclassName()» extends java.lang.Object
 
     r0 := @this: «mainclassName()»;
     specialinvoke r0.<java.lang.Object: void <init>()>();
+    return;
   }
   
   private static void init()
   {
-«FOREACH filters AS filter»
+«FOREACH filters AS filter-»
     staticinvoke <«filter.wrapperClassname(this)»: void init()>();
-«ENDFOREACH»
+«ENDFOREACH-»
 
-«FOREACH servlets AS servlet»
+«FOREACH servlets AS servlet-»
     staticinvoke <«servlet.wrapperClassname(this)»: void init()>();
-«ENDFOREACH»
+«ENDFOREACH-»
+    return;
   }
 
   private static void service()
@@ -82,13 +84,15 @@ public class «this.mainclassName()» extends java.lang.Object
 
   private static void destroy()
   {
-«FOREACH servlets AS servlet»
+«FOREACH servlets AS servlet-»
     staticinvoke <«servlet.wrapperClassname(this)»: void destroy()>();
-«ENDFOREACH»
+«ENDFOREACH-»
 
-«FOREACH filters AS filter»
+«FOREACH filters AS filter-»
     staticinvoke <«filter.wrapperClassname(this)»: void destroy()>();
-«ENDFOREACH»
+«ENDFOREACH-»
+
+    return;
   }
 
   public static void main(java.lang.String[])
@@ -99,6 +103,7 @@ public class «this.mainclassName()» extends java.lang.Object
     staticinvoke <«this.mainclassName()»: void init()>();
     staticinvoke <«this.mainclassName()»: void service()>();
     staticinvoke <«this.mainclassName()»: void destroy()>();
+    return;
   }
 }
 «ENDFILE»
