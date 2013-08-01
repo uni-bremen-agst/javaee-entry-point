@@ -168,63 +168,72 @@ public class ServletEntryPointGenerator extends SceneTransformer implements Serv
 	 * Processes all templates.
 	 */
 	private void processTemplate(@SuppressWarnings("rawtypes") final Map options) {
+		boolean errorOccured = false;
+		
 		for(final ServletDetector detector : servletDetectors) {
-				final JavaBeansMetaModel metaModel = new JavaBeansMetaModel();
-				metaModel.setTypeStrategy(new JavaBeansStrategy());
-				
-				final WorkflowContext context = new WorkflowContextDefaultImpl();
-				context.set("root", web);
-				
-				final CheckComponent check = new CheckComponent();
-				check.setExpression("root");
-				check.addMetaModel(metaModel);
-				for(final String checkFile : detector.getCheckFiles()) {
-					check.addCheckFile(checkFile);
-				}
+			final JavaBeansMetaModel metaModel = new JavaBeansMetaModel();
+			metaModel.setTypeStrategy(new JavaBeansStrategy());
+			
+			final WorkflowContext context = new WorkflowContextDefaultImpl();
+			context.set("root", web);
+			
+			final CheckComponent check = new CheckComponent();
+			check.setExpression("root");
+			check.addMetaModel(metaModel);
+			for(final String checkFile : detector.getCheckFiles()) {
+				check.addCheckFile(checkFile);
+			}
 
-				final Outlet outlet = new Outlet();
-				outlet.setPath(PhaseOptions.getString(options, "output-dir"));
-				
-				final Workflow workflow = new Workflow();
-				workflow.addBean(new StandaloneSetup());
-				workflow.addBean(metaModel);
-				workflow.addComponent(check);
+			final Outlet outlet = new Outlet();
+			outlet.setPath(PhaseOptions.getString(options, "output-dir"));
+			
+			final Workflow workflow = new Workflow();
+			workflow.addBean(new StandaloneSetup());
+			workflow.addBean(metaModel);
+			workflow.addComponent(check);
 
-				for(final String templateFile : detector.getTemplateFiles()) {
-					final Generator generator = new Generator();
-					generator.addMetaModel(metaModel);
-					generator.setExpand(templateFile + " FOR root");
-					generator.addOutlet(outlet);
-					workflow.addComponent(generator);
+			for(final String templateFile : detector.getTemplateFiles()) {
+				final Generator generator = new Generator();
+				generator.addMetaModel(metaModel);
+				generator.setExpand(templateFile + " FOR root");
+				generator.addOutlet(outlet);
+				workflow.addComponent(generator);
+			}
+			
+			final IssuesImpl issues = new IssuesImpl();
+			NullProgressMonitor monitor = new NullProgressMonitor();
+
+			try {
+				workflow.invoke(context, monitor, issues);
+			} catch(final WorkflowInterruptedException e) {
+				LOG.error("Workflow was interrupted!", e);
+				errorOccured = true;
+			}
+			
+			if(issues.hasErrors()) {
+				for(final MWEDiagnostic diag : issues.getErrors()) {
+					LOG.error("{}", diag);
+					errorOccured = true;
 				}
-				
-				final IssuesImpl issues = new IssuesImpl();
-				NullProgressMonitor monitor = new NullProgressMonitor();
-				
-				try {
-					workflow.invoke(context, monitor, issues);
-				} catch(final WorkflowInterruptedException e) {
-					System.err.println("Workflow interrupted: " + e.getMessage());
+			}
+			
+			if(issues.hasWarnings()) {
+				for(final MWEDiagnostic diag : issues.getWarnings()) {
+					LOG.warn("{}", diag);
 				}
-				
-				if(issues.hasErrors()) {
-					for(final MWEDiagnostic diag : issues.getErrors()) {
-						LOG.error("{}", diag);
-					}
+			}
+			
+			if(issues.hasInfos()) {
+				for(final MWEDiagnostic diag : issues.getInfos()) {
+					LOG.info("{}", diag);
 				}
-				
-				if(issues.hasWarnings()) {
-					for(final MWEDiagnostic diag : issues.getWarnings()) {
-						LOG.warn("{}", diag);
-					}
-				}
-				
-				if(issues.hasInfos()) {
-					for(final MWEDiagnostic diag : issues.getInfos()) {
-						LOG.info("{}", diag);
-					}
-				}
+			}
 		} //end for
+		
+		if(errorOccured) {
+			LOG.error("An error occured while processing templates. Terminating.");
+			throw new RuntimeException("Failed to process all templates.");
+		}
 	}
 
 	/**
