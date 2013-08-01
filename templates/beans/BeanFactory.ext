@@ -1,0 +1,4 @@
+import soot;
+
+List[SootField] getPrivateFields(RefType this):
+	this.sootClass.fields.select(f| true);

@@ -30,6 +30,7 @@ public class «service.wrapperName» extends java.lang.Object
 «ENDFOREACH-»
     $wsl«toIdentifier(service)» = <«clazz»: «service.implementationName()» ws«toIdentifier(service)»>;
     virtualinvoke $wsl«toIdentifier(service)».<«service.implementationName()»: «method.retType» «method.targetMethodName»(«FOREACH method.argTypes() AS param ITERATOR iter SEPARATOR ','»«param»«ENDFOREACH»)>(«FOREACH (List[Type])method.argTypes() AS param ITERATOR iter SEPARATOR ','»«param.localPrefix()»«iter.counter0»«ENDFOREACH»);
+    return;
   }
 «ELSE»
   public static «method.retType» «method.name»(«FOREACH method.argTypes() AS param SEPARATOR ','»«param»«ENDFOREACH»)
@@ -98,5 +99,3 @@ public class «service.wrapperName» extends java.lang.Object
 «ENDFILE»
 «ENDFOREACH»
 «ENDDEFINE»
-
-

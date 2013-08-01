@@ -17,14 +17,16 @@ public class «wrapperClassname(web)» extends java.lang.Object
     static void <clinit>()
     {
         <«wrapperClassname(web)»: «clazz» instance> = null;
+        return;
     }
 
     public void <init>()
     {
-     «wrapperClassname(web)» r0;
+        «wrapperClassname(web)» r0;
 
-      r0 := @this: «wrapperClassname(web)»;
-      specialinvoke r0.<java.lang.Object: void <init>()>();
+        r0 := @this: «wrapperClassname(web)»;
+        specialinvoke r0.<java.lang.Object: void <init>()>();
+        return;
     }
   
     public static void init()
@@ -38,6 +40,7 @@ public class «wrapperClassname(web)» extends java.lang.Object
         specialinvoke $r0.<«clazz»: void <init>()>();
         virtualinvoke $r0.<javax.servlet.GenericServlet: void init(javax.servlet.ServletConfig)>($r1);
         <«wrapperClassname(web)»: «clazz» instance> = $r0;
+        return;
     }
 
     public static void service(javax.servlet.http.HttpServletRequest, javax.servlet.http.HttpServletResponse)
@@ -54,6 +57,7 @@ public class «wrapperClassname(web)» extends java.lang.Object
  
 «IF methods.size == 1»
       virtualinvoke $r2.«methods.toList().first()»(r0, r1);
+      return;
 «ELSE»
       $r3 = new java.util.Random;
       specialinvoke $r3.<java.util.Random: void <init>()>();
@@ -87,6 +91,7 @@ public class «wrapperClassname(web)» extends java.lang.Object
         virtualinvoke $r0.<javax.servlet.GenericServlet: void destroy()>();
         $r0 = null;
         <«wrapperClassname(web)»: «clazz» instance> = $r0;
+        return;
     }
 }
 «ENDFILE»

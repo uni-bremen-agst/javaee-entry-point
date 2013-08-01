@@ -1,0 +1,72 @@
+«IMPORT soot»
+
+«EXTENSION soot::jimple::toolkits::javaee::templates::beans::BeanFactory»
+
+«REM»This template is intended to create a factory class for bean-like objects.«ENDREM»
+
+«DEFINE beanFactory(String className) FOR Set[Type]»
+«FILE className + "Factory.jimple"»
+public class «className»Factory
+{
+«FOREACH this AS type»
+    public static «type.toString()» get_«type.toString().replaceAll("\\.","_")»() {
+«EXPAND body FOR type-»
+    }
+«ENDFOREACH»
+}
+«ENDFILE»
+«ENDDEFINE»
+
+
+«DEFINE body FOR RefType-»
+«IF this.toString() == "java.lang.String" -»
+        java.util.UUID $r0;
+        java.lang.String $r1;
+        
+        $r0 = staticinvoke <java.util.UUID: java.util.UUID randomUUID()>();
+        $r1 = virtualinvoke $r0.<java.util.UUID: java.lang.String toString()>();
+        return $r1;
+«ELSE -»
+«IF this.sootClass.interface || !this.sootClass.concrete -»
+        return null;
+«ELSE»
+«IF !this.sootClass.methods.subSignature.contains("void <init>()")-»
+       // There is no constructor without parameters.
+       // Methods are:
+«FOREACH this.sootClass.methods.subSignature AS sig-»
+       //   «sig»
+«ENDFOREACH-»
+«ERROR "Type " + this + " does not follow bean convention. There is no parameterless constructor."»
+       return null;
+«ELSE»
+        «this.toString()» $r0;
+        $r0 = new «this.toString()»;
+        specialinvoke $r0.<«this.toString()»: void <init>()>();
+        
+        return $r0;
+«ENDIF -»
+«ENDIF -»
+«ENDIF -»
+«ENDDEFINE»
+
+«DEFINE body FOR IntType-»
+        java.util.Random $r0;
+        int $i0;
+        
+        $r0 = new java.util.Random;
+        specialinvoke $r0.<java.util.Random: void <init>()>();
+        $i0 = virtualinvoke $r0.<java.util.Random: int nextInt()>();
+        return $i0;
+«ENDDEFINE»
+
+«DEFINE body FOR Type-»
+        «this» of type «this»;
+«ENDDEFINE»
+
+«DEFINE beanLocals(String prefix) FOR Type-»
+        «this.toString()» «prefix»;
+«ENDDEFINE»
+
+«DEFINE initializeLocal(String class, String local) FOR Type-»
+        «local» = staticinvoke <«class»Factory: «this.toString()» get_«this.toString().replaceAll("\\.","_")»()>();
+«ENDDEFINE»

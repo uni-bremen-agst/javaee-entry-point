@@ -14,6 +14,7 @@ public class «chainClassname(web)» extends java.lang.Object implements javax.s
 
       r0 := @this: «chainClassname(web)»;
       specialinvoke r0.<java.lang.Object: void <init>()>();
+      return;
     }
   
     public void doFilter(javax.servlet.ServletRequest, javax.servlet.ServletResponse)
@@ -31,6 +32,7 @@ public class «chainClassname(web)» extends java.lang.Object implements javax.s
       $r4 = (javax.servlet.http.HttpServletResponse) r2;
       
       staticinvoke <«wrapperClassname(web)»: void service(javax.servlet.http.HttpServletRequest, javax.servlet.http.HttpServletResponse)>($r3, $r4);
+      return;
     }
     
     public static void filter(javax.servlet.ServletRequest, javax.servlet.ServletResponse)
@@ -44,6 +46,7 @@ public class «chainClassname(web)» extends java.lang.Object implements javax.s
 	  $r2 = new «chainClassname(web)»;
       specialinvoke $r2.<«chainClassname(web)»: void <init>()>();
       virtualinvoke $r2.<«chainClassname(web)»: void doFilter(javax.servlet.ServletRequest, javax.servlet.ServletResponse)>(r0, r1);
+      return;
     }
 }
 «ENDFILE»
@@ -61,6 +64,7 @@ public class «this.chainClassname(filters, web)» extends java.lang.Object impl
 
     r0 := @this: «this.chainClassname(filters, web)»;
     specialinvoke r0.<java.lang.Object: void <init>()>();
+    return;
   }
   
   public void doFilter(javax.servlet.ServletRequest, javax.servlet.ServletResponse)
@@ -77,6 +81,7 @@ public class «this.chainClassname(filters, web)» extends java.lang.Object impl
     specialinvoke $r3.<«this.chainClassname(filters.withoutFirst(), web)»: void <init>()>();
       
     staticinvoke <«filters.first().wrapperClassname(web)»: void filter(javax.servlet.ServletRequest, javax.servlet.ServletResponse, javax.servlet.FilterChain)>(r1, r2, $r3);
+    return;
   }
  
   public static void filter(javax.servlet.ServletRequest, javax.servlet.ServletResponse)
@@ -90,6 +95,7 @@ public class «this.chainClassname(filters, web)» extends java.lang.Object impl
     $r2 = new «this.chainClassname(filters, web)»;
     specialinvoke $r2.<«this.chainClassname(filters, web)»: void <init>()>();
     virtualinvoke $r2.<«this.chainClassname(filters, web)»: void doFilter(javax.servlet.ServletRequest, javax.servlet.ServletResponse)>(r0, r1);
+    return;
   }
 }
 «ENDFILE»

@@ -25,5 +25,7 @@ String localPrefix(soot::DoubleType d) :
 String localPrefix(soot::RefLikeType r) :
     "r";
 
-String localPrefix(soot::Type t):
-	"u";
+Set [Type] collectParameterTypes(WsServlet this) :
+    this.services.methods.argTypes.toSet();
+	//{}.toSet(); //this.services->collectParameterTypes();
+	

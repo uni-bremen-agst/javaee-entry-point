@@ -27,6 +27,7 @@
     «FOREACH (List[SootClass])jBossWsClients AS client ITERATOR iter»
            <«clazz»: «client.name» «client.name.replaceAll('\\.','_')»> = $r«iter.counter1»;
     «ENDFOREACH»
+           return;
         }
      
         void <init>()
@@ -35,6 +36,7 @@
      
             r0 := @this: «clazz»;
             specialinvoke r0.<java.lang.Object: void <init>()>();
+           return;
         }
 
         void service(javax.servlet.ServletRequest, javax.servlet.ServletResponse)
