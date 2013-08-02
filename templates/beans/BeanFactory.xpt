@@ -8,7 +8,7 @@
 «FILE className + "Factory.jimple"»
 public class «className»Factory
 {
-«FOREACH this AS type»
+«FOREACH this.toList().collectTypesDeep() AS type»
     public static «type.toString()» get_«type.toString().replaceAll("\\.","_")»() {
 «EXPAND body FOR type-»
     }
@@ -26,8 +26,14 @@ public class «className»Factory
         $r0 = staticinvoke <java.util.UUID: java.util.UUID randomUUID()>();
         $r1 = virtualinvoke $r0.<java.util.UUID: java.lang.String toString()>();
         return $r1;
+«ELSEIF this.toString() == "java.util.List"»
+        java.util.List $r0;
+        
+        $r0 = staticinvoke <java.util.Collections: java.util.List emptyList()>(); 
+        return $r0;
 «ELSE -»
 «IF this.sootClass.interface || !this.sootClass.concrete -»
+        // object is not concrete.
         return null;
 «ELSE»
 «IF !this.sootClass.methods.subSignature.contains("void <init>()")-»
@@ -57,6 +63,26 @@ public class «className»Factory
         specialinvoke $r0.<java.util.Random: void <init>()>();
         $i0 = virtualinvoke $r0.<java.util.Random: int nextInt()>();
         return $i0;
+«ENDDEFINE»
+
+«DEFINE body FOR FloatType-»
+        java.util.Random $r0;
+        float $d0; // TODO Naming of floats?
+        
+        $r0 = new java.util.Random;
+        specialinvoke $r0.<java.util.Random: void <init>()>();
+        $d0 = virtualinvoke $r0.<java.util.Random: float nextFloat()>();
+        return $d0;
+«ENDDEFINE»
+
+«DEFINE body FOR LongType-»
+        java.util.Random $r0;
+        float $l0; // TODO Naming of longs?
+        
+        $r0 = new java.util.Random;
+        specialinvoke $r0.<java.util.Random: void <init>()>();
+        $l0 = virtualinvoke $r0.<java.util.Random: long nextLong()>();
+        return $l0;
 «ENDDEFINE»
 
 «DEFINE body FOR Type-»

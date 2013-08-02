@@ -2,3 +2,6 @@ import soot;
 
 List[SootField] getPrivateFields(RefType this):
 	this.sootClass.fields.select(f| true);
+	
+List[Type] collectTypesDeep(List[Type] this):
+    JAVA soot.jimple.toolkits.javaee.templates.beans.BeanHelper.collectTypesDeep(java.util.List);
