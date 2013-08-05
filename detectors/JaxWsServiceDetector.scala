@@ -405,6 +405,7 @@ class JaxWsServiceDetector extends AbstractServletDetector with Logging{
       new WebMethod(targetOpName, sm.name,sm.parameterTypes.toList.asJava,sm.returnType,paramDefaults.toList.asJava)
     }
 
+    serviceMethods.foreach(wm => logger.trace("Web method {} hash: {}", wm, wm.hashCode() : Integer))
 
     // ------------- Detect handler chain on the server and parse it --------
     val handlerChainOpt = handlerChainOption(sc)

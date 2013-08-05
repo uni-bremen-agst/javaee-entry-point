@@ -29,7 +29,8 @@ class JBossWSTestDetector extends AbstractServletDetector with Logging{
     logger.trace("Non-dandling classes ({}): {}", nonDandling.size : Integer, nonDandling.map(_.name))
 
     val fastHierarchy = Scene.v.getOrMakeFastHierarchy //make sure it is created before the parallel computations steps in
-    val jBossWsClients : Seq[SootClass]= nonDandling.par.filter(_.isConcrete).
+    //For some odd reason, a bunch of Java library classes are considered subtypes of the JBoss type, so we filter them out.
+    val jBossWsClients : Seq[SootClass]= nonDandling.par.filter(_.isConcrete).filterNot(_.isJavaLibraryClass).
       filter(sc=>fastHierarchy.canStoreType(sc.getType,jBossWsSuperType)).seq
     jBossWsClients.foreach(logger.info("Found JBoss WS Test Client: {}", _))
 
