@@ -27,5 +27,3 @@ String localPrefix(soot::RefLikeType r) :
 
 Set [Type] collectParameterTypes(WsServlet this) :
     this.services.methods.argTypes.toSet();
-	//{}.toSet(); //this.services->collectParameterTypes();
-	

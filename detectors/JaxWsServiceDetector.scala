@@ -402,7 +402,7 @@ class JaxWsServiceDetector extends AbstractServletDetector with Logging{
 
       val targetOpName = if (opName(0).isUpper) opName(0).toLower + opName.drop(1) else opName
 
-      new WebMethod(targetOpName, sm.name,sm.parameterTypes.toList.asJava,sm.returnType,paramDefaults.toList.asJava)
+      new WebMethod(null, targetOpName, sm.name,sm.parameterTypes.toList.asJava,sm.returnType,paramDefaults.toList.asJava)
     }
 
     serviceMethods.foreach(wm => logger.trace("Web method {} hash: {}", wm, wm.hashCode() : Integer))
@@ -434,11 +434,14 @@ class JaxWsServiceDetector extends AbstractServletDetector with Logging{
       srvcName,wsdlLoc,prtName, serviceMethods
     )
 
-    Some(new WebService(
+    val ws = new WebService(
       serviceInterface.name, sc.name, wrapperName, init.getOrElse(""), destroy.getOrElse(""), name, tgtNamespace,
       srvcName, wsdlLoc, prtName, chain.asJava, serviceMethods.toList.asJava
-    ))
+    )
+    
+    ws.methods.asScala.foreach(_.service = ws)
 
+    Some(ws)
   }
 }
 
