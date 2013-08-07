@@ -110,7 +110,30 @@ label«iter.counter1»:
 «ENDDEFINE»
 
 «DEFINE body(String className) FOR ArrayType»
-        return null; // TODO Implement array types
+        «this.toString()» r0;
+        java.util.Random r1;
+        «this.arrayElementType» r2;
+        int i0;
+        int i1;
+
+        r1 = new java.util.Random;
+        specialinvoke r1.<java.util.Random: void <init>()>();
+        i0 = virtualinvoke r1.<java.util.Random: int nextInt()>(); // size of array
+        i1 = 0;
+        
+        r0 = newarray («this.arrayElementType»)[i0];
+        
+        goto label1;
+
+     label0:
+        «EXPAND initializeLocal(className, "r2") FOR this.arrayElementType»
+        r0[i1] = r2;
+        i1 = i1 + 1;
+
+     label1:
+        if i1 < i0 goto label0;
+        
+        return r0;
 «ENDDEFINE»
 
 «REM»
