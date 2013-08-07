@@ -12,6 +12,7 @@ import soot.Modifier;
 import soot.RefType;
 import soot.Scene;
 import soot.SootClass;
+import soot.SootField;
 import soot.SootMethod;
 import soot.Type;
 import soot.VoidType;
@@ -113,6 +114,14 @@ public class BeanHelper {
 		if(!method.getName().startsWith("set")) {
 			return false;
 		}
+
+		if(method.getName().length() < 4) {
+			return false;
+		}
+		
+		if(!Character.isUpperCase(method.getName().charAt(3))) {
+			return false;
+		}
 		
 		if(!method.isPublic()) {
 			return false;
@@ -126,7 +135,14 @@ public class BeanHelper {
 			return false;
 		}
 		
-		return true;
+		String name = method.getName().substring(3).toLowerCase();
+		for(final SootField field : method.getDeclaringClass().getFields()) {
+			if(field.getName().toLowerCase().equals(name)) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 	
 	public static Collection<? extends Type> childTypes(final RefType type) {
