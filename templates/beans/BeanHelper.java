@@ -1,21 +1,8 @@
 package soot.jimple.toolkits.javaee.templates.beans;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
+import soot.*;
 
-import soot.ArrayType;
-import soot.Modifier;
-import soot.RefType;
-import soot.Scene;
-import soot.SootClass;
-import soot.SootField;
-import soot.SootMethod;
-import soot.Type;
-import soot.VoidType;
+import java.util.*;
 
 public class BeanHelper {
 	/**
