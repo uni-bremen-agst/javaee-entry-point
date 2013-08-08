@@ -4,15 +4,7 @@
  */
 package soot.jimple.toolkits.javaee.model.ws
 
-import java.util.LinkedList
-import java.util.List
 import javax.xml.bind.annotation._
-import soot.jimple.toolkits.javaee.model.servlet.Servlet
-import beans.BeanProperty
-import annotation.meta.beanGetter
-import scala.collection.JavaConversions._
-import soot.jimple.toolkits.javaee.model.ws.WebService
-import java.util
 import soot.jimple.toolkits.javaee.model.servlet.http.GenericServlet
 
 /**
@@ -21,7 +13,7 @@ import soot.jimple.toolkits.javaee.model.servlet.http.GenericServlet
  * @author Marc-André Laverdière-Papineau
  */
 @XmlRootElement(name = "WsServlet")
-case class WsServlet( val services : java.util.List[WebService]) extends GenericServlet {
+case class WsServlet(services : java.util.List[WebService]) extends GenericServlet {
 
   // JAXB-specific
   def this() = this(new java.util.ArrayList[WebService](0))

@@ -27,18 +27,18 @@ object WebService{
  */
 @XmlRootElement(name = "service")
 case class WebService
-( @BeanProperty val interfaceName : String,
-  @BeanProperty val implementationName : String,
-  @BeanProperty val wrapperName : String,
-  @BeanProperty val initMethodName : String = "",
-  @BeanProperty val destroyMethodName : String ="",
-  @BeanProperty val name : String ="",
-  @BeanProperty val targetNamespace : String ="",
-  @BeanProperty val serviceName : String ="",
-  @BeanProperty val wsdlLocation : String ="",
-  @BeanProperty val portName : String ="",
-  @BeanProperty val handlerChain : java.util.List[String] = List[String](),
-  @BeanProperty val methods : java.util.Collection[WebMethod] = List[WebMethod]()
+( @BeanProperty interfaceName : String,
+  @BeanProperty implementationName : String,
+  @BeanProperty wrapperName : String,
+  @BeanProperty initMethodName : String = "",
+  @BeanProperty destroyMethodName : String ="",
+  @BeanProperty name : String ="",
+  @BeanProperty targetNamespace : String ="",
+  @BeanProperty serviceName : String ="",
+  @BeanProperty wsdlLocation : String ="",
+  @BeanProperty portName : String ="",
+  @BeanProperty handlerChain : java.util.List[String] = List[String](),
+  @BeanProperty methods : java.util.Collection[WebMethod] = List[WebMethod]()
   ){
 
   //Required by Jax-WB

@@ -12,17 +12,15 @@ import soot._
 import soot.jimple._
 import soot.util.SootAnnotationUtils._
 import soot.jimple.toolkits.javaee.model.ws._
-import JaxWsServiceDetector._
+
 import soot.jimple.toolkits.javaee.model.servlet.http.FileLoader
 import soot.jimple.toolkits.javaee.model.servlet.http.io.WebXMLReader
 import soot.tagkit.SourceFileTag
 import soot.jimple.toolkits.javaee.WebServiceRegistry
 
 import soot.util.ScalaWrappers._
-import soot.jimple.toolkits.typing.fast.{Integer32767Type, Integer127Type, Integer1Type}
 import javax.xml.bind.{JAXB, JAXBContext}
 import java.net.{MalformedURLException, URL}
-import scala.Some
 import soot.jimple.toolkits.javaee.model.ws.WsServlet
 import soot.jimple.toolkits.javaee.model.ws.WebService
 import org.jcp.xmlns.javaee.HandlerChainsType
@@ -247,6 +245,7 @@ object JaxWSAttributeUtils extends Logging {
 }
 
 import JaxWSAttributeUtils._
+import JaxWsServiceDetector._
 
 /**
  * Detector for Jax-WS 2.0 Web Services
@@ -387,16 +386,10 @@ class JaxWsServiceDetector extends AbstractServletDetector with Logging{
     ) yield {
       val paramDefaults = sm.parameterTypes.collect{
         case `stringType` => StringConstant.v("abc")
-        case a: IntType => IntConstant.v(1)
-        case a: Integer1Type => IntConstant.v(1)
-        case a: Integer127Type => IntConstant.v(1)
-        case a: Integer32767Type => IntConstant.v(1)
-        case a: ByteType => IntConstant.v(1)
+        case a: IntegerType => IntConstant.v(1)
         case a: LongType => LongConstant.v(1)
         case a: FloatType => FloatConstant.v(1.0f)
         case a: DoubleType => DoubleConstant.v(1.0)
-        case a: BooleanType => IntConstant.v(1)
-        case a: ShortType => IntConstant.v(1)
         case _ => NullConstant.v().asInstanceOf[Value] //.asInstanceOf[Value] forces the type system to be nice :)
       }
 

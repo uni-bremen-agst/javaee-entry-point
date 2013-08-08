@@ -6,17 +6,16 @@ package soot.jimple.toolkits.javaee.model.ws
 
 import scala.beans.BeanProperty
 import soot.{Type, Value}
-import scala.runtime.ScalaRunTime
 import scala.util.hashing.MurmurHash3
 
 import scala.collection.JavaConversions._
 
 case class WebMethod (@BeanProperty var service : WebService,
-                      @BeanProperty val name : String,
-                      @BeanProperty val targetMethodName : String,
-                      @BeanProperty val argTypes : java.util.List[Type],
-                      @BeanProperty val retType: Type,
-                      @BeanProperty val defaultParams: java.util.List[Value])
+                      @BeanProperty name : String,
+                      @BeanProperty targetMethodName : String,
+                      @BeanProperty argTypes : java.util.List[Type],
+                      @BeanProperty retType: Type,
+                      @BeanProperty defaultParams: java.util.List[Value])
 {
   override def hashCode(): Int = {
     import MurmurHash3._
