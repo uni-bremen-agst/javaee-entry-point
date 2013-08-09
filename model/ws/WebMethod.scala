@@ -5,7 +5,7 @@
 package soot.jimple.toolkits.javaee.model.ws
 
 import scala.beans.BeanProperty
-import soot.{Type, Value}
+import soot.Type
 import scala.util.hashing.MurmurHash3
 
 import scala.collection.JavaConversions._
@@ -17,7 +17,6 @@ import scala.collection.JavaConversions._
  * @param targetMethodName the name of the method executed in the web service
  * @param argTypes the arguments' type
  * @param retType the return type
- * @param defaultParams default initialization parameters - normally constants
  *
  * @author Marc-André Laverdière-Papineau
  */
@@ -25,16 +24,14 @@ case class WebMethod (@BeanProperty var service : WebService,
                       @BeanProperty name : String,
                       @BeanProperty targetMethodName : String,
                       @BeanProperty argTypes : java.util.List[Type],
-                      @BeanProperty retType: Type,
-                      @BeanProperty defaultParams: java.util.List[Value])
+                      @BeanProperty retType: Type)
 {
   override def hashCode(): Int = {
     import MurmurHash3._
     var tmp = MurmurHash3.mix(symmetricSeed,stringHash(name))
     tmp = MurmurHash3.mix(tmp, stringHash(targetMethodName))
     tmp = MurmurHash3.mix(tmp,seqHash(argTypes))
-    tmp = MurmurHash3.mix(tmp,retType.hashCode())
-    tmp = MurmurHash3.mixLast(tmp,seqHash(defaultParams))
+    tmp = MurmurHash3.mixLast(tmp,retType.hashCode())
     MurmurHash3.finalizeHash(tmp,3)
 
   }
@@ -43,8 +40,7 @@ case class WebMethod (@BeanProperty var service : WebService,
     if (obj.isInstanceOf[WebMethod]) {
       val other = obj.asInstanceOf[WebMethod]
       name == other.name && targetMethodName == other.targetMethodName &&
-      argTypes == other.argTypes && retType == other.retType &&
-      defaultParams == other.defaultParams
+      argTypes == other.argTypes && retType == other.retType
     } else
       false
   }

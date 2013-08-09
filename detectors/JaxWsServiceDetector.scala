@@ -386,21 +386,9 @@ class JaxWsServiceDetector extends AbstractServletDetector with Logging{
       //if (hasJavaAnnotation(sm,WEBMETHOD_ANNOTATION) || hasJavaAnnotation(seiMethod,WEBMETHOD_ANNOTATION));
       implAnn = elementsForJavaAnnotation(sm, WEBMETHOD_ANNOTATION);
       seiAnn =  elementsForJavaAnnotation(serviceInterface, WEBMETHOD_ANNOTATION);
-      opName = readCascadedAnnotation("operationName", sm.getName, implAnn, seiAnn)
-    ) yield {
-      val paramDefaults = sm.parameterTypes.collect{
-        case `stringType` => StringConstant.v("abc")
-        case a: IntegerType => IntConstant.v(1)
-        case a: LongType => LongConstant.v(1)
-        case a: FloatType => FloatConstant.v(1.0f)
-        case a: DoubleType => DoubleConstant.v(1.0)
-        case _ => NullConstant.v().asInstanceOf[Value] //.asInstanceOf[Value] forces the type system to be nice :)
-      }
-
-      val targetOpName = if (opName(0).isUpper) opName(0).toLower + opName.drop(1) else opName
-
-      new WebMethod(null, targetOpName, sm.name,sm.parameterTypes.toList.asJava,sm.returnType,paramDefaults.toList.asJava)
-    }
+      opName = readCascadedAnnotation("operationName", sm.getName, implAnn, seiAnn);
+      targetOpName = if (opName(0).isUpper) opName(0).toLower + opName.drop(1) else opName
+    ) yield new WebMethod(null, targetOpName, sm.name,sm.parameterTypes.toList.asJava,sm.returnType)
 
     serviceMethods.foreach(wm => logger.trace("Web method {} hash: {}", wm, wm.hashCode() : Integer))
 
