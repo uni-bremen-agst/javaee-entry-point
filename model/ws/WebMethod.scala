@@ -10,6 +10,17 @@ import scala.util.hashing.MurmurHash3
 
 import scala.collection.JavaConversions._
 
+/**
+ * Represents a method of a web service
+ * @param service back-pointer to the service
+ * @param name name of the method from the client side
+ * @param targetMethodName the name of the method executed in the web service
+ * @param argTypes the arguments' type
+ * @param retType the return type
+ * @param defaultParams default initialization parameters - normally constants
+ *
+ * @author Marc-André Laverdière-Papineau
+ */
 case class WebMethod (@BeanProperty var service : WebService,
                       @BeanProperty name : String,
                       @BeanProperty targetMethodName : String,

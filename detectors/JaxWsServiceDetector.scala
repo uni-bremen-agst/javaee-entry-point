@@ -28,6 +28,7 @@ import org.jcp.xmlns.javaee.HandlerChainsType
 
 /**
  * Utilities to determine the values of JAX-WS services' attributes
+ * @author Marc-André Laverdière-Papineau
  * */
 object JaxWSAttributeUtils extends Logging {
 
@@ -266,7 +267,7 @@ class JaxWsServiceDetector extends AbstractServletDetector with Logging{
       web.getServlets.add(newServlet)
       web.bindServlet(newServlet, "/wscaller")
     }
-    WebServiceRegistry.services(foundWs)
+    WebServiceRegistry.services = foundWs
   }
 
   override def detectFromConfig(web: Web) {

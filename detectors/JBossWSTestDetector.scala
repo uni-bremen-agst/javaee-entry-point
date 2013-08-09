@@ -18,6 +18,11 @@ object JBossWSTestDetector {
 
 import JBossWSTestDetector._
 
+/**
+ * Detector for the JBoss-WS test cases, which are relying on reflection-fu
+ *
+ * @author Marc-André Laverdière-Papineau
+ */
 class JBossWSTestDetector extends AbstractServletDetector with Logging{
 
   override def detectFromSource(web: Web) {

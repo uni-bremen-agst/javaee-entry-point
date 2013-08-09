@@ -13,6 +13,7 @@ import soot.util.ScalaWrappers._
 
 /**
  * A registry of the web services detected in the application under analysis
+ * @author Marc-André Laverdière-Papineau
  */
 object WebServiceRegistry {
 
@@ -27,7 +28,7 @@ object WebServiceRegistry {
 
   def services : Traversable[WebService] = _services
 
-  def services(update : Traversable[WebService]) : Unit = {
+  def services_=(update : Traversable[WebService]) : Unit = {
     _services = update
   }
 
