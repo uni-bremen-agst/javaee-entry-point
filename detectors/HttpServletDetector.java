@@ -76,8 +76,9 @@ public class HttpServletDetector extends AbstractServletDetector implements Serv
 			if(!part.endsWith("WEB-INF/classes")) {
 				continue;
 			}
-			
+
 			final FileLoader loader = new FileLoader(part.substring(0, part.length() - 15));
+
 
 			try {
 				new WebXMLReader ().readWebXML(loader, web);

@@ -111,16 +111,16 @@ public class WebXMLReader implements ServletSignatures {
 	    
 		LOG.info("Found {} security-constraint nodes.", constraintNodes.getLength());
 
-		SecurityConstraint constraint = new SecurityConstraint();
 		for (int i = 0; i < constraintNodes.getLength(); i++) {
+            SecurityConstraint constraint = new SecurityConstraint();
 	        final Element node = (Element)constraintNodes.item(i);
-	        
+
 	        final NodeList children = node.getChildNodes();
 	        for(int j = 0; j < children.getLength(); j++) {
 	        	if(!(children.item(j) instanceof Element)) {
 	        		continue;
 	        	}
-	        	
+
 	        	final Element childNode = (Element)children.item(j);
 		        if(childNode.getNodeName().equals("auth-constraint")) {
 		        	readAuthConstraint(childNode, constraint);
@@ -134,9 +134,9 @@ public class WebXMLReader implements ServletSignatures {
 		        	LOG.info("Unhandled child of a security-constraint {}.", childNode.getNodeName());
 		        }
 	        }
+            web.getSecurityConstraints().add(constraint);
 	    }
-		
-		web.getSecurityConstraints().add(constraint);
+
 	}
 
 	private void readWebResourceCollection(final Element collectionNode, final WebResourceCollection collection) {

@@ -56,7 +56,7 @@ public class FileLoader {
 			throws FileNotFoundException {
 		final File file = new File(this.basePath,path);
 		
-		LOG.info("Searching for file " + file + " exists " + file.exists());
+		LOG.warn("Searching for file {}. Exists? {} ", file, file.exists());
 		
 		return new FileInputStream(file);
 	}
