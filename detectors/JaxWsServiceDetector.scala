@@ -274,6 +274,9 @@ class JaxWsServiceDetector extends AbstractServletDetector with Logging{
     //TODO avoid redundancy with HTTPServletDetector
     //TODO handle other config files
 
+    logger.warn("Detecting Web services from configuration files is not supported yet - switching to detection from source")
+    detectFromSource(web)
+                                         /*
 
     logger.info("Detecting web services from web.xml.")
     val webInfClassFolders = SourceLocator.v.classPath.asScala.filter(_.endsWith("WEB-INF/classes"))
@@ -285,7 +288,7 @@ class JaxWsServiceDetector extends AbstractServletDetector with Logging{
       fileLoaders.foreach(new WebXMLReader().readWebXML(_, web))
     } catch {
       case e: IOException => logger.info("Cannot read web.xml:", e)
-    }
+    }                                      */
 
   }
 

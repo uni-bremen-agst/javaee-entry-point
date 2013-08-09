@@ -33,7 +33,7 @@ class JBossWSTestDetector extends AbstractServletDetector with Logging{
     val nonDandling : Seq[SootClass] = Scene.v.applicationClasses.par.filter(_.resolvingLevel() > SootClass.DANGLING).seq.toSeq
     logger.trace("Non-dandling classes ({}): {}", nonDandling.size : Integer, nonDandling.map(_.name))
 
-    val fastHierarchy = Scene.v.getOrMakeFastHierarchy //make sure it is created before the parallel computations steps in
+    val fastHierarchy = Scene.v.fastHierarchy //make sure it is created before the parallel computations steps in
     //For some odd reason, a bunch of Java library classes are considered subtypes of the JBoss type, so we filter them out.
     val jBossWsClients : Seq[SootClass]= nonDandling.par.filter(_.isConcrete).filterNot(_.isJavaLibraryClass).
       filter(sc=>fastHierarchy.canStoreType(sc.getType,jBossWsSuperType)).seq
@@ -54,6 +54,7 @@ class JBossWSTestDetector extends AbstractServletDetector with Logging{
   }
 
   override def detectFromConfig(web: Web) {
+    logger.warn("Detecting Web services from configuration files is not supported yet - switching to detection from source")
     detectFromSource(web) //No config available for that case
   }
 
