@@ -103,7 +103,7 @@ label0:
 
 «FOREACH (List[Type])childTypes() AS child ITERATOR iter-»
 label«iter.counter1»:
-        $r0 = staticinvoke <«className»: «child.toString()» «child.getterName()»()>();
+        $r0 = staticinvoke <«className»Factory: «child.toString()» «child.getterName()»()>();
         return $r0;
 «ENDFOREACH»
 «ENDIF -»
