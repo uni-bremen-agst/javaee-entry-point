@@ -15,40 +15,33 @@
  */
 package soot.jimple.toolkits.javaee.model.servlet.http.io;
 
-import java.io.FileNotFoundException;
-import java.io.InputStream;
-import java.util.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
+import soot.Hierarchy;
+import soot.Scene;
+import soot.SootClass;
+import soot.SootMethod;
+import soot.jimple.toolkits.javaee.model.servlet.*;
+import soot.jimple.toolkits.javaee.model.servlet.http.*;
+import soot.jimple.toolkits.javaee.model.ws.WebMethod;
+import soot.jimple.toolkits.javaee.model.ws.WebService;
+import soot.jimple.toolkits.javaee.model.ws.WebService$;
+import soot.jimple.toolkits.javaee.model.ws.WsServlet;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathException;
 import javax.xml.xpath.XPathExpression;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.NodeList;
-
-import soot.*;
-import soot.jimple.toolkits.javaee.model.servlet.Filter;
-import soot.jimple.toolkits.javaee.model.servlet.FilterMapping;
-import soot.jimple.toolkits.javaee.model.servlet.Listener;
-import soot.jimple.toolkits.javaee.model.servlet.Parameter;
-import soot.jimple.toolkits.javaee.model.servlet.SecurityConstraint;
-import soot.jimple.toolkits.javaee.model.servlet.Servlet;
-import soot.jimple.toolkits.javaee.model.servlet.Web;
-import soot.jimple.toolkits.javaee.model.servlet.WebResourceCollection;
-import soot.jimple.toolkits.javaee.model.servlet.http.AbstractServlet;
-import soot.jimple.toolkits.javaee.model.servlet.http.FileLoader;
-import soot.jimple.toolkits.javaee.model.servlet.http.GenericServlet;
-import soot.jimple.toolkits.javaee.model.servlet.http.HttpServlet;
-import soot.jimple.toolkits.javaee.model.servlet.http.ServletSignatures;
-import soot.jimple.toolkits.javaee.model.ws.WebMethod;
-import soot.jimple.toolkits.javaee.model.ws.WebService;
-import soot.jimple.toolkits.javaee.model.ws.WebService$;
-import soot.jimple.toolkits.javaee.model.ws.WsServlet;
+import java.io.FileNotFoundException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
 
 /**
  * A reader for {@code web.xml} files.
@@ -511,7 +504,17 @@ public class WebXMLReader implements ServletSignatures {
 
 	public static void scanMethods(final SootClass clazz, final HttpServlet servlet) {
 		final Scene scene = Scene.v();
-		
+
+        if (scene.getSootClass("javax.servlet.GenericServlet").isPhantom()){
+            LOG.info("Skipping - GenericServlet is phantom - this shouldn't be a problem on the first stub creation step");
+            return;
+        }
+
+        if (scene.getSootClass("javax.servlet.http.HttpServlet - this shouldn't be a problem on the first stub creation step").isPhantom()){
+            LOG.info("Skipping - HttpServlet is phantom");
+            return;
+        }
+
 		final SootMethod serviceMethod1 = scene.getMethod("<javax.servlet.GenericServlet: void service(javax.servlet.ServletRequest,javax.servlet.ServletResponse)>");
 		final SootMethod serviceMethod2 = scene.getMethod("<javax.servlet.http.HttpServlet: void service(javax.servlet.http.HttpServletRequest,javax.servlet.http.HttpServletResponse)>");
 		final SootMethod doGetMethod = scene.getMethod("<javax.servlet.http.HttpServlet: void doGet(javax.servlet.http.HttpServletRequest,javax.servlet.http.HttpServletResponse)>");
