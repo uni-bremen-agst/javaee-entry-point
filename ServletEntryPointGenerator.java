@@ -44,12 +44,7 @@ import org.eclipse.xtend.type.impl.java.beans.JavaBeansStrategy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import soot.G;
-import soot.PhaseOptions;
-import soot.Scene;
-import soot.SceneTransformer;
-import soot.Singletons;
-import soot.SootClass;
+import soot.*;
 import soot.jimple.toolkits.javaee.detectors.*;
 import soot.jimple.toolkits.javaee.model.servlet.Web;
 import soot.jimple.toolkits.javaee.model.servlet.http.ServletSignatures;
@@ -143,17 +138,32 @@ public class ServletEntryPointGenerator extends SceneTransformer implements Serv
         if (web.getServlets().isEmpty()){
             LOG.error("No servlets/WS detected.");
         }
-		
+
+        final String generatedMainClass =PhaseOptions.getString(options, "root-package")
+                + "."
+                + PhaseOptions.getString(options,"main-class");
+
+        //Add support for the existing main
+        ////ICICICICICICI void main(java.lang.String[])
+        for (SootClass sc : Scene.v().getApplicationClasses()){
+            if (sc.getName().equals(generatedMainClass))
+                continue;
+            if (sc.declaresMethod("void main(java.lang.String[])")){
+                SootMethod sm = sc.getMethod("void main(java.lang.String[])");
+                if (sm.isStatic())
+                    web.addApplicationMainSignature(sm.getSignature());
+            }
+        }
+
+
+
         LOG.info("Processing templates");
         processTemplate(options);
 			
         final Set<SootClass> allClasses = new HashSet<SootClass>(scene.getClasses());
 			
         LOG.info("Loading main class.");
-        final SootClass mainClass = scene.forceResolve(
-                PhaseOptions.getString(options, "root-package")
-                        + "."
-                        + PhaseOptions.getString(options,"main-class"), SootClass.BODIES);
+        final SootClass mainClass = scene.forceResolve(generatedMainClass, SootClass.BODIES);
         scene.setMainClass(mainClass);
 
         // all classes loaded are application classes

@@ -50,36 +50,41 @@ public class «this.mainclassName()» extends java.lang.Object
       specialinvoke $r1.<«generatorInfos.servletResponseImpl»: void <init>()>();
       tableswitch($i0)
       {
-«FOREACH collectBoundAddresses() AS bound ITERATOR iter»
+«FOREACH collectBoundAddresses() AS bound ITERATOR iter-»
         case «iter.counter0» : goto label«iter.counter0 + 2»;
-«ENDFOREACH»
+«ENDFOREACH-»
+«FOREACH applicationMainSignatures AS sig ITERATOR iter-»
+        case «iter.counter0+collectBoundAddresses().size+2» : goto label«iter.counter0 + collectBoundAddresses().size + 2»;
+«ENDFOREACH-»
         default: goto label1;
       };
-      
     label1:
       return;
 
 «LET (List[Address])collectBoundAddresses() AS boundAddresses»
 «FOREACH boundAddresses AS bound ITERATOR iter»
      label«iter.counter0 + 2»:
-«FOREACH bound.securityConstraints AS constraint»
-«IF constraint.requiredRoles.isEmpty»
+«FOREACH bound.securityConstraints AS constraint-»
+«IF constraint.requiredRoles.isEmpty-»
         goto label0;
 «ELSEIF !constraint.containsRoleWildcard()»
-«FOREACH constraint.requiredRoles AS role»
+«FOREACH constraint.requiredRoles AS role-»
         $z0 = virtualinvoke $r0.<javax.servlet.http.HttpServletRequest: boolean isUserInRole(java.lang.String)>("«role»");
         if $z0 == false goto label«boundAddresses.size + 2»;
-«ENDFOREACH»
-«ELSE»
-«ENDIF»
-«ENDFOREACH»
+«ENDFOREACH-»
+«ENDIF-»
+«ENDFOREACH-»
         staticinvoke <«((Address)bound).chainClassname(this)»: void filter(javax.servlet.ServletRequest,javax.servlet.ServletResponse)>($r0, $r1);
         goto label0;
-        
 «ENDFOREACH»
-    label«boundAddresses.size + 2»:
-      return;
-«ENDLET»      
+
+«FOREACH applicationMainSignatures AS sig ITERATOR iter»
+    label«iter.counter0 + collectBoundAddresses().size+ 2»:
+      staticinvoke «sig»(null);
+      goto label0;
+«ENDFOREACH-»
+
+«ENDLET»
   }
 
   private static void destroy()

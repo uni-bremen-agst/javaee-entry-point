@@ -15,24 +15,12 @@
  */
 package soot.jimple.toolkits.javaee.model.servlet;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
-import java.util.TreeSet;
-
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlElementRef;
-import javax.xml.bind.annotation.XmlElementRefs;
-import javax.xml.bind.annotation.XmlElementWrapper;
-import javax.xml.bind.annotation.XmlRootElement;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import soot.jimple.toolkits.javaee.model.servlet.struts1.ActionServlet;
+
+import javax.xml.bind.annotation.*;
+import java.util.*;
 
 /**
  * Root element of the model.
@@ -52,6 +40,8 @@ public class Web {
 	private Set<SecurityConstraint> constraints = new TreeSet<SecurityConstraint>(new NamedElementComparator<SecurityConstraint>());
 
 	private Set<Listener> listeners = new HashSet<Listener>();
+
+    private Set<String> applicationMainSignatures = new HashSet<String>();
 	
 	public Web() {
 		root.setFullPath("/");
@@ -212,4 +202,13 @@ public class Web {
 	public void setGeneratorInfos(GeneratorInfos generatorInfos) {
 		this.generatorInfos = generatorInfos;
 	}
+
+    @XmlElement
+    public Collection<String> getApplicationMainSignatures() {
+        return applicationMainSignatures;
+    }
+
+    public void addApplicationMainSignature(String applicationMainSignature) {
+        this.applicationMainSignatures.add(applicationMainSignature);
+    }
 }
