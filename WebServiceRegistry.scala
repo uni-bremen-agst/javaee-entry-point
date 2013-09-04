@@ -26,6 +26,8 @@ object WebServiceRegistry {
 
   private lazy val _serviceClassLookupByInterface : Map[String, Traversable[WebService]] = _services.groupBy(_.interfaceName)
 
+  private lazy val _serviceClassLookupByImplementation : Map[String, WebService] = _services.map(s => s.implementationName->s).toMap
+
   def services : Traversable[WebService] = _services
 
   def services_=(update : Traversable[WebService]) : Unit = {
@@ -52,11 +54,19 @@ object WebServiceRegistry {
   }
 
   /**
-   * Find a service by its interface implementation
+   * Find a service by its interface
    * @param iface the interface class
    * @return a possibly empty set of `WebService` that represent the services implementing that interface (in the WS sense)
    */
   def findServiceByInterface(iface : SootClass) : Set[WebService] =
     _serviceClassLookupByInterface.getOrElse(iface.name, Set()).toSet
+
+  /**
+   * Find a service by its implementation class
+   * @param impl the implementation class
+   * @return an Option for the service
+   */
+  def findServiceByImplementation(impl : SootClass) : Option[WebService] =
+    _serviceClassLookupByImplementation.get(impl.name)
 
 }
