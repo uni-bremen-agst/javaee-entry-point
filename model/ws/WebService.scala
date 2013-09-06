@@ -38,10 +38,11 @@ case class WebService
   @BeanProperty wsdlLocation : String ="",
   @BeanProperty portName : String ="",
   @BeanProperty handlerChain : java.util.List[String] = List[String](),
-  @BeanProperty methods : java.util.Collection[WebMethod] = List[WebMethod]()
+  @BeanProperty methods : java.util.Collection[WebMethod] = List[WebMethod](),
+  @BeanProperty hasAsyncAlready : Boolean = false
   ){
 
   //Required by Jax-WB
-  def this() = this("","","","","","","","","","", List[String](), List[WebMethod]())
+  def this() = this("","","","","","","","","","", List[String](), List[WebMethod](),false)
 
 }

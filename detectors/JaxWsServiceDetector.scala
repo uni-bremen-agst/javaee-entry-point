@@ -255,6 +255,8 @@ import JaxWsServiceDetector._
 class JaxWsServiceDetector extends AbstractServletDetector with Logging{
 
   lazy val stringType = Scene.v.getRefType("java.lang.String")
+  lazy val responseType = Scene.v.refType("javax.xml.ws.Response")
+  lazy val futureType = Scene.v.refType("java.util.concurrent.Future")
 
   override def detectFromSource(web: Web) {
     val rootPackage: String = web.getGeneratorInfos.getRootPackage
@@ -390,6 +392,10 @@ class JaxWsServiceDetector extends AbstractServletDetector with Logging{
       targetOpName = if (opName(0).isUpper) opName(0).toLower + opName.drop(1) else opName
     ) yield new WebMethod(null, targetOpName, sm.name,sm.parameterTypes.toList.asJava,sm.returnType)
 
+
+    val hasAsyncAlready = serviceMethods.find(wsm => wsm.targetMethodName.endsWith("Async") && (wsm.retType == responseType || wsm.retType == futureType)).isDefined
+
+
     serviceMethods.foreach(wm => logger.trace("Web method {} hash: {}", wm, wm.hashCode() : Integer))
 
     // ------------- Detect handler chain on the server and parse it --------
@@ -416,12 +422,12 @@ class JaxWsServiceDetector extends AbstractServletDetector with Logging{
     logger.debug("Found WS. Interface: {} Implementation: {}. Wrapper: {}. Init: {} Destroy: {} Name: {} Namespace: {} " +
       "ServiceName: {} wsdl: {} port: {}.\tMethods: {}",
       serviceInterface.name, sc.name, wrapperName, init.getOrElse(""), destroy.getOrElse(""), name,tgtNamespace,
-      srvcName,wsdlLoc,prtName, serviceMethods
+      srvcName,wsdlLoc,prtName, serviceMethods, hasAsyncAlready : java.lang.Boolean
     )
 
     val ws = new WebService(
       serviceInterface.name, sc.name, wrapperName, init.getOrElse(""), destroy.getOrElse(""), name, tgtNamespace,
-      srvcName, wsdlLoc, prtName, chain.asJava, serviceMethods.toList.asJava
+      srvcName, wsdlLoc, prtName, chain.asJava, serviceMethods.toList.asJava, hasAsyncAlready
     )
     
     ws.methods.asScala.foreach(_.service = ws)

@@ -49,7 +49,7 @@ public class «service.wrapperName» extends java.lang.Object
   }
 «ENDIF»
 
-«IF ""+method.retType != "void"»
+«IF ""+method.retType != "void" && !service.hasAsyncAlready»
   public static javax.xml.ws.Response «method.name»Async(«FOREACH method.argTypes() AS param SEPARATOR ','»«param»«ENDFOREACH»)
   {
 «FOREACH (List[Type])method.argTypes() AS param ITERATOR iter-»
@@ -68,6 +68,8 @@ public class «service.wrapperName» extends java.lang.Object
     return $wrapRet;
   }
 
+
+«IF !service.hasAsyncAlready»
 «IF method.argTypes().size == 0»
   public static java.util.concurrent.Future «method.name»Async(javax.xml.ws.AsyncHandler)
   {
@@ -93,6 +95,7 @@ public class «service.wrapperName» extends java.lang.Object
     specialinvoke $wrapRet.<«service.implementationName()»: void <init>(«method.retType»)>($retVal);
     return $wrapRet;
   }
+«ENDIF-»
 «ENDIF-»
 «ENDFOREACH-»
 }
