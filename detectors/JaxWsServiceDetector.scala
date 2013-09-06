@@ -349,8 +349,11 @@ class JaxWsServiceDetector extends AbstractServletDetector with Logging{
     val endpointInterface = annotationElems.get("endpointInterface")
 
     val serviceInterface : SootClass =
-      if (endpointInterface.isEmpty)
-        sc //Implementation class' name is used
+      if (endpointInterface.isEmpty){
+        //Check if the implemented interface is a WS - CXF workaround
+        val interfaceWithWS = sc.interfaces.find(hasJavaAnnotation(_, WEBSERVICE_ANNOTATION))
+        interfaceWithWS.getOrElse(sc) //Default is to use the service's name
+      }
       else {
         //JSR-181, section 3.1, page 13: the implementing class only needs to implement methods in the interface
         //If it is an implementing class, then it meets that criteria for sure
