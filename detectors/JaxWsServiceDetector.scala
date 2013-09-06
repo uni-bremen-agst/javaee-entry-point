@@ -311,10 +311,26 @@ class JaxWsServiceDetector extends AbstractServletDetector with Logging{
     //We use getClasses because of the Flowdroid integration
     val wsImplementationClasses = Scene.v().applicationClasses.par.filter(_.isConcrete).
       filter(hasJavaAnnotation(_, WEBSERVICE_ANNOTATION))
-    wsImplementationClasses.flatMap((extractWsInformation(_, fastHierarchy, rootPackage))).seq.toList
+    val explicitImplementations = wsImplementationClasses.flatMap((extractWsInformation(_, fastHierarchy, rootPackage))).seq.toList
+
+    val detectedInterfaces = explicitImplementations.map(_.interfaceName).toSet
+
+    val wsInterfaceClasses = Scene.v().applicationClasses.par.filter(_.isInterface).filterNot(_.isPhantom).
+      filter(hasJavaAnnotation(_, WEBSERVICE_ANNOTATION)).filterNot(sc => detectedInterfaces.contains(sc.name))
+
+    val implicitImplementations = wsInterfaceClasses.flatMap(extractWsInformationInterfaces(_, fastHierarchy, rootPackage))
+
+    explicitImplementations ++ implicitImplementations
   }
 
-  def extractWsInformation(sc : SootClass, fastHierarchy: FastHierarchy, rootPackage : String) : Option[WebService] = {
+  def extractWsInformationInterfaces(sc: SootClass, fastHierarchy: FastHierarchy, rootPackage: String) : Traversable[WebService]={
+    val implementers = fastHierarchy.interfaceImplementers(sc)
+    implementers.flatMap(extractWsInformation(_,fastHierarchy,rootPackage))
+  }
+
+
+  def extractWsInformation(sc : SootClass, fastHierarchy: FastHierarchy,
+                            rootPackage : String, knownInterface : Option[SootClass] = None) : Option[WebService] = {
     val init : Option[String] = sc.methods.par.find(hasJavaAnnotation(_, WEBSERVICE_POSTINIT_ANNOTATION)).map(_.getName)
     val destroy : Option[String] = sc.methods.par.find(hasJavaAnnotation(_, WEBSERVICE_PREDESTROY_ANNOTATION)).map(_.getName)
 
@@ -348,26 +364,14 @@ class JaxWsServiceDetector extends AbstractServletDetector with Logging{
 
     val endpointInterface = annotationElems.get("endpointInterface")
 
-    val serviceInterface : SootClass =
-      if (endpointInterface.isEmpty){
-        //Check if the implemented interface is a WS - CXF workaround
-        val interfaceWithWS = sc.interfaces.find(hasJavaAnnotation(_, WEBSERVICE_ANNOTATION))
-        interfaceWithWS.getOrElse(sc) //Default is to use the service's name
-      }
-      else {
-        //JSR-181, section 3.1, page 13: the implementing class only needs to implement methods in the interface
-        //If it is an implementing class, then it meets that criteria for sure
-        //It could also not implement the interface, but have the same signatures.
-        val iface = Scene.v.getSootClass(endpointInterface.get.asInstanceOf[String])
-        if (hasJavaAnnotation(iface, WEBSERVICE_ANNOTATION) &&
-          (fastHierarchy.canStoreType(sc.getType, iface.getType) || implementsAllMethods(sc, iface))){
-          //All good. The specified interface is implemented and it has the annotation
-          iface
-        } else { //Non-conforming
-          logger.error("Cannot process service {} because the specified interface is not implemented or not annotated", sc.getName)
-          return None
-        }
-      }
+
+
+    val serviceInterfaceOpt : Option[SootClass] = knownInterface.orElse(determineSEI(sc, fastHierarchy, endpointInterface))
+    if (serviceInterfaceOpt.isEmpty) {
+        logger.error("Cannot process service {} because the specified interface is not implemented or not annotated", sc.getName)
+        return None
+    }
+    val serviceInterface = serviceInterfaceOpt.get
 
     val serviceInterfaceAnnotationElems : Map[String,Any] = elementsForJavaAnnotation(serviceInterface, WEBSERVICE_ANNOTATION)
 
@@ -436,6 +440,25 @@ class JaxWsServiceDetector extends AbstractServletDetector with Logging{
     ws.methods.asScala.foreach(_.service = ws)
 
     Some(ws)
+  }
+
+  protected def determineSEI(sc: SootClass, fastHierarchy: FastHierarchy, endpointInterface: Option[Any]): Option[SootClass] = {
+    if (endpointInterface.isEmpty) {
+      //Check if the implemented interface is a WS - CXF workaround
+      val interfaceWithWS = sc.interfaces.find(hasJavaAnnotation(_, WEBSERVICE_ANNOTATION))
+      Some(interfaceWithWS.getOrElse(sc)) //Default is to use the service's name
+    }
+    else {
+      //JSR-181, section 3.1, page 13: the implementing class only needs to implement methods in the interface
+      //If it is an implementing class, then it meets that criteria for sure
+      //It could also not implement the interface, but have the same signatures.
+      val iface = Scene.v.getSootClass(endpointInterface.get.asInstanceOf[String])
+      if (hasJavaAnnotation(iface, WEBSERVICE_ANNOTATION) &&
+        (fastHierarchy.canStoreType(sc.getType, iface.getType) || implementsAllMethods(sc, iface))) {
+        //All good. The specified interface is implemented and it has the annotation
+        Some(iface)
+      } else None
+    }
   }
 }
 
