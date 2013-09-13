@@ -127,7 +127,8 @@ public class WebXMLReader implements ServletSignatures {
 		        	LOG.info("Unhandled child of a security-constraint {}.", childNode.getNodeName());
 		        }
 	        }
-            web.getSecurityConstraints().add(constraint);
+            if (constraint.getName() != null)
+                web.getSecurityConstraints().add(constraint);
 	    }
 
 	}
@@ -425,9 +426,9 @@ public class WebXMLReader implements ServletSignatures {
 	        	final String attrValue = child.getFirstChild().getNodeValue();
 	        	
 	        	if(attrName.equals("servlet-name")) {
-	        		servlet.setName(attrValue);
+	        		servlet.setName(attrValue.trim());
 	        	} else if(attrName.equals("servlet-class")) {
-	        		servlet.setClazz(attrValue);
+	        		servlet.setClazz(attrValue.trim());
 				} else if(attrName.equals("init-param")) {
 					final Parameter parameter = new Parameter();
 					final NodeList paramNodes = child.getChildNodes();
@@ -478,7 +479,7 @@ public class WebXMLReader implements ServletSignatures {
 			LOG.warn("Multiple classes for servlet {} found. Choosing first one.", servletNode);
 		}
 		
-    	final String className = classNodes.item(0).getFirstChild().getNodeValue();
+    	final String className = classNodes.item(0).getFirstChild().getNodeValue().trim();
 
     	final SootClass implementationClass = Scene.v().forceResolve(className, SootClass.HIERARCHY);
 
