@@ -338,7 +338,7 @@ public class WebXMLReader implements ServletSignatures {
                 } else if(attrName.equals("jaxrpc-mapping-file")) {
                     LOG.warn("Skipped service-ref/{}",attrName);
                 } else {
-                    LOG.warn("Unknown servlet-mapping attribute {}.", attrName);
+                    LOG.warn("Unknown servlet-mapping attribute {} in service.", attrName);
                 }
             }
 
