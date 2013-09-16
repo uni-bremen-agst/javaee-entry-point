@@ -17,9 +17,11 @@ package soot.jimple.toolkits.javaee.model.servlet;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import soot.jimple.toolkits.javaee.model.servlet.struts1.ActionServlet;
 
 import javax.xml.bind.annotation.*;
+
 import java.util.*;
 
 /**
@@ -103,12 +105,28 @@ public class Web {
 		return result;
 	}
 
-	public void bindServlet(Servlet servlet, String url) {
+	public void bindServlet(final Servlet servlet, String url) {
 		LOG.info("Binding {} to {}.", url, servlet);
+		
+		url = replaceWildcards(url);
+		
         // TODO I think we need to filter for handled servlets, such as struts actions etc
         Address address = resolveAddress(url);
         
         address.setServlet(servlet);
+	}
+
+	private static String replaceWildcards(final String url) {
+		if(!containsWildcard(url)) {
+			return url;
+		}
+		LOG.info("  replacing wildcards in url {}.", url);
+		
+		return url.replaceAll("\\*", "_wildcard_");
+	}
+
+	private static boolean containsWildcard(final String url) {
+		return url.contains("*");
 	}
 
 	public Address resolveAddress(final String url) {
