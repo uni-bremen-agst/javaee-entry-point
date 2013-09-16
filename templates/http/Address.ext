@@ -10,4 +10,4 @@ String chainClassname(Address this, Web web) :
 	chainClassname(this, this.filters, web);
 	
 String chainClassname(Address this, List[Filter] filters, Web web) :
-	web.generatorInfos.rootPackage + "." + filters.concat("_") + servlet.name.replaceAll("\\.","_") + "Chain";
+	web.generatorInfos.rootPackage + "." + filters.concat("_") + servlet.name.replaceAll("\\.","_").replaceAll("-", "_") + "Chain";

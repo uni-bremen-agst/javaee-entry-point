@@ -7,7 +7,7 @@ String wrapperClassname(Filter this, Web web) :
 	web.generatorInfos.rootPackage + "." + clazz + "Wrapper";
 
 String chainFilename(Filter this, Web web) :
-	web.generatorInfos.rootPackage + "." + name.replaceAll("\\.", "_") + "Chain.jimple";
+	web.generatorInfos.rootPackage + "." + name.replaceAll("\\.", "_").replaceAll("-", "_") + "Chain.jimple";
 
 String chainClassname(Filter this, Web web) :
-	web.generatorInfos.rootPackage + "." + name.replaceAll("\\.", "_") + "Chain";
+	web.generatorInfos.rootPackage + "." + name.replaceAll("\\.", "_").replaceAll("-", "_") + "Chain";
