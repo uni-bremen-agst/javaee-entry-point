@@ -349,8 +349,10 @@ public class WebXMLReader implements ServletSignatures {
             LOG.info("Found Web Service binding: {} -> {}, {}", name, iface, type);
         }
 
-        WsServlet serv = new WsServlet(foundServices);
-        web.bindServlet(serv, "/wscaller");
+        if (!foundServices.isEmpty()){
+            WsServlet serv = new WsServlet(foundServices);
+            web.bindServlet(serv, "/wscaller");
+        }
     }
 
 	/**
