@@ -291,7 +291,7 @@ public class WebXMLReader implements ServletSignatures {
      * TODO.
      */
     private void readServices(final String rootPackage) throws XPathException {
-        final XPathExpression servletMappingExpr = provider.getServletMappingExpression();
+        final XPathExpression servletMappingExpr = provider.getServiceExpression();
 
         final NodeList mappingNodes = (NodeList)servletMappingExpr.evaluate(doc, XPathConstants.NODESET);
 
