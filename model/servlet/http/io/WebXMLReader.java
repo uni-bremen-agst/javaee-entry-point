@@ -513,8 +513,8 @@ public class WebXMLReader implements ServletSignatures {
             return;
         }
 
-        if (scene.getSootClass("javax.servlet.http.HttpServlet - this shouldn't be a problem on the first stub creation step").isPhantom()){
-            LOG.info("Skipping - HttpServlet is phantom");
+        if (scene.getSootClass("javax.servlet.http.HttpServlet").isPhantom()){
+            LOG.info("Skipping - HttpServlet is phantom - this shouldn't be a problem on the first stub creation step");
             return;
         }
 
