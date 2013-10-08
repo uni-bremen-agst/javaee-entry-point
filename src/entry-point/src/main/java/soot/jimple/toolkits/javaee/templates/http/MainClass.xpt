@@ -1,0 +1,115 @@
+«IMPORT soot::jimple::toolkits::javaee::model::servlet»
+
+«EXTENSION soot::jimple::toolkits::javaee::templates::http::Address»
+«EXTENSION soot::jimple::toolkits::javaee::templates::http::Filter»
+«EXTENSION soot::jimple::toolkits::javaee::templates::http::SecurityConstraint»
+«EXTENSION soot::jimple::toolkits::javaee::templates::http::Servlet»
+«EXTENSION soot::jimple::toolkits::javaee::templates::http::Web»
+
+«DEFINE main FOR Web»
+«FILE mainclassFile()»
+public class «this.mainclassName()» extends java.lang.Object
+{
+  public void <init>()
+  {
+    «mainclassName()» r0;
+
+    r0 := @this: «mainclassName()»;
+    specialinvoke r0.<java.lang.Object: void <init>()>();
+    return;
+  }
+  
+  private static void init()
+  {
+«FOREACH filters AS filter-»
+    staticinvoke <«filter.wrapperClassname(this)»: void init()>();
+«ENDFOREACH-»
+
+«FOREACH servlets AS servlet-»
+    staticinvoke <«servlet.wrapperClassname(this)»: void init()>();
+«ENDFOREACH-»
+    return;
+  }
+
+  private static void service()
+  {
+    javax.servlet.http.HttpServletRequest $r0;
+    javax.servlet.http.HttpServletResponse $r1;
+    int $i0;
+    java.util.Random $r2;
+    boolean $z0; 
+
+    $r2 = new java.util.Random;
+    specialinvoke $r2.<java.util.Random: void <init>()>();
+
+    label0:
+      $i0 = virtualinvoke $r2.<java.util.Random: int nextInt()>();
+      $r0 = new «generatorInfos.servletRequestImpl»;
+      specialinvoke $r0.<«generatorInfos.servletRequestImpl»: void <init>()>();
+      $r1 = new «generatorInfos.servletResponseImpl»;
+      specialinvoke $r1.<«generatorInfos.servletResponseImpl»: void <init>()>();
+      tableswitch($i0)
+      {
+«FOREACH collectBoundAddresses() AS bound ITERATOR iter-»
+        case «iter.counter0» : goto label«iter.counter0 + 2»;
+«ENDFOREACH-»
+«FOREACH applicationMainSignatures AS sig ITERATOR iter-»
+        case «iter.counter0+collectBoundAddresses().size+2» : goto label«iter.counter0 + collectBoundAddresses().size + 2»;
+«ENDFOREACH-»
+        default: goto label1;
+      };
+    label1:
+      return;
+
+«LET (List[Address])collectBoundAddresses() AS boundAddresses»
+«FOREACH boundAddresses AS bound ITERATOR iter»
+     label«iter.counter0 + 2»:
+«FOREACH bound.securityConstraints AS constraint-»
+«IF constraint.requiredRoles.isEmpty-»
+        goto label0;
+«ELSEIF !constraint.containsRoleWildcard()»
+«FOREACH constraint.requiredRoles AS role-»
+        $z0 = virtualinvoke $r0.<javax.servlet.http.HttpServletRequest: boolean isUserInRole(java.lang.String)>("«role»");
+        if $z0 == false goto label«boundAddresses.size + 2»;
+«ENDFOREACH-»
+«ENDIF-»
+«ENDFOREACH-»
+        staticinvoke <«((Address)bound).chainClassname(this)»: void filter(javax.servlet.ServletRequest,javax.servlet.ServletResponse)>($r0, $r1);
+        goto label0;
+«ENDFOREACH»
+
+«FOREACH applicationMainSignatures AS sig ITERATOR iter»
+    label«iter.counter0 + collectBoundAddresses().size+ 2»:
+      staticinvoke «sig»(null);
+      goto label0;
+«ENDFOREACH-»
+
+«ENDLET»
+  }
+
+  private static void destroy()
+  {
+«FOREACH servlets AS servlet-»
+    staticinvoke <«servlet.wrapperClassname(this)»: void destroy()>();
+«ENDFOREACH-»
+
+«FOREACH filters AS filter-»
+    staticinvoke <«filter.wrapperClassname(this)»: void destroy()>();
+«ENDFOREACH-»
+
+    return;
+  }
+
+  public static void main(java.lang.String[])
+  {
+    java.lang.String[] r0;
+
+    r0 := @parameter0: java.lang.String[];
+    staticinvoke <«this.mainclassName()»: void init()>();
+    staticinvoke <«this.mainclassName()»: void service()>();
+    staticinvoke <«this.mainclassName()»: void destroy()>();
+    return;
+  }
+}
+«ENDFILE»
+«ENDDEFINE»

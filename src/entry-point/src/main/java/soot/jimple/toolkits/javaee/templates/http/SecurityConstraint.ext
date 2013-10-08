@@ -1,0 +1,4 @@
+import soot::jimple::toolkits::javaee::model::servlet;
+
+boolean containsRoleWildcard(SecurityConstraint this) :
+	requiredRoles.contains("*");

@@ -1,0 +1,13 @@
+import soot::jimple::toolkits::javaee::model::servlet;
+
+String wrapperFilename(Servlet this, Web web) :
+	web.generatorInfos.rootPackage + "." + clazz + "Wrapper.jimple";
+
+String wrapperClassname(Servlet this, Web web) :
+	web.generatorInfos.rootPackage + "." + clazz + "Wrapper";
+
+String chainFilename(Servlet this, Web web) :
+	web.generatorInfos.rootPackage + "." + name.replaceAll("\\.", "_") + "Chain.jimple";
+
+String chainClassname(Servlet this, Web web) :
+	web.generatorInfos.rootPackage + "." + name.replaceAll("\\.", "_") + "Chain";

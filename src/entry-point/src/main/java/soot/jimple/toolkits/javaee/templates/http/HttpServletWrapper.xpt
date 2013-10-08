@@ -1,0 +1,102 @@
+«IMPORT soot::jimple::toolkits::javaee::model::servlet»
+«IMPORT soot::jimple::toolkits::javaee::model::servlet::http»
+
+«EXTENSION soot::jimple::toolkits::javaee::templates::http::Servlet»
+«EXTENSION soot::jimple::toolkits::javaee::templates::http::Web»
+
+«DEFINE main FOR Web»
+«EXPAND wrapper(this) FOREACH servlets»
+«ENDDEFINE»
+
+«DEFINE wrapper(Web web) FOR HttpServlet»
+«FILE wrapperFilename(web)»
+public class «wrapperClassname(web)» extends java.lang.Object
+{
+    private static «clazz» instance;
+
+    static void <clinit>()
+    {
+        <«wrapperClassname(web)»: «clazz» instance> = null;
+        return;
+    }
+
+    public void <init>()
+    {
+        «wrapperClassname(web)» r0;
+
+        r0 := @this: «wrapperClassname(web)»;
+        specialinvoke r0.<java.lang.Object: void <init>()>();
+        return;
+    }
+  
+    public static void init()
+    {
+        «clazz» $r0;
+        «web.generatorInfos.servletConfigImpl» $r1;
+
+        $r1 = new «web.generatorInfos.servletConfigImpl»;
+        specialinvoke $r1.<«web.generatorInfos.servletConfigImpl»: void <init>()>();
+        $r0 = new «clazz»;
+        specialinvoke $r0.<«clazz»: void <init>()>();
+        virtualinvoke $r0.<javax.servlet.GenericServlet: void init(javax.servlet.ServletConfig)>($r1);
+        <«wrapperClassname(web)»: «clazz» instance> = $r0;
+        return;
+    }
+
+    public static void service(javax.servlet.http.HttpServletRequest, javax.servlet.http.HttpServletResponse)
+    {
+      javax.servlet.http.HttpServletRequest r0;
+      javax.servlet.http.HttpServletResponse r1;
+      «clazz» $r2;
+      java.util.Random $r3;
+      int $i0;
+
+      r0 := @parameter0: javax.servlet.http.HttpServletRequest;
+      r1 := @parameter1: javax.servlet.http.HttpServletResponse;
+      $r2 = <«wrapperClassname(web)»: «clazz» instance>;
+ 
+«IF methods.size == 1»
+      virtualinvoke $r2.«methods.toList().first()»(r0, r1);
+      return;
+«ELSE»
+      $r3 = new java.util.Random;
+      specialinvoke $r3.<java.util.Random: void <init>()>();
+
+	  $i0 = virtualinvoke $r2.<java.util.Random: int nextInt()>();
+
+      tableswitch($i0)
+      {
+«FOREACH methods AS method ITERATOR iter»
+        case «iter.counter0»: goto label«iter.counter0»;
+«ENDFOREACH»
+        default: goto label«methods.size»;
+      };
+
+«FOREACH methods AS method ITERATOR iter»
+    label«iter.counter0»:
+      virtualinvoke $r2.«method»(r0, r1);
+      goto label«methods.size»;
+«ENDFOREACH»
+
+    label«methods.size»:
+      return;
+«ENDIF»
+    }
+
+    public static void destroy()
+    {
+        «clazz» $r0;
+
+        $r0 = <«wrapperClassname(web)»: «clazz» instance>;
+        virtualinvoke $r0.<javax.servlet.GenericServlet: void destroy()>();
+        $r0 = null;
+        <«wrapperClassname(web)»: «clazz» instance> = $r0;
+        return;
+    }
+}
+«ENDFILE»
+«ENDDEFINE»
+
+
+«DEFINE wrapper(Web web) FOR Servlet»
+«ENDDEFINE»

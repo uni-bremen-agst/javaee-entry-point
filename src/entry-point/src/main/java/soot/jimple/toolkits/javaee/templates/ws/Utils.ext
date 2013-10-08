@@ -1,0 +1,29 @@
+import soot::jimple::toolkits::javaee::model::ws;
+import soot::jimple::toolkits::javaee::model::servlet;
+import soot;
+
+String toIdentifier(WebService this) :
+    implementationName().replaceAll('\\.','_');
+
+String toIdentifier(soot::SootMethod this) :
+    toIdentifier(declaringClass);
+
+String toIdentifier(soot::SootClass this) :
+    name.replaceAll('\\.','_');
+
+String toIdentifier(String this) :
+    replaceAll('\\.','_');
+
+String localPrefix(soot::IntegerType  t) :
+    "i";
+String localPrefix(soot::LongType l) :
+    "l";
+String localPrefix(soot::FloatType f) :
+    "f";
+String localPrefix(soot::DoubleType d) :
+    "d";
+String localPrefix(soot::RefLikeType r) :
+    "r";
+
+Set [Type] collectParameterTypes(WsServlet this) :
+    this.services.methods.argTypes.toSet();

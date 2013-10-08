@@ -1,0 +1,110 @@
+«IMPORT soot::jimple::toolkits::javaee::model::servlet»
+
+«EXTENSION soot::jimple::toolkits::javaee::templates::http::Address»
+«EXTENSION soot::jimple::toolkits::javaee::templates::http::Filter»
+«EXTENSION soot::jimple::toolkits::javaee::templates::http::Servlet»
+
+«DEFINE generateServletChain(Web web) FOR Servlet»
+«FILE chainFilename(web)»
+public class «chainClassname(web)» extends java.lang.Object implements javax.servlet.FilterChain
+{
+    public void <init>()
+    {
+      «chainClassname(web)» r0;
+
+      r0 := @this: «chainClassname(web)»;
+      specialinvoke r0.<java.lang.Object: void <init>()>();
+      return;
+    }
+  
+    public void doFilter(javax.servlet.ServletRequest, javax.servlet.ServletResponse)
+    {
+      «chainClassname(web)» r0;
+      javax.servlet.ServletRequest r1;
+      javax.servlet.ServletResponse r2;
+      javax.servlet.http.HttpServletRequest $r3;
+      javax.servlet.http.HttpServletResponse $r4;
+
+      r0 := @this: «chainClassname(web)»;
+      r1 := @parameter0: javax.servlet.ServletRequest;
+      r2 := @parameter1: javax.servlet.ServletResponse;
+      $r3 = (javax.servlet.http.HttpServletRequest) r1;
+      $r4 = (javax.servlet.http.HttpServletResponse) r2;
+      
+      staticinvoke <«wrapperClassname(web)»: void service(javax.servlet.http.HttpServletRequest, javax.servlet.http.HttpServletResponse)>($r3, $r4);
+      return;
+    }
+    
+    public static void filter(javax.servlet.ServletRequest, javax.servlet.ServletResponse)
+    {
+      javax.servlet.ServletRequest r0;
+      javax.servlet.ServletResponse r1;
+      «chainClassname(web)» $r2;
+  
+      r0 := @parameter0: javax.servlet.ServletRequest;
+      r1 := @parameter1: javax.servlet.ServletResponse;
+	  $r2 = new «chainClassname(web)»;
+      specialinvoke $r2.<«chainClassname(web)»: void <init>()>();
+      virtualinvoke $r2.<«chainClassname(web)»: void doFilter(javax.servlet.ServletRequest, javax.servlet.ServletResponse)>(r0, r1);
+      return;
+    }
+}
+«ENDFILE»
+«ENDDEFINE»
+
+«DEFINE generateFilterChain(List[Filter] filters, Web web) FOR Address»
+«IF !filters.isEmpty»
+«EXPAND generateFilterChain(filters.withoutFirst(), web) FOR this»
+«FILE this.chainClassname(filters, web) + '.jimple'»
+public class «this.chainClassname(filters, web)» extends java.lang.Object implements javax.servlet.FilterChain
+{
+  public void <init>()
+  {
+    «this.chainClassname(filters, web)» r0;
+
+    r0 := @this: «this.chainClassname(filters, web)»;
+    specialinvoke r0.<java.lang.Object: void <init>()>();
+    return;
+  }
+  
+  public void doFilter(javax.servlet.ServletRequest, javax.servlet.ServletResponse)
+  {
+    «this.chainClassname(filters, web)» r0;
+    javax.servlet.ServletRequest r1;
+    javax.servlet.ServletResponse r2;
+    «this.chainClassname(filters.withoutFirst(), web)» $r3;
+
+    r0 := @this: «this.chainClassname(filters, web)»;
+    r1 := @parameter0: javax.servlet.ServletRequest;
+    r2 := @parameter1: javax.servlet.ServletResponse;
+    $r3 = new «this.chainClassname(filters.withoutFirst(), web)»;
+    specialinvoke $r3.<«this.chainClassname(filters.withoutFirst(), web)»: void <init>()>();
+      
+    staticinvoke <«filters.first().wrapperClassname(web)»: void filter(javax.servlet.ServletRequest, javax.servlet.ServletResponse, javax.servlet.FilterChain)>(r1, r2, $r3);
+    return;
+  }
+ 
+  public static void filter(javax.servlet.ServletRequest, javax.servlet.ServletResponse)
+  {
+    javax.servlet.ServletRequest r0;
+    javax.servlet.ServletResponse r1;
+    «this.chainClassname(filters, web)» $r2;
+
+    r0 := @parameter0: javax.servlet.ServletRequest;
+    r1 := @parameter1: javax.servlet.ServletResponse;
+    $r2 = new «this.chainClassname(filters, web)»;
+    specialinvoke $r2.<«this.chainClassname(filters, web)»: void <init>()>();
+    virtualinvoke $r2.<«this.chainClassname(filters, web)»: void doFilter(javax.servlet.ServletRequest, javax.servlet.ServletResponse)>(r0, r1);
+    return;
+  }
+}
+«ENDFILE»
+«ENDIF»
+«ENDDEFINE»
+
+«DEFINE main FOR Web»
+«FOREACH collectBoundAddresses() AS address»
+«EXPAND generateFilterChain(((Address)address).filters, this) FOR ((Address)address)»
+«EXPAND generateServletChain(this) FOR ((Address)address).servlet»
+«ENDFOREACH»
+«ENDDEFINE»

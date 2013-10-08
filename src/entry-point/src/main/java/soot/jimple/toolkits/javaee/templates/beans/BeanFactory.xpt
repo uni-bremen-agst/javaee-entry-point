@@ -1,0 +1,264 @@
+«IMPORT soot»
+
+«EXTENSION soot::jimple::toolkits::javaee::templates::beans::BeanFactory»
+
+«REM»
+  This template is intended to create a factory class for bean-like objects.
+«ENDREM»
+
+«DEFINE beanFactory(String className) FOR Set[Type]»
+«FILE className + "Factory.jimple" -»
+public class «className»Factory
+{
+«FOREACH this AS type»
+    // entry type  «type.toString()»
+«ENDFOREACH»
+
+«FOREACH this.toList().collectTypesDeep() AS type»
+    public static «type.toString()» «type.getterName()»() {
+«EXPAND body(className) FOR type -»
+    }
+«ENDFOREACH»
+}
+«ENDFILE»
+«ENDDEFINE»
+
+
+«DEFINE body(String className) FOR RefType -»
+«IF this.toString() == "java.lang.String" -» «REM»Special handling for strings«ENDREM»
+«EXPAND stringBody FOR this»
+«ELSEIF this.toString() == "java.util.List" -» «REM»Special handling for lists«ENDREM»
+«EXPAND listBody FOR this»
+«ELSEIF this.sootClass.isEnum()»
+        «this.toString()» $r0;
+        java.util.Random $r1;
+        int $i0;
+
+        $r1 = new java.util.Random;
+        specialinvoke $r1.<java.util.Random: void <init>()>();
+        $i0 = virtualinvoke $r1.<java.util.Random: int nextInt()>();
+        
+        tableswitch($i0)
+        {
+«FOREACH this.sootClass.fields.select(f|f.type == this) AS field ITERATOR iter»
+            case «iter.counter0»: goto label«iter.counter1»;
+«ENDFOREACH»
+            default: goto label0;
+        };
+       
+label0:
+        return null;
+
+«FOREACH this.sootClass.fields.select(f|f.type == this) AS field ITERATOR iter»
+label«iter.counter1»:
+        $r0 = <«this.toString()»: «this.toString()» «field.name»>;
+        return $r0;
+«ENDFOREACH»
+«ELSE-»            «REM»Normal bean stuff. First check if there is unparametrized constructor«ENDREM»
+        «this.toString()» $r0;
+        java.util.Random $r1;
+        int $i0;
+«IF sootClass.concrete -»
+«FOREACH this.collectSetters()  AS setter ITERATOR iter -»
+        «setter.parameterTypes.get(0)» $x«iter.counter1»;
+«ENDFOREACH -»
+«ENDIF -»
+
+«IF !childTypes().isEmpty»
+        $r1 = new java.util.Random;
+        specialinvoke $r1.<java.util.Random: void <init>()>();
+        $i0 = virtualinvoke $r1.<java.util.Random: int nextInt()>();
+        
+        tableswitch($i0)
+        {
+«FOREACH (List[Type])childTypes() AS child ITERATOR iter»
+            case «iter.counter0»: goto label«iter.counter1»;
+«ENDFOREACH»
+            default: goto label0;
+        };
+
+label0:
+«ENDIF»
+
+«IF !this.sootClass.concrete -»
+       // class is not concrete
+       return null;
+«ELSEIF !this.sootClass.methods.subSignature.contains("void <init>()") -»
+       // There is no constructor without parameters.
+       // Constructors are:
+«FOREACH this.sootClass.methods.select(m|m.constructor) AS method-»
+       //   «method.subSignature»
+«ENDFOREACH-»
+«ERROR "Type " + this + " does not follow bean convention. There is no parameterless constructor."»
+       return null;
+«ELSE -»
+        $r0 = new «this.toString()»;
+        specialinvoke $r0.<«this.toString()»: void <init>()>();
+«FOREACH this.collectSetters()  AS setter ITERATOR iter-»
+«EXPAND initializeLocal(className, "$x" + iter.counter1) FOR setter.parameterTypes.get(0)-»
+        virtualinvoke $r0.<«setter.declaringClass.toString()»: «setter.subSignature»>($x«iter.counter1»);
+«ENDFOREACH-»
+        return $r0;
+«ENDIF -»
+
+«FOREACH (List[Type])childTypes() AS child ITERATOR iter-»
+label«iter.counter1»:
+        $r0 = staticinvoke <«className»Factory: «child.toString()» «child.getterName()»()>();
+        return $r0;
+«ENDFOREACH»
+«ENDIF -»
+«ENDDEFINE»
+
+«DEFINE body(String className) FOR ArrayType»
+        «this.toString()» r0;
+        java.util.Random r1;
+        «this.arrayElementType» r2;
+        int i0;
+        int i1;
+
+        r1 = new java.util.Random;
+        specialinvoke r1.<java.util.Random: void <init>()>();
+        i0 = virtualinvoke r1.<java.util.Random: int nextInt()>(); // size of array
+        i1 = 0;
+        
+        r0 = newarray («this.arrayElementType»)[i0];
+        
+        goto label1;
+
+     label0:
+        «EXPAND initializeLocal(className, "r2") FOR this.arrayElementType»
+        r0[i1] = r2;
+        i1 = i1 + 1;
+
+     label1:
+        if i1 < i0 goto label0;
+        
+        return r0;
+«ENDDEFINE»
+
+«REM»
+  Generate a random string.
+«ENDREM»
+«DEFINE stringBody FOR RefType»
+        java.util.UUID $r0;
+        java.lang.String $r1;
+        
+        $r0 = staticinvoke <java.util.UUID: java.util.UUID randomUUID()>();
+        $r1 = virtualinvoke $r0.<java.util.UUID: java.lang.String toString()>();
+        return $r1;
+«ENDDEFINE»
+
+«REM»
+  Special handling for lists.
+«ENDREM»
+«DEFINE listBody FOR RefType»
+        java.util.List $r0;
+        
+        $r0 = staticinvoke <java.util.Collections: java.util.List emptyList()>(); 
+        return $r0;
+«ENDDEFINE»
+
+«REM»
+  The following templates define bodies for base types.
+«ENDREM»
+«DEFINE body(String className) FOR IntType-»
+        java.util.Random $r0;
+        int $i0;
+        
+        $r0 = new java.util.Random;
+        specialinvoke $r0.<java.util.Random: void <init>()>();
+        $i0 = virtualinvoke $r0.<java.util.Random: int nextInt()>();
+        return $i0;
+«ENDDEFINE»
+
+«DEFINE body(String className) FOR ShortType-»
+        java.util.Random $r0;
+        int $s0; // TODO Naming
+        
+        $r0 = new java.util.Random;
+        specialinvoke $r0.<java.util.Random: void <init>()>();
+        $s0 = virtualinvoke $r0.<java.util.Random: int nextShort()>();
+        return $s0;
+«ENDDEFINE»
+
+«DEFINE body(String className) FOR FloatType-»
+        java.util.Random $r0;
+        float $d0; // TODO Naming of floats?
+        
+        $r0 = new java.util.Random;
+        specialinvoke $r0.<java.util.Random: void <init>()>();
+        $d0 = virtualinvoke $r0.<java.util.Random: float nextFloat()>();
+        return $d0;
+«ENDDEFINE»
+
+«DEFINE body(String className) FOR DoubleType-»
+        java.util.Random $r0;
+        double $d0; // TODO Naming of doubles?
+        
+        $r0 = new java.util.Random;
+        specialinvoke $r0.<java.util.Random: void <init>()>();
+        $d0 = virtualinvoke $r0.<java.util.Random: double nextDouble()>();
+        return $d0;
+«ENDDEFINE»
+
+«DEFINE body(String className) FOR LongType-»
+        java.util.Random $r0;
+        float $l0; // TODO Naming of longs?
+        
+        $r0 = new java.util.Random;
+        specialinvoke $r0.<java.util.Random: void <init>()>();
+        $l0 = virtualinvoke $r0.<java.util.Random: long nextLong()>();
+        return $l0;
+«ENDDEFINE»
+
+«DEFINE body(String className) FOR BooleanType-»
+        java.util.Random $r0;
+        boolean $b0; // TODO Naming of booleans?
+        
+        $r0 = new java.util.Random;
+        specialinvoke $r0.<java.util.Random: void <init>()>();
+        $b0 = virtualinvoke $r0.<java.util.Random: boolean nextBoolean()>();
+        return $b0;
+«ENDDEFINE»
+
+«DEFINE body(String className) FOR ByteType-»
+        java.util.Random $r0;
+        byte $b0; // TODO Naming of bytes?
+        
+        $r0 = new java.util.Random;
+        specialinvoke $r0.<java.util.Random: void <init>()>();
+        $b0 = virtualinvoke $r0.<java.util.Random: byte nextByte()>();
+        return $b0;
+«ENDDEFINE»
+
+«DEFINE body(String className) FOR CharType-»
+        java.util.Random $r0;
+        char $c0; // TODO Naming of chars?
+        
+        $r0 = new java.util.Random;
+        specialinvoke $r0.<java.util.Random: void <init>()>();
+        $c0 = virtualinvoke $r0.<java.util.Random: boolean nextChar()>();
+        return $c0;
+«ENDDEFINE»
+
+«REM»
+  Case for unhandled types.
+«ENDREM»
+«DEFINE body(String className) FOR Type-»
+        // The type «this» is not yet handled in «className»
+«ENDDEFINE»
+
+«REM»
+  Introduces a local for a bean of the given type.
+«ENDREM»
+«DEFINE beanLocals(String localName) FOR Type-»
+        «this.toString()» «localName»;
+«ENDDEFINE»
+
+«REM»
+  Initializes local with a value from factory. The class name for which the factory
+  was created is defined by {@code class}
+«ENDREM»
+«DEFINE initializeLocal(String class, String local) FOR Type-»
+        «local» = staticinvoke <«class»Factory: «this.toString()» «this.getterName()»()>();
+«ENDDEFINE»

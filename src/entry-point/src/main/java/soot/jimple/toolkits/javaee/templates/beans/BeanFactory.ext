@@ -1,0 +1,19 @@
+import soot;
+
+List[SootField] getPrivateFields(RefType this):
+	this.sootClass.fields.select(f| true);
+	
+List[Type] collectTypesDeep(List[Type] this):
+    JAVA soot.jimple.toolkits.javaee.templates.beans.BeanHelper.collectTypesDeep(java.util.List);
+    
+List[SootMethod] collectSetters(RefType this):
+    JAVA soot.jimple.toolkits.javaee.templates.beans.BeanHelper.collectSetters(soot.RefType);
+    
+List[Type] childTypes(RefType this):
+    JAVA soot.jimple.toolkits.javaee.templates.beans.BeanHelper.childTypes(soot.RefType);
+
+boolean isEnum(SootClass this):
+    JAVA soot.jimple.toolkits.javaee.templates.beans.BeanHelper.isEnum(soot.SootClass);
+    
+String getterName(Type this):
+    "get_" + toString().replaceAll("\\.","_").replaceAll("\\[\\]", "__arr__");
