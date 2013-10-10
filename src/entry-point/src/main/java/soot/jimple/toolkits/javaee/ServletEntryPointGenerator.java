@@ -116,7 +116,7 @@ public class ServletEntryPointGenerator extends SceneTransformer implements Serv
 	}
 
 	@Override
-	protected void internalTransform(final String phaseName, @SuppressWarnings("rawtypes") final Map options) {
+	protected void internalTransform(final String phaseName, final Map<String, String> options) {
 		LOG.info("Running {}", phaseName);
 
 		considerAllServlets = PhaseOptions.getBoolean(options, "consider-all-servlets");
@@ -171,7 +171,7 @@ public class ServletEntryPointGenerator extends SceneTransformer implements Serv
     /**
 	 * Processes all templates.
 	 */
-	private void processTemplate(@SuppressWarnings("rawtypes") final Map options) {
+	private void processTemplate(final Map<String, String> options) {
 		boolean errorOccured = false;
 		
 		for(final ServletDetector detector : servletDetectors) {
