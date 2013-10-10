@@ -2,10 +2,14 @@ Plugin for generating entry points
 ==================================
 Plugin for generating entry points for Java applications that does not have main functions, such as JavaEE applications.
 
-How to build
-------------
+How to build (hardcore)
+-----------------------
 > $ mvn install
 
+How to build with Eclipse
+-------------------------
+Install the eclipse m2e feature and the plugin for scala from http://alchim31.free.fr/m2e-scala/update-site/ . Afterwards,
+just import the plugin and everything is fine.
 
 How to use
 ----------
