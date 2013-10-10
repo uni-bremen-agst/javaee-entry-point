@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<metadata>
+  <groupId>org.eclipse.equinox</groupId>
+  <artifactId>preferences</artifactId>
+  <versioning>
+    <release>3.5.100</release>
+    <versions>
+      <version>3.5.100</version>
+    </versions>
+    <lastUpdated>20131009141320</lastUpdated>
+  </versioning>
+</metadata>

@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns="http://maven.apache.org/POM/4.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>org.eclipse.emf.mwe</groupId>
+  <artifactId>core</artifactId>
+  <version>1.2.1</version>
+  <name>MWE Core</name>
+  <licenses>
+    <license>
+      <name>Eclipse Public License - v 1.0</name>
+      <url>http://www.eclipse.org/org/documents/epl-v10.html</url>
+    </license>
+  </licenses>
+  <dependencies>
+    <dependency>
+      <groupId>org.eclipse.emf</groupId>
+      <artifactId>ecore</artifactId>
+      <version>[2.5.0,3.0.0)</version>
+      <optional>false</optional>
+    </dependency>
+    <dependency>
+      <groupId>org.eclipse.core</groupId>
+      <artifactId>runtime</artifactId>
+      <version>[3.5.0,4.0.0)</version>
+      <optional>false</optional>
+    </dependency>
+    <dependency>
+      <groupId>org.apache</groupId>
+      <artifactId>ant</artifactId>
+      <version>1.7.0</version>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>cli</artifactId>
+      <version>[1.2.0,2.0.0)</version>
+      <optional>false</optional>
+    </dependency>
+    <dependency>
+      <groupId>org.eclipse.emf.mwe2</groupId>
+      <artifactId>runtime</artifactId>
+      <version>2.4.0</version>
+      <optional>false</optional>
+    </dependency>
+  </dependencies>
+</project>

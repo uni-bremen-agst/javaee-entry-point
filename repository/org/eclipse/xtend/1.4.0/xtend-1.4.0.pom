@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns="http://maven.apache.org/POM/4.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>org.eclipse</groupId>
+  <artifactId>xtend</artifactId>
+  <version>1.4.0</version>
+  <name>Xtend Core </name>
+  <licenses>
+    <license>
+      <name>Eclipse Public License - v 1.0</name>
+      <url>http://www.eclipse.org/org/documents/epl-v10.html</url>
+    </license>
+  </licenses>
+  <dependencies>
+    <dependency>
+      <groupId>org.eclipse.emf.mwe</groupId>
+      <artifactId>core</artifactId>
+      <version>[0,)</version>
+      <optional>false</optional>
+    </dependency>
+    <dependency>
+      <groupId>org.antlr</groupId>
+      <artifactId>runtime</artifactId>
+      <version>[3.2.0,3.2.1)</version>
+      <optional>false</optional>
+    </dependency>
+    <dependency>
+      <groupId>org.eclipse.emf</groupId>
+      <artifactId>common</artifactId>
+      <version>[0,)</version>
+      <optional>false</optional>
+    </dependency>
+    <dependency>
+      <groupId>com.ibm</groupId>
+      <artifactId>icu</artifactId>
+      <version>4.0.0</version>
+      <optional>true</optional>
+    </dependency>
+  </dependencies>
+</project>

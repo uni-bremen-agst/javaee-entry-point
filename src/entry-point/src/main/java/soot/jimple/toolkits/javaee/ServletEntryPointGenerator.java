@@ -68,12 +68,6 @@ public class ServletEntryPointGenerator extends SceneTransformer implements Serv
 	 */
 	private final List<ServletDetector> servletDetectors = new ArrayList<ServletDetector>();
 	
-	/**
-	 * @return The singleton instance.
-	 */
-	public static ServletEntryPointGenerator v() {
-    	return G.v().soot_jimple_toolkits_javaee_ServletEntryPointGenerator();
-    }
 
 	/**
 	 * Shall all servlets within the application be handled or just the ones
