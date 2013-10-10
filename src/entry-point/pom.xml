@@ -64,7 +64,7 @@
             
             <type>jar</type>
             <scope>system</scope>
-            <systemPath>${basedir}/../../../soot-plain/lib/sootclasses-trunk.jar</systemPath>
+            <systemPath>${basedir}/../../../soot/lib/sootclasses-trunk.jar</systemPath>
         </dependency>
     </dependencies>
     
