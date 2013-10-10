@@ -81,7 +81,7 @@ public class ServletEntryPointGenerator extends SceneTransformer implements Serv
 	 */
 	private final Scene scene = Scene.v();
 	
-	public ServletEntryPointGenerator(final Singletons.Global g) {
+	public ServletEntryPointGenerator() {
 		servletDetectors.add(new HttpServletDetector());
 		servletDetectors.add(new JaxWsServiceDetector());
 		servletDetectors.add(new StrutsServletDetector());
