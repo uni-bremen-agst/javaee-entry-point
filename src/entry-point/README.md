@@ -15,7 +15,7 @@ How to use
 ----------
 > $ mvn dependency:copy-dependencies -DincludeScope=runtime
 
-> $ java -cp target/dependency/*:../../../soot/libs/*:../../../soot/lib/sootclasses-trunk.jar:target/soot.plugins.entry-points-0.0.1-SNAPSHOT.jar soot.Main ...
+> $ java -cp target/dependency/*:../../../soot/libs/*:../../../soot/lib/sootclasses-trunk.jar:target/soot.plugins.entry-points-0.0.1-SNAPSHOT.jar soot.Main -plugin &lt;plugin.xml&gt; ...
 
 Configuration
 -------------
