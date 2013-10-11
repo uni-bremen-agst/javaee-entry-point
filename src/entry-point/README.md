@@ -19,4 +19,6 @@ How to use
 
 Configuration
 -------------
+> &lt;soot-plugins&gt;
 > &lt;phase-plugin phase="wjpp.entry" class="soot.jimple.toolkits.javaee.EntryPointPlugin"/&gt;
+> &lt;/soot-plugins&gt;
