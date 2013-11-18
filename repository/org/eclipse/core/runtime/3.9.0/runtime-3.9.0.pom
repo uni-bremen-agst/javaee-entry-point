@@ -16,7 +16,7 @@
     <dependency>
       <groupId>org.eclipse</groupId>
       <artifactId>osgi</artifactId>
-      <version>[3.7.0,4.0.0)</version>
+      <version>3.9.0</version>
       <optional>false</optional>
     </dependency>
     <dependency>
