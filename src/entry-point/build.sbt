@@ -22,4 +22,4 @@ libraryDependencies += "org.eclipse" % "xpand" % "1.4.0"
 
 libraryDependencies += "com.ibm" % "icu" % "50.1.1"// % runtime()
 
-resolvers += baseDirectory.value / "../../repository"
+resolvers +=  "Private Maven Repository" at baseDirectory.value.toURI.toURL + "../../repository"  //baseDirectory.value / "../../repository"
