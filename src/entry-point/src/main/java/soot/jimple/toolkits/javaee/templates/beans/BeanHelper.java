@@ -45,7 +45,7 @@ public class BeanHelper {
 	}
 
 	private static Collection<? extends Type> collectSubstitutionTypes(final RefType refType) {
-		List<SootClass> subClasses;
+		Collection<SootClass> subClasses;
 		
 		if(refType.getSootClass().isInterface()) {
 			subClasses = Scene.v().getActiveHierarchy().getImplementersOf(refType.getSootClass());
