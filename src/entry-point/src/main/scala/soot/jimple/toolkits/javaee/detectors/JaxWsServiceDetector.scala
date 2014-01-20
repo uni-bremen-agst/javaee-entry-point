@@ -8,6 +8,7 @@ import java.io.{IOException, File}
 import soot.jimple.toolkits.javaee.model.servlet.Web
 import com.typesafe.scalalogging.slf4j.Logging
 import scala.collection.JavaConverters._
+import scala.collection.JavaConversions._
 import soot._
 import soot.jimple._
 import soot.util.SootAnnotationUtils._
@@ -24,6 +25,7 @@ import java.net.{MalformedURLException, URL}
 import soot.jimple.toolkits.javaee.model.ws.WsServlet
 import soot.jimple.toolkits.javaee.model.ws.WebService
 import org.jcp.xmlns.javaee.HandlerChainsType
+import soot.util.DispatchUtils
 
 
 /**
@@ -306,6 +308,7 @@ class JaxWsServiceDetector extends AbstractServletDetector with Logging{
   // ------------------------ Implementation
 
   def findWSInApplication(rootPackage : String) :  List[WebService] = {
+    val jaxRpcService = Scene.v.sootClass("javax.xml.rpc.Service")
     val fastHierarchy = Scene.v.getOrMakeFastHierarchy //make sure it is created before the parallel computations steps in
 
     //We use getClasses because of the Flowdroid integration
@@ -320,7 +323,12 @@ class JaxWsServiceDetector extends AbstractServletDetector with Logging{
 
     val implicitImplementations = wsInterfaceClasses.flatMap(extractWsInformationInterfaces(_, fastHierarchy, rootPackage))
 
-    explicitImplementations ++ implicitImplementations
+    val jaxRpcServices =
+      for ( interface : SootClass <- DispatchUtils.subInterfaces(jaxRpcService);//fastHierarchy.getAllSubinterfaces(jaxRpcService) - jaxRpcService ;
+          impl : SootClass <- fastHierarchy.getAllImplementersOfInterface(interface).asScala
+    ) yield new WebService(interface.getName, impl.getName, interface.getName+"Wrapper")
+
+    explicitImplementations ++ implicitImplementations ++ jaxRpcServices
   }
 
   def extractWsInformationInterfaces(sc: SootClass, fastHierarchy: FastHierarchy, rootPackage: String) : Traversable[WebService]={
