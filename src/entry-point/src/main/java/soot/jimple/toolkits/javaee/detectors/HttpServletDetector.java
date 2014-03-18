@@ -15,23 +15,18 @@
  */
 package soot.jimple.toolkits.javaee.detectors;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import soot.Scene;
 import soot.SootClass;
 import soot.SourceLocator;
 import soot.jimple.toolkits.javaee.model.servlet.Web;
-import soot.jimple.toolkits.javaee.model.servlet.http.AbstractServlet;
-import soot.jimple.toolkits.javaee.model.servlet.http.FileLoader;
-import soot.jimple.toolkits.javaee.model.servlet.http.GenericServlet;
-import soot.jimple.toolkits.javaee.model.servlet.http.HttpServlet;
-import soot.jimple.toolkits.javaee.model.servlet.http.ServletSignatures;
+import soot.jimple.toolkits.javaee.model.servlet.http.*;
 import soot.jimple.toolkits.javaee.model.servlet.http.io.WebXMLReader;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Servlet detector for {@code HttpServlets}. If you use source code detection
@@ -53,7 +48,7 @@ public class HttpServletDetector extends AbstractServletDetector implements Serv
 	    final SootClass servletClass = Scene.v().getSootClass(HTTP_SERVLET_CLASS_NAME);
 	    final SootClass genericClass = Scene.v().getSootClass(GENERIC_SERVLET_CLASS_NAME);
 	    
-	    for(final SootClass clazz : Scene.v().getApplicationClasses()) {
+	    for(final SootClass clazz : Scene.v().getClasses()) {
 	        if (!clazz.isConcrete()) //ignore interfaces and abstract classes
 	            continue;
 	        

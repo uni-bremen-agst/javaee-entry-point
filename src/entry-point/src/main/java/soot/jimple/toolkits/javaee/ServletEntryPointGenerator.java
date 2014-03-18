@@ -15,19 +15,6 @@
  */
 package soot.jimple.toolkits.javaee;
 
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.Writer;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.Marshaller;
-
 import org.eclipse.emf.mwe.core.WorkflowContext;
 import org.eclipse.emf.mwe.core.WorkflowContextDefaultImpl;
 import org.eclipse.emf.mwe.core.WorkflowInterruptedException;
@@ -43,11 +30,18 @@ import org.eclipse.xtend.type.impl.java.JavaBeansMetaModel;
 import org.eclipse.xtend.type.impl.java.beans.JavaBeansStrategy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import soot.*;
 import soot.jimple.toolkits.javaee.detectors.*;
 import soot.jimple.toolkits.javaee.model.servlet.Web;
 import soot.jimple.toolkits.javaee.model.servlet.http.ServletSignatures;
+
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Marshaller;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.Writer;
+import java.util.*;
 
 /**
  * This class drives the generation of a main method that creates and calls
@@ -138,7 +132,6 @@ public class ServletEntryPointGenerator extends SceneTransformer implements Serv
                 + PhaseOptions.getString(options,"main-class");
 
         //Add support for the existing main
-        ////ICICICICICICI void main(java.lang.String[])
         for (SootClass sc : Scene.v().getApplicationClasses()){
             if (sc.getName().equals(generatedMainClass))
                 continue;
