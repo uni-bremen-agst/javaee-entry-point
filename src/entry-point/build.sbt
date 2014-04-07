@@ -2,13 +2,13 @@ name := "soot.plugins.entry-points"
 
 organization := "soot.plugins"
 
-scalaVersion := "2.10.3"
+scalaVersion := "2.10.4"
 
 version := "0.0.1-SNAPSHOT"
 
 libraryDependencies += "com.typesafe" % "scalalogging-slf4j_2.10" % "1.1.0"
 
-libraryDependencies += "org.slf4j" % "slf4j-api" % "1.7.5"
+libraryDependencies += "org.slf4j" % "slf4j-api" % "1.7.7"
 
 libraryDependencies += "org.eclipse.emf.mwe" % "core" % "1.2.1" % "runtime"
 
