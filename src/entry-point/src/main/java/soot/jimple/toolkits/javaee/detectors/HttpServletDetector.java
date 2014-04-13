@@ -24,9 +24,7 @@ import soot.jimple.toolkits.javaee.model.servlet.Web;
 import soot.jimple.toolkits.javaee.model.servlet.http.*;
 import soot.jimple.toolkits.javaee.model.servlet.http.io.WebXMLReader;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 /**
  * Servlet detector for {@code HttpServlets}. If you use source code detection
@@ -47,19 +45,23 @@ public class HttpServletDetector extends AbstractServletDetector implements Serv
 		LOG.info("Detecting servlets from source code.");
 	    final SootClass servletClass = Scene.v().getSootClass(HTTP_SERVLET_CLASS_NAME);
 	    final SootClass genericClass = Scene.v().getSootClass(GENERIC_SERVLET_CLASS_NAME);
-	    
-	    for(final SootClass clazz : Scene.v().getClasses()) {
-	        if (!clazz.isConcrete()) //ignore interfaces and abstract classes
-	            continue;
-	        
-	        if (Scene.v().getActiveHierarchy().isClassSubclassOf(clazz, servletClass)){
-	        	LOG.info("Found http servlet class {}.", servletClass);
-	            registerHttpServlet(web, clazz);
-	        } else if(Scene.v().getActiveHierarchy().isClassSubclassOf(clazz, genericClass)) {
-	        	LOG.info("Found generic servlet class {}.", servletClass);
-	            registerGenericServlet(web, clazz);
-	        }
-		}
+
+        Collection<SootClass> servlets =  Scene.v().getActiveHierarchy().getSubclassesOf(servletClass);
+        Collection<SootClass> genericServlets = Scene.v().getActiveHierarchy().getSubclassesOf(genericClass);
+
+        LOG.trace("Found http servlet classes: {}.", servlets);
+        LOG.trace("Found generic servlet classes: {}.", genericServlets);
+
+        Set<SootClass> allServlets = new HashSet<>(servlets);
+        allServlets.addAll(genericServlets);
+
+        for (final SootClass clazz : allServlets){
+            if (clazz.isConcrete()){
+                registerHttpServlet(web, clazz);
+                LOG.info("Registered servlet: {}", clazz);
+            }
+        }
+
 	}
 
 	@Override
