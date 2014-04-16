@@ -24,7 +24,10 @@ import soot.jimple.toolkits.javaee.model.servlet.Web;
 import soot.jimple.toolkits.javaee.model.servlet.http.*;
 import soot.jimple.toolkits.javaee.model.servlet.http.io.WebXMLReader;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Servlet detector for {@code HttpServlets}. If you use source code detection
@@ -43,22 +46,26 @@ public class HttpServletDetector extends AbstractServletDetector implements Serv
 	@Override
 	public void detectFromSource(final Web web) {
 		LOG.info("Detecting servlets from source code.");
-	    final SootClass servletClass = Scene.v().getSootClass(HTTP_SERVLET_CLASS_NAME);
+	    final SootClass httpServletClass = Scene.v().getSootClass(HTTP_SERVLET_CLASS_NAME);
 	    final SootClass genericClass = Scene.v().getSootClass(GENERIC_SERVLET_CLASS_NAME);
 
-        Collection<SootClass> servlets =  Scene.v().getActiveHierarchy().getSubclassesOf(servletClass);
+        Collection<SootClass> httpServlets =  Scene.v().getActiveHierarchy().getSubclassesOf(httpServletClass);
         Collection<SootClass> genericServlets = Scene.v().getActiveHierarchy().getSubclassesOf(genericClass);
 
-        LOG.trace("Found http servlet classes: {}.", servlets);
+        LOG.trace("Found HTTP servlet classes: {}.", httpServlets);
         LOG.trace("Found generic servlet classes: {}.", genericServlets);
 
-        Set<SootClass> allServlets = new HashSet<>(servlets);
-        allServlets.addAll(genericServlets);
+        for (final SootClass clazz : genericServlets){
+            if (clazz.isConcrete()){
+                registerGenericServlet(web, clazz);
+                LOG.info("Registered generic servlet: {}", clazz);
+            }
+        }
 
-        for (final SootClass clazz : allServlets){
+        for (final SootClass clazz : httpServlets){
             if (clazz.isConcrete()){
                 registerHttpServlet(web, clazz);
-                LOG.info("Registered servlet: {}", clazz);
+                LOG.info("Registered HTTP servlet: {}", clazz);
             }
         }
 
