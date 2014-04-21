@@ -6,7 +6,7 @@ package soot.jimple.toolkits.javaee.detectors
 
 import java.io.{IOException, File}
 import soot.jimple.toolkits.javaee.model.servlet.Web
-import com.typesafe.scalalogging.slf4j.Logging
+import com.typesafe.scalalogging.slf4j.{LazyLogging => Logging}
 import scala.collection.JavaConverters._
 import scala.collection.JavaConversions._
 import soot._

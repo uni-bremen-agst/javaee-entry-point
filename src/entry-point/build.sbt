@@ -2,11 +2,16 @@ name := "soot.plugins.entry-points"
 
 organization := "soot.plugins"
 
-scalaVersion := "2.10.4"
-
 version := "0.0.1-SNAPSHOT"
 
-libraryDependencies += "com.typesafe" % "scalalogging-slf4j_2.10" % "1.1.0"
+scalaVersion := "2.11.0"
+
+sbtVersion := "0.13.2"
+
+//Faster incremental compilation. See http://scala-lang.org/news/2014/04/21/release-notes-2.11.0.html
+//incOptions := incOptions.value.withNameHashing(true)
+
+libraryDependencies += "com.typesafe.scala-logging" %% "scala-logging-slf4j" % "2.0.4" //"com.typesafe" % "scalalogging-slf4j_2.10" % "1.1.0"
 
 libraryDependencies += "org.slf4j" % "slf4j-api" % "1.7.7"
 

@@ -5,7 +5,7 @@
 
 package soot.jimple.toolkits.javaee.detectors
 
-import com.typesafe.scalalogging.slf4j.Logging
+import com.typesafe.scalalogging.slf4j.{LazyLogging => Logging}
 import scala.collection.JavaConverters._
 import soot.jimple.toolkits.javaee.model.servlet.Web
 import soot.{Unit => SootUnit, _}
