@@ -4,18 +4,13 @@
  */
 package soot.jimple.toolkits.javaee.detectors
 
-import java.io.{IOException, File}
+import java.io.File
 import soot.jimple.toolkits.javaee.model.servlet.Web
-import com.typesafe.scalalogging.slf4j.{LazyLogging => Logging}
+import com.typesafe.scalalogging.slf4j._
 import scala.collection.JavaConverters._
-import scala.collection.JavaConversions._
 import soot._
-import soot.jimple._
 import soot.util.SootAnnotationUtils._
 import soot.jimple.toolkits.javaee.model.ws._
-
-import soot.jimple.toolkits.javaee.model.servlet.http.FileLoader
-import soot.jimple.toolkits.javaee.model.servlet.http.io.WebXMLReader
 import soot.tagkit.SourceFileTag
 import soot.jimple.toolkits.javaee.WebServiceRegistry
 
@@ -32,7 +27,7 @@ import soot.util.DispatchUtils
  * Utilities to determine the values of JAX-WS services' attributes
  * @author Marc-André Laverdière-Papineau
  * */
-object JaxWSAttributeUtils extends Logging {
+object JaxWSAttributeUtils extends LazyLogging {
 
   private lazy val handlerChainJaxbContext = JAXBContext.newInstance("org.jcp.xmlns.javaee")
 
@@ -254,7 +249,7 @@ import JaxWsServiceDetector._
  * Detector for Jax-WS 2.0 Web Services
  * @author Marc-André Laverdière-Papineau
  */
-class JaxWsServiceDetector extends AbstractServletDetector with Logging{
+class JaxWsServiceDetector extends AbstractServletDetector with LazyLogging {
 
   lazy val stringType = Scene.v.getRefType("java.lang.String")
   lazy val responseType = Scene.v.refType("javax.xml.ws.Response")
