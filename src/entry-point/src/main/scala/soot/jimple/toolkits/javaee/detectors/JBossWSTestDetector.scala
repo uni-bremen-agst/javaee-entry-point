@@ -5,7 +5,7 @@
 
 package soot.jimple.toolkits.javaee.detectors
 
-import com.typesafe.scalalogging.slf4j._
+import ca.polymtl.gigl.casi.Logging
 import scala.collection.JavaConverters._
 import soot.jimple.toolkits.javaee.model.servlet.Web
 import soot.{Unit => SootUnit, _}
@@ -23,7 +23,7 @@ import JBossWSTestDetector._
  *
  * @author Marc-André Laverdière-Papineau
  */
-class JBossWSTestDetector extends AbstractServletDetector with LazyLogging {
+class JBossWSTestDetector extends AbstractServletDetector with Logging {
 
   override def detectFromSource(web: Web) {
 
