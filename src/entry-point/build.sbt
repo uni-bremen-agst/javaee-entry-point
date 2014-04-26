@@ -10,9 +10,6 @@ sbtVersion := Versions.sbt
 
 Common.settings
 
-//Faster incremental compilation. See http://scala-lang.org/news/2014/04/21/release-notes-2.11.0.html
-//incOptions := incOptions.value.withNameHashing(true)
-
 libraryDependencies += "org.slf4j" % "slf4j-api" % Versions.slf4j
 
 libraryDependencies += "org.eclipse.emf.mwe" % "core" % "1.2.1" % "runtime"
