@@ -29,6 +29,10 @@ public class «className»Factory
 «EXPAND stringBody FOR this»
 «ELSEIF this.toString() == "java.util.List" -» «REM»Special handling for lists«ENDREM»
 «EXPAND listBody FOR this»
+«ELSEIF this.toString() == "java.util.Set" -» «REM»Special handling for lists«ENDREM»
+«EXPAND setBody FOR this»
+«ELSEIF this.toString() == "java.util.Map" -» «REM»Special handling for lists«ENDREM»
+«EXPAND mapBody FOR this»
 «ELSEIF this.sootClass.isEnum()»
         «this.toString()» $r0;
         java.util.Random $r1;
@@ -155,6 +159,26 @@ label«iter.counter1»:
         java.util.List $r0;
         
         $r0 = staticinvoke <java.util.Collections: java.util.List emptyList()>(); 
+        return $r0;
+«ENDDEFINE»
+
+«REM»
+  Special handling for sets.
+«ENDREM»
+«DEFINE setBody FOR RefType»
+        java.util.Set $r0;
+
+        $r0 = staticinvoke <java.util.Collections: java.util.Set emptySet()>();
+        return $r0;
+«ENDDEFINE»
+
+«REM»
+  Special handling for sets.
+«ENDREM»
+«DEFINE mapBody FOR RefType»
+        java.util.Map $r0;
+
+        $r0 = staticinvoke <java.util.Collections: java.util.Map emptyMap()>();
         return $r0;
 «ENDDEFINE»
 
