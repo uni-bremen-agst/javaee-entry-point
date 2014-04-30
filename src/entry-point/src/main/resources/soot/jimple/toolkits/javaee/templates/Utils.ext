@@ -1,0 +1,2 @@
+String quoteIfNeeded(soot::Type this) :
+    soot::RefType == this.metaType ? "'" + this.toString() + "'" : this.toString();

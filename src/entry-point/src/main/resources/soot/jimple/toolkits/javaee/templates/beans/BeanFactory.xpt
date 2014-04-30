@@ -1,6 +1,7 @@
 «IMPORT soot»
 
 «EXTENSION soot::jimple::toolkits::javaee::templates::beans::BeanFactory»
+«EXTENSION soot::jimple::toolkits::javaee::templates::Utils»
 
 «REM»
   This template is intended to create a factory class for bean-like objects.
@@ -276,13 +277,11 @@ label«iter.counter1»:
   Introduces a local for a bean of the given type.
 «ENDREM»
 «DEFINE beanLocals(String localName) FOR Type-»
-        «this.toString()» «localName»;
-«ENDDEFINE»
+        «this.quoteIfNeeded()» «localName»;«ENDDEFINE-»
 
 «REM»
   Initializes local with a value from factory. The class name for which the factory
   was created is defined by {@code class}
 «ENDREM»
 «DEFINE initializeLocal(String class, String local) FOR Type-»
-        «local» = staticinvoke <«class»Factory: «this.toString()» «this.getterName()»()>();
-«ENDDEFINE»
+        «local» = staticinvoke <«class»Factory: «this.toString()» «this.getterName()»()>();«ENDDEFINE-»
