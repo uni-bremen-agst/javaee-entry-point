@@ -20,7 +20,7 @@
 public class «clazz» extends javax.servlet.http.HttpServlet
 {
 «FOREACH (List[WebService])services() AS service»
-    public static final «service.implementationName()» ws«toIdentifier(service)»;
+    public static final '«service.implementationName()»' 'ws«toIdentifier(service)»';
 «ENDFOREACH»
 
     static void <clinit>()
@@ -29,12 +29,12 @@ public class «clazz» extends javax.servlet.http.HttpServlet
        «service.implementationName()» $r«iter.counter1»;
 «ENDFOREACH»
 «FOREACH (List[WebService])services() AS service ITERATOR iter»
-       $r«iter.counter1» = new «service.implementationName()»;
-       specialinvoke $r«iter.counter1».<«service.implementationName()»: void <init>()>();
+       $r«iter.counter1» = new '«service.implementationName()»';
+       specialinvoke $r«iter.counter1».<'«service.implementationName()»': void <init>()>();
 «ENDFOREACH»
 
 «FOREACH (List[WebService])services() AS service ITERATOR iter»
-       <«clazz»: «service.implementationName()» ws«toIdentifier(service)»> = $r«iter.counter1»;
+       <'«clazz»': '«service.implementationName()»' 'ws«toIdentifier(service)»'> = $r«iter.counter1»;
 «ENDFOREACH»
         return;
     }
@@ -56,7 +56,7 @@ public class «clazz» extends javax.servlet.http.HttpServlet
         int $i0;
         java.util.Random $r3;
 «FOREACH (List[WebService])services() AS service ITERATOR serviceIterator-»
-        «service.implementationName()» $wsl«toIdentifier(service)»; «REM»local var for ws«ENDREM»
+        '«service.implementationName()»' '$wsl«toIdentifier(service)»'; «REM»local var for ws«ENDREM»
 «ENDFOREACH»
 
 «FOREACH (List[WebMethod])((List[WebService])services()).methods() AS method ITERATOR methodIterator -»
@@ -68,7 +68,7 @@ public class «clazz» extends javax.servlet.http.HttpServlet
         r2 := @parameter1: javax.servlet.ServletResponse;
         $r3 = new java.util.Random;
 «FOREACH (List[WebService])services() AS service ITERATOR serviceIterator-»«REM»Initialize locals«ENDREM»
-        $wsl«toIdentifier(service)» = <«clazz»: «service.implementationName()» ws«toIdentifier(service)»>;
+        '$wsl«toIdentifier(service)»' = <'«clazz»': '«service.implementationName()»' 'ws«toIdentifier(service)»'>;
 «ENDFOREACH»
         specialinvoke $r3.<java.util.Random: void <init>()>();
 label0:
@@ -88,7 +88,7 @@ label«methodIterator.counter0 + 2»:
 «FOREACH (List[Type])method.argTypes() AS param ITERATOR paramIterator-»
 «EXPAND BeanFactory::initializeLocal(clazz, param.localPrefix() + "_" + methodIterator.counter0 + "_" + paramIterator.counter0 ) FOR param-»«REM»Local var for each parameter value«ENDREM»
 «ENDFOREACH-»
-        staticinvoke <«method.service.wrapperName»: «method.retType» «method.name»(«FOREACH method.argTypes() AS param SEPARATOR ','»«param»«ENDFOREACH»)>(«FOREACH (List[Type])method.argTypes() AS param ITERATOR iter3 SEPARATOR ','»«param.localPrefix()»_«methodIterator.counter0»_«iter3.counter0» «ENDFOREACH»);
+        staticinvoke <«method.service.wrapperName»: '«method.retType»' '«method.name»'(«FOREACH method.argTypes() AS param SEPARATOR ','»'«param»'«ENDFOREACH»)>(«FOREACH (List[Type])method.argTypes() AS param ITERATOR iter3 SEPARATOR ','»«param.localPrefix()»_«methodIterator.counter0»_«iter3.counter0» «ENDFOREACH»);
         goto label0;
 «ENDFOREACH-»
     }
