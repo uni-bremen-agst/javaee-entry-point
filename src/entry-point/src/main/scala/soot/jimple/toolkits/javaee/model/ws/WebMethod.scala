@@ -37,11 +37,14 @@ case class WebMethod (@BeanProperty var service : WebService,
   }
 
   override def equals(obj: Any): Boolean = {
-    if (obj.isInstanceOf[WebMethod]) {
-      val other = obj.asInstanceOf[WebMethod]
-      name == other.name && targetMethodName == other.targetMethodName &&
-      argTypes == other.argTypes && retType == other.retType
-    } else
-      false
+    obj match {
+      case other: WebMethod =>
+        name == other.name && targetMethodName == other.targetMethodName &&
+          argTypes == other.argTypes && retType == other.retType
+      case _ => false
+    }
   }
+
+  override def toString: String =
+    "name: "+ name +" target method: " + targetMethodName + "argument types: "+ argTypes +" return type: "+ retType
 }
