@@ -20,7 +20,6 @@ import java.net.{MalformedURLException, URL}
 import soot.jimple.toolkits.javaee.model.ws.WsServlet
 import soot.jimple.toolkits.javaee.model.ws.WebService
 import org.jcp.xmlns.javaee.HandlerChainsType
-import soot.util.DispatchUtils
 
 
 /**
@@ -319,7 +318,7 @@ class JaxWsServiceDetector extends AbstractServletDetector with Logging {
     val implicitImplementations = wsInterfaceClasses.flatMap(extractWsInformationInterfaces(_, fastHierarchy, rootPackage))
 
     val jaxRpcServices =
-      for ( interface : SootClass <- DispatchUtils.subInterfaces(jaxRpcService);//fastHierarchy.getAllSubinterfaces(jaxRpcService) - jaxRpcService ;
+      for ( interface : SootClass <- fastHierarchy.allSubinterfaces(jaxRpcService) - jaxRpcService ;
           impl : SootClass <- fastHierarchy.getAllImplementersOfInterface(interface).asScala
     ) yield new WebService(interface.getName, impl.getName, interface.getName+"Wrapper")
 
