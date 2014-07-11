@@ -25,7 +25,6 @@ import soot.jimple.toolkits.javaee.model.servlet.http.*;
 import soot.jimple.toolkits.javaee.model.servlet.http.io.WebXMLReader;
 
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
@@ -45,27 +44,21 @@ public class HttpServletDetector extends AbstractServletDetector implements Serv
 	
 	@Override
 	public void detectFromSource(final Web web) {
-		LOG.info("Detecting servlets from source code.");
-	    final SootClass httpServletClass = Scene.v().getSootClass(HTTP_SERVLET_CLASS_NAME);
-	    final SootClass genericClass = Scene.v().getSootClass(GENERIC_SERVLET_CLASS_NAME);
+        LOG.info("Detecting servlets from source code.");
+        final SootClass servletClass = Scene.v().getSootClass(HTTP_SERVLET_CLASS_NAME);
+        final SootClass genericClass = Scene.v().getSootClass(GENERIC_SERVLET_CLASS_NAME);
 
-        Collection<SootClass> httpServlets =  Scene.v().getActiveHierarchy().getSubclassesOf(httpServletClass);
-        Collection<SootClass> genericServlets = Scene.v().getActiveHierarchy().getSubclassesOf(genericClass);
+        for (final SootClass clazz : Scene.v().getApplicationClasses()) {
+            if (!clazz.isConcrete()) //ignore interfaces and abstract classes
+                continue;
 
-        LOG.trace("Found HTTP servlet classes: {}.", httpServlets);
-        LOG.trace("Found generic servlet classes: {}.", genericServlets);
 
-        for (final SootClass clazz : genericServlets){
-            if (clazz.isConcrete()){
-                registerGenericServlet(web, clazz);
-                LOG.info("Registered generic servlet: {}", clazz);
-            }
-        }
-
-        for (final SootClass clazz : httpServlets){
-            if (clazz.isConcrete()){
+            if (Scene.v().getActiveHierarchy().isClassSubclassOf(clazz, servletClass)) {
+                LOG.info("Found http servlet class {}.", servletClass);
                 registerHttpServlet(web, clazz);
-                LOG.info("Registered HTTP servlet: {}", clazz);
+            } else if (Scene.v().getActiveHierarchy().isClassSubclassOf(clazz, genericClass)) {
+                LOG.info("Found generic servlet class {}.", servletClass);
+                registerGenericServlet(web, clazz);
             }
         }
 
