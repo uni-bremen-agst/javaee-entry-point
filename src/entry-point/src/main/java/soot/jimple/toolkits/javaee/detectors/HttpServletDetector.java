@@ -17,6 +17,7 @@ package soot.jimple.toolkits.javaee.detectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import soot.FastHierarchy;
 import soot.Scene;
 import soot.SootClass;
 import soot.SourceLocator;
@@ -48,15 +49,18 @@ public class HttpServletDetector extends AbstractServletDetector implements Serv
         final SootClass servletClass = Scene.v().getSootClass(HTTP_SERVLET_CLASS_NAME);
         final SootClass genericClass = Scene.v().getSootClass(GENERIC_SERVLET_CLASS_NAME);
 
+        final FastHierarchy fh = Scene.v().getOrMakeFastHierarchy();
+
+
         for (final SootClass clazz : Scene.v().getApplicationClasses()) {
             if (!clazz.isConcrete()) //ignore interfaces and abstract classes
                 continue;
 
 
-            if (Scene.v().getActiveHierarchy().isClassSubclassOf(clazz, servletClass)) {
+            if (fh.canStoreType(clazz.getType(), servletClass.getType())) {
                 LOG.info("Found http servlet class {}.", servletClass);
                 registerHttpServlet(web, clazz);
-            } else if (Scene.v().getActiveHierarchy().isClassSubclassOf(clazz, genericClass)) {
+            } else if (fh.canStoreType(clazz.getType(), genericClass.getType())) {
                 LOG.info("Found generic servlet class {}.", servletClass);
                 registerGenericServlet(web, clazz);
             }
