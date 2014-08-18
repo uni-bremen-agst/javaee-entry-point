@@ -5,27 +5,26 @@
 package soot.jimple.toolkits.javaee.detectors
 
 import java.io.File
-import soot.jimple.toolkits.javaee.model.servlet.Web
-import ca.polymtl.gigl.casi.Logging
-import scala.collection.JavaConverters._
-import soot._
-import soot.util.SootAnnotationUtils._
-import soot.jimple.toolkits.javaee.model.ws._
-import soot.tagkit.SourceFileTag
-import soot.jimple.toolkits.javaee.WebServiceRegistry
-
-import soot.util.ScalaWrappers._
-import javax.xml.bind.{JAXB, JAXBContext}
 import java.net.{MalformedURLException, URL}
-import soot.jimple.toolkits.javaee.model.ws.WsServlet
-import soot.jimple.toolkits.javaee.model.ws.WebService
+import javax.xml.bind.{JAXB, JAXBContext}
+
+import ca.polymtl.gigl.casi.Logging
 import org.jcp.xmlns.javaee.HandlerChainsType
+import soot._
+import soot.jimple.toolkits.javaee.WebServiceRegistry
+import soot.jimple.toolkits.javaee.model.servlet.Web
+import soot.jimple.toolkits.javaee.model.ws.{WebService, WsServlet, _}
+import soot.tagkit.SourceFileTag
+import soot.util.ScalaWrappers._
+import soot.util.SootAnnotationUtils._
+
+import scala.collection.JavaConverters._
 
 
 /**
  * Utilities to determine the values of JAX-WS services' attributes
  * @author Marc-André Laverdière-Papineau
- * */
+ **/
 object JaxWSAttributeUtils extends Logging {
 
   private lazy val handlerChainJaxbContext = JAXBContext.newInstance("org.jcp.xmlns.javaee")
@@ -35,7 +34,7 @@ object JaxWSAttributeUtils extends Logging {
    * @param pkg the package name
    * @return the reversed package name
    */
-  def reversePackageName(pkg: String) : String ={
+  def reversePackageName(pkg: String): String = {
     pkg.split("\\.").reverse.mkString(".")
   }
 
@@ -54,7 +53,7 @@ object JaxWSAttributeUtils extends Logging {
    * @param implementor the implementor class.
    * @return true if the criteria is met, false otherwise.
    */
-  def implementsAllMethods(implementor : SootClass, reference:SootClass) : Boolean = {
+  def implementsAllMethods(implementor: SootClass, reference: SootClass): Boolean = {
     val referenceMethodSignatures = reference.methods.map(_.getSubSignature)
     val implementorMethodSignatures = implementor.methods.map(_.getSubSignature).toSet
     referenceMethodSignatures.forall(implementorMethodSignatures.contains(_))
@@ -68,11 +67,11 @@ object JaxWSAttributeUtils extends Logging {
    * @param interfaceAnn the interface annotation's elements
    * @return an option for the value of the annotation element
    */
-  def readCascadedAnnotation(annName: String, default : => String, localAnn : Map[String,Any], interfaceAnn : Map[String,Any]) : String = {
+  def readCascadedAnnotation(annName: String, default: => String, localAnn: Map[String, Any], interfaceAnn: Map[String, Any]): String = {
     if (localAnn != interfaceAnn)
-      localAnn.getOrElse(annName,interfaceAnn.getOrElse(annName, default)).asInstanceOf[String]
+      localAnn.getOrElse(annName, interfaceAnn.getOrElse(annName, default)).asInstanceOf[String]
     else
-      localAnn.getOrElse(annName,default).asInstanceOf[String]
+      localAnn.getOrElse(annName, default).asInstanceOf[String]
   }
 
   /**
@@ -109,10 +108,10 @@ object JaxWSAttributeUtils extends Logging {
    * JAX-WS 2.2 Rev a sec 3.2 p.33-34
    * If the namespace is not specified for the service name, check for the service interface
    * A default value for the targetNamespace attribute is derived from the package name as follows:
-   *  1. The package name is tokenized using the “.” character as a delimiter.
-   *  2. The order of the tokens is reversed.
-   *  3. The value of the targetNamespace attribute is obtained by concatenating “http://”to the list of
-   *    tokens separated by “ . ”and “/”.
+   * 1. The package name is tokenized using the “.” character as a delimiter.
+   * 2. The order of the tokens is reversed.
+   * 3. The value of the targetNamespace attribute is obtained by concatenating “http://”to the list of
+   * tokens separated by “ . ”and “/”.
    *
    * @param sc the implementation class
    * @param annotationElems the annotations on the implementation class
@@ -150,9 +149,9 @@ object JaxWSAttributeUtils extends Logging {
    * serviceName element of the WebService annotation, if present with a non-default value, otherwise the
    * name of the implementation class with the “Service”suffix appended to it.
    * Translation:
-   *  - if serviceName is set, use that
-   *  - if name is set, use that + "Service"
-   *  - if name is not set, use the short class name + "Service"
+   * - if serviceName is set, use that
+   * - if name is set, use that + "Service"
+   * - if name is not set, use the short class name + "Service"
    * Since name is defaulted to the short name, we can ignore the last rule
    *
    * @param name the name of the serice
@@ -169,16 +168,16 @@ object JaxWSAttributeUtils extends Logging {
    * @param sc the soot class we are dealing with - used in logging
    * @param file the handler configuration file location
    * @return an Option over the handler chain XML type
-   * */
-  private def handlerChainAsURL (sc: SootClass, file : String) : Option[HandlerChainsType] = {
-    try{
+   **/
+  private def handlerChainAsURL(sc: SootClass, file: String): Option[HandlerChainsType] = {
+    try {
       val url = new URL(file)
       logger.info("For class {}, handler file is located at: {}", sc, url)
       val jc = JAXBContext.newInstance("org.jcp.xmlns.javaee")
       val unmarshaller = jc.createUnmarshaller()
       Some(unmarshaller.unmarshal(url).asInstanceOf[HandlerChainsType])
     } catch {
-      case _ : MalformedURLException => None
+      case _: MalformedURLException => None
     }
   }
 
@@ -187,20 +186,20 @@ object JaxWSAttributeUtils extends Logging {
    * @param sc the soot class we are dealing with - used in logging
    * @param file the handler configuration file location
    * @return an Option over the handler chain XML type
-   * */
-  private def handlerChainAsFile (sc: SootClass, file : String) : Option[HandlerChainsType] = {
-    val location = findAnnotation(sc,classOf[SourceFileTag]).map(_.getAbsolutePath)
+   **/
+  private def handlerChainAsFile(sc: SootClass, file: String): Option[HandlerChainsType] = {
+    val location = findAnnotation(sc, classOf[SourceFileTag]).map(_.getAbsolutePath)
     val locationFile = location.map(new File(_))
 
-    locationFile.flatMap{f : File =>
-      val handlerFile = new File(f.getParent,file)
-      if (handlerFile.exists()){
+    locationFile.flatMap { f: File =>
+      val handlerFile = new File(f.getParent, file)
+      if (handlerFile.exists()) {
         logger.info("For class {}, handler file is located at: {}", sc, handlerFile)
         val unmarshalled = JAXB.unmarshal(handlerFile, classOf[HandlerChainsType])
-       Some(unmarshalled)
+        Some(unmarshalled)
 
       }
-      else{
+      else {
         logger.warn("For class {}, handler file was wrongly located at: {}", sc, handlerFile)
         None
       }
@@ -212,8 +211,8 @@ object JaxWSAttributeUtils extends Logging {
    * @param sc the soot class we are dealing with - used in logging
    * @param file the handler configuration file location
    * @return an Option over the handler chain XML type
-   * */
-  private def handlerChain(sc: SootClass, file : String) : Option[HandlerChainsType] = {
+   **/
+  private def handlerChain(sc: SootClass, file: String): Option[HandlerChainsType] = {
     val isUrl = handlerChainAsURL(sc, file)
     if (isUrl.isDefined)
       isUrl
@@ -228,8 +227,8 @@ object JaxWSAttributeUtils extends Logging {
    * and tries to locate it on the file system (relatively to the class' location)
    * @param sc the class to get the handlers for
    * @return an option to the handler chains
-   * */
-  def handlerChainOption(sc: SootClass) : Option[HandlerChainsType] = {
+   **/
+  def handlerChainOption(sc: SootClass): Option[HandlerChainsType] = {
 
     for (handlerChainAnn <- findJavaAnnotation(sc, HANDLER_CHAIN_ANNOTATION);
          elements = annotationElements(handlerChainAnn);
@@ -241,8 +240,8 @@ object JaxWSAttributeUtils extends Logging {
 
 }
 
-import JaxWSAttributeUtils._
-import JaxWsServiceDetector._
+import soot.jimple.toolkits.javaee.detectors.JaxWSAttributeUtils._
+import soot.jimple.toolkits.javaee.detectors.JaxWsServiceDetector._
 
 /**
  * Detector for Jax-WS 2.0 Web Services
@@ -257,7 +256,7 @@ class JaxWsServiceDetector extends AbstractServletDetector with Logging {
   override def detectFromSource(web: Web) {
     val rootPackage: String = web.getGeneratorInfos.getRootPackage
     val foundWs = findWSInApplication(rootPackage)
-    if (! foundWs.isEmpty){
+    if (!foundWs.isEmpty) {
       val newServlet = new WsServlet(foundWs.asJava)
       val fullName = rootPackage + "." + GENERATED_CLASS_NAME
       newServlet.setClazz(fullName)
@@ -274,19 +273,19 @@ class JaxWsServiceDetector extends AbstractServletDetector with Logging {
 
     logger.warn("Detecting Web services from configuration files is not supported yet - switching to detection from source")
     detectFromSource(web)
-                                         /*
+    /*
 
-    logger.info("Detecting web services from web.xml.")
-    val webInfClassFolders = SourceLocator.v.classPath.asScala.filter(_.endsWith("WEB-INF/classes"))
-    val webXmlFiles = webInfClassFolders.map(new File(_).getParentFile).map(new File(_, "web.xml")).filter(_.exists())
-    val webRootFiles = webXmlFiles.map(_.getParentFile)
+logger.info("Detecting web services from web.xml.")
+val webInfClassFolders = SourceLocator.v.classPath.asScala.filter(_.endsWith("WEB-INF/classes"))
+val webXmlFiles = webInfClassFolders.map(new File(_).getParentFile).map(new File(_, "web.xml")).filter(_.exists())
+val webRootFiles = webXmlFiles.map(_.getParentFile)
 
-    try{
-      val fileLoaders = webRootFiles.map(new FileLoader(_))
-      fileLoaders.foreach(new WebXMLReader().readWebXML(_, web))
-    } catch {
-      case e: IOException => logger.info("Cannot read web.xml:", e)
-    }                                      */
+try{
+val fileLoaders = webRootFiles.map(new FileLoader(_))
+fileLoaders.foreach(new WebXMLReader().readWebXML(_, web))
+} catch {
+case e: IOException => logger.info("Cannot read web.xml:", e)
+}                                      */
 
   }
 
@@ -301,7 +300,7 @@ class JaxWsServiceDetector extends AbstractServletDetector with Logging {
 
   // ------------------------ Implementation
 
-  def findWSInApplication(rootPackage : String) :  List[WebService] = {
+  def findWSInApplication(rootPackage: String): List[WebService] = {
     val jaxRpcService = Scene.v.sootClass("javax.xml.rpc.Service")
     val fastHierarchy = Scene.v.getOrMakeFastHierarchy //make sure it is created before the parallel computations steps in
 
@@ -318,25 +317,25 @@ class JaxWsServiceDetector extends AbstractServletDetector with Logging {
     val implicitImplementations = wsInterfaceClasses.flatMap(extractWsInformationInterfaces(_, fastHierarchy, rootPackage))
 
     val jaxRpcServices =
-      for ( interface : SootClass <- fastHierarchy.allSubinterfaces(jaxRpcService) - jaxRpcService ;
-          impl : SootClass <- fastHierarchy.getAllImplementersOfInterface(interface).asScala
-    ) yield new WebService(interface.getName, impl.getName, interface.getName+"Wrapper")
+      for (interface: SootClass <- fastHierarchy.allSubinterfaces(jaxRpcService) - jaxRpcService;
+           impl: SootClass <- fastHierarchy.getAllImplementersOfInterface(interface).asScala
+      ) yield new WebService(interface.getName, impl.getName, interface.getName + "Wrapper")
 
     explicitImplementations ++ implicitImplementations ++ jaxRpcServices
   }
 
-  def extractWsInformationInterfaces(sc: SootClass, fastHierarchy: FastHierarchy, rootPackage: String) : Traversable[WebService]={
+  def extractWsInformationInterfaces(sc: SootClass, fastHierarchy: FastHierarchy, rootPackage: String): Traversable[WebService] = {
     val implementers = fastHierarchy.interfaceImplementers(sc)
-    implementers.flatMap(extractWsInformation(_,fastHierarchy,rootPackage))
+    implementers.flatMap(extractWsInformation(_, fastHierarchy, rootPackage))
   }
 
 
-  def extractWsInformation(sc : SootClass, fastHierarchy: FastHierarchy,
-                            rootPackage : String, knownInterface : Option[SootClass] = None) : Option[WebService] = {
-    val init : Option[String] = sc.methods.par.find(hasJavaAnnotation(_, WEBSERVICE_POSTINIT_ANNOTATION)).map(_.getName)
-    val destroy : Option[String] = sc.methods.par.find(hasJavaAnnotation(_, WEBSERVICE_PREDESTROY_ANNOTATION)).map(_.getName)
+  def extractWsInformation(sc: SootClass, fastHierarchy: FastHierarchy,
+                           rootPackage: String, knownInterface: Option[SootClass] = None): Option[WebService] = {
+    val init: Option[String] = sc.methods.par.find(hasJavaAnnotation(_, WEBSERVICE_POSTINIT_ANNOTATION)).map(_.getName)
+    val destroy: Option[String] = sc.methods.par.find(hasJavaAnnotation(_, WEBSERVICE_PREDESTROY_ANNOTATION)).map(_.getName)
 
-    val annotationElems : Map[String,Any] = elementsForJavaAnnotation(sc,WEBSERVICE_ANNOTATION)
+    val annotationElems: Map[String, Any] = elementsForJavaAnnotation(sc, WEBSERVICE_ANNOTATION)
 
     //Ignored annotations:
     // - @SOAPBinding: This does not change the high-level behavior
@@ -368,20 +367,20 @@ class JaxWsServiceDetector extends AbstractServletDetector with Logging {
 
 
 
-    val serviceInterfaceOpt : Option[SootClass] = knownInterface.orElse(determineSEI(sc, fastHierarchy, endpointInterface))
+    val serviceInterfaceOpt: Option[SootClass] = knownInterface.orElse(determineSEI(sc, fastHierarchy, endpointInterface))
     if (serviceInterfaceOpt.isEmpty) {
-        logger.error("Cannot process service {} because the specified interface is not implemented or not annotated", sc.getName)
-        return None
+      logger.error("Cannot process service {} because the specified interface is not implemented or not annotated", sc.getName)
+      return None
     }
     val serviceInterface = serviceInterfaceOpt.get
 
-    val serviceInterfaceAnnotationElems : Map[String,Any] = elementsForJavaAnnotation(serviceInterface, WEBSERVICE_ANNOTATION)
+    val serviceInterfaceAnnotationElems: Map[String, Any] = elementsForJavaAnnotation(serviceInterface, WEBSERVICE_ANNOTATION)
 
-    val name : String = localName(sc, annotationElems, serviceInterfaceAnnotationElems)
-    val srvcName : String = serviceName(name, annotationElems, serviceInterfaceAnnotationElems)
-    val prtName : String = portName(name, annotationElems)
-    val tgtNamespace : String = targetNamespace(sc, annotationElems, serviceInterfaceAnnotationElems)
-    val wsdlLoc : String = wsdlLocation(srvcName, annotationElems)
+    val name: String = localName(sc, annotationElems, serviceInterfaceAnnotationElems)
+    val srvcName: String = serviceName(name, annotationElems, serviceInterfaceAnnotationElems)
+    val prtName: String = portName(name, annotationElems)
+    val tgtNamespace: String = targetNamespace(sc, annotationElems, serviceInterfaceAnnotationElems)
+    val wsdlLoc: String = wsdlLocation(srvcName, annotationElems)
 
     //Detect method names
     // JSR-181, p. 35, section 3.5 operation name is @WebMethod.operationName. Default is in Jax-WS 2.0 section 3.5
@@ -390,37 +389,37 @@ class JaxWsServiceDetector extends AbstractServletDetector with Logging {
     val potentialMethods = sc.methods.filterNot(_.isConstructor).filter(_.isConcrete)
 
     //JBOSS-WS Test case in org.jboss.test.ws.jaxws.samples.webservice has no @WebMethod annotation on either interface nor implementation class
-    val serviceMethods : Traversable[WebMethod] = for (
-      sm <-  potentialMethods.filterNot( m=> m.isConstructor || m.isClinit || m.isStatic);
+    val serviceMethods: Traversable[WebMethod] = for (
+      sm <- potentialMethods.filterNot(m => m.isConstructor || m.isClinit || m.isStatic);
       subsig = sm.getSubSignature;
-      seiMethod <- serviceInterface.method(subsig);
+      seiMethod <- serviceInterface.methodOpt(subsig);
       //if (hasJavaAnnotation(sm,WEBMETHOD_ANNOTATION) || hasJavaAnnotation(seiMethod,WEBMETHOD_ANNOTATION));
       implAnn = elementsForJavaAnnotation(sm, WEBMETHOD_ANNOTATION);
-      seiAnn =  elementsForJavaAnnotation(serviceInterface, WEBMETHOD_ANNOTATION);
+      seiAnn = elementsForJavaAnnotation(serviceInterface, WEBMETHOD_ANNOTATION);
       opName = readCascadedAnnotation("operationName", sm.getName, implAnn, seiAnn);
       targetOpName = if (opName(0).isUpper) opName(0).toLower + opName.drop(1) else opName
-    ) yield new WebMethod(null, targetOpName, sm.name,sm.parameterTypes.toList.asJava,sm.returnType)
+    ) yield new WebMethod(null, targetOpName, sm.name, sm.parameterTypes.toList.asJava, sm.returnType)
 
 
     val hasAsyncAlready = serviceMethods.find(wsm => wsm.targetMethodName.endsWith("Async") && (wsm.retType == responseType || wsm.retType == futureType)).isDefined
 
 
-    serviceMethods.foreach(wm => logger.trace("Web method {} hash: {}", wm, wm.hashCode() : Integer))
+    serviceMethods.foreach(wm => logger.trace("Web method {} hash: {}", wm, wm.hashCode(): Integer))
 
     // ------------- Detect handler chain on the server and parse it --------
     val handlerChainOpt = handlerChainOption(sc)
-    if (handlerChainOpt.isDefined){
+    if (handlerChainOpt.isDefined) {
       logger.warn("Service {} is using an handler chain. This is not supported by the analysis.", sc.name)
     }
-   /* val chain : List[String] = for (
-      handlerChain <- handlerChainOpt.toList;
-      chain <- handlerChain.getHandlerChain.asScala;
-      handler <- chain.getHandler.asScala
-    ) yield handler.getHandlerClass.getValue
+    /* val chain : List[String] = for (
+       handlerChain <- handlerChainOpt.toList;
+       chain <- handlerChain.getHandlerChain.asScala;
+       handler <- chain.getHandler.asScala
+     ) yield handler.getHandlerClass.getValue
 
-    if (!chain.isEmpty)
-      logger.warn("Non-empty handler chain !!!!!!!!!!! {}", sc.getName)
-     */
+     if (!chain.isEmpty)
+       logger.warn("Non-empty handler chain !!!!!!!!!!! {}", sc.getName)
+      */
 
     val chain = List[String]()
 
@@ -430,15 +429,15 @@ class JaxWsServiceDetector extends AbstractServletDetector with Logging {
     // ------------- Log and create holder object                    -------
     logger.debug("Found WS. Interface: {} Implementation: {}. Wrapper: {}. Init: {} Destroy: {} Name: {} Namespace: {} " +
       "ServiceName: {} wsdl: {} port: {}.\tMethods: {}",
-      serviceInterface.name, sc.name, wrapperName, init.getOrElse(""), destroy.getOrElse(""), name,tgtNamespace,
-      srvcName,wsdlLoc,prtName, serviceMethods, hasAsyncAlready : java.lang.Boolean
+      serviceInterface.name, sc.name, wrapperName, init.getOrElse(""), destroy.getOrElse(""), name, tgtNamespace,
+      srvcName, wsdlLoc, prtName, serviceMethods, hasAsyncAlready: java.lang.Boolean
     )
 
     val ws = new WebService(
       serviceInterface.name, sc.name, wrapperName, init.getOrElse(""), destroy.getOrElse(""), name, tgtNamespace,
       srvcName, wsdlLoc, prtName, chain.asJava, serviceMethods.toList.asJava, hasAsyncAlready
     )
-    
+
     ws.methods.asScala.foreach(_.service = ws)
 
     Some(ws)

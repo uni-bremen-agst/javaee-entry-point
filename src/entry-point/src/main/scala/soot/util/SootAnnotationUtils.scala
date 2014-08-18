@@ -4,9 +4,9 @@
  */
 package soot.util
 
-import soot.{Unit => SootUnit, SootClass}
 import soot.tagkit._
-import ScalaWrappers._
+import soot.util.ScalaWrappers._
+import soot.{SootClass, Unit => SootUnit}
 
 /**
  * Utilities for dealing with Soot annotations
@@ -33,7 +33,7 @@ object SootAnnotationUtils {
    * @param clazz the Soot annotation type to find.
    * @return An Option for that annotation
    */
-  def findAnnotation[A <: Tag](body: Host, clazz : Class[A]): Option[A] = body.tag(clazz)
+  def findAnnotation[A <: Tag](body: Host, clazz: Class[A]): Option[A] = body.tagOpt(clazz)
 
 
   /**
