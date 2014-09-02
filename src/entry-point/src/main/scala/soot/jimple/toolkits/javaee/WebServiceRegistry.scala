@@ -4,12 +4,11 @@
  */
 package soot.jimple.toolkits.javaee
 
-import soot.jimple.toolkits.javaee.model.ws.WebService
+import soot.jimple.toolkits.javaee.model.ws.{WebMethod, WebService}
 import javax.xml.namespace.QName
 import scala.collection._
-import soot.SootClass
-
 import soot.util.ScalaWrappers._
+import JavaConverters._
 
 /**
  * A registry of the web services detected in the application under analysis
@@ -69,4 +68,12 @@ object WebServiceRegistry {
   def findServiceByImplementation(impl : SootClass) : Option[WebService] =
     _serviceClassLookupByImplementation.get(impl.name)
 
+  private def matchesWebMethod(sm : SootMethod, wm : WebMethod) : Boolean  =
+    wm.name == sm.name && wm.retType == sm.returnType && wm.argTypes.asScala == sm.parameterTypes
+
+
+  def isServiceImplementationMethod(sm : SootMethod) : Boolean = {
+    val found = _serviceClassLookupByImplementation.get(sm.declaringClass.name).flatMap(_.methods.asScala.find(matchesWebMethod(sm, _)))
+    found.isDefined
+  }
 }
