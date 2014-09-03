@@ -4,11 +4,14 @@
  */
 package soot.jimple.toolkits.javaee
 
-import soot.jimple.toolkits.javaee.model.ws.{WebMethod, WebService}
 import javax.xml.namespace.QName
-import scala.collection._
+
+import soot.jimple.toolkits.javaee.model.ws.{WebMethod, WebService}
 import soot.util.ScalaWrappers._
-import JavaConverters._
+import soot.{SootClass, SootMethod}
+
+import scala.collection.JavaConverters._
+import scala.collection._
 
 /**
  * A registry of the web services detected in the application under analysis
@@ -16,20 +19,20 @@ import JavaConverters._
  */
 object WebServiceRegistry {
 
-  private var _services : Traversable[WebService] = Array[WebService]()
-  private lazy val _qnameLookup : Map[QName, Set[WebService]] = {
-    val multimap = new mutable.HashMap[QName, mutable.Set[WebService]] with mutable.MultiMap[QName,WebService]
+  private var _services: Traversable[WebService] = Array[WebService]()
+  private lazy val _qnameLookup: Map[QName, Set[WebService]] = {
+    val multimap = new mutable.HashMap[QName, mutable.Set[WebService]] with mutable.MultiMap[QName, WebService]
     _services.foreach(ws => multimap.addBinding(new QName(ws.targetNamespace, ws.serviceName), ws))
     multimap
   }
 
-  private lazy val _serviceClassLookupByInterface : Map[String, Traversable[WebService]] = _services.groupBy(_.interfaceName)
+  private lazy val _serviceClassLookupByInterface: Map[String, Traversable[WebService]] = _services.groupBy(_.interfaceName)
 
-  private lazy val _serviceClassLookupByImplementation : Map[String, WebService] = _services.map(s => s.implementationName->s).toMap
+  private lazy val _serviceClassLookupByImplementation: Map[String, WebService] = _services.map(s => s.implementationName -> s).toMap
 
-  def services : Traversable[WebService] = _services
+  def services: Traversable[WebService] = _services
 
-  def services_=(update : Traversable[WebService]) : Unit = {
+  def services_=(update: Traversable[WebService]): Unit = {
     _services = update
   }
 
@@ -39,7 +42,7 @@ object WebServiceRegistry {
    * @param localName the local name of the qualified name
    * @return a possibly empty set of web services found for that qualified name
    */
-  def findService(nameSpace : String , localName : String ) : Set[WebService] = {
+  def findService(nameSpace: String, localName: String): Set[WebService] = {
     _qnameLookup.getOrElse(new QName(nameSpace, localName), Set[WebService]())
   }
 
@@ -48,7 +51,7 @@ object WebServiceRegistry {
    * @param qName the qualified name
    * @return a possibly empty set of web services found for that qualified name
    */
-  def findService(qName : QName) : Set[WebService] = {
+  def findService(qName: QName): Set[WebService] = {
     _qnameLookup.getOrElse(qName, Set[WebService]())
   }
 
@@ -57,7 +60,7 @@ object WebServiceRegistry {
    * @param iface the interface class
    * @return a possibly empty set of `WebService` that represent the services implementing that interface (in the WS sense)
    */
-  def findServiceByInterface(iface : SootClass) : Set[WebService] =
+  def findServiceByInterface(iface: SootClass): Set[WebService] =
     _serviceClassLookupByInterface.getOrElse(iface.name, Set()).toSet
 
   /**
@@ -65,14 +68,14 @@ object WebServiceRegistry {
    * @param impl the implementation class
    * @return an Option for the service
    */
-  def findServiceByImplementation(impl : SootClass) : Option[WebService] =
+  def findServiceByImplementation(impl: SootClass): Option[WebService] =
     _serviceClassLookupByImplementation.get(impl.name)
 
-  private def matchesWebMethod(sm : SootMethod, wm : WebMethod) : Boolean  =
+  private def matchesWebMethod(sm: SootMethod, wm: WebMethod): Boolean =
     wm.name == sm.name && wm.retType == sm.returnType && wm.argTypes.asScala == sm.parameterTypes
 
 
-  def isServiceImplementationMethod(sm : SootMethod) : Boolean = {
+  def isServiceImplementationMethod(sm: SootMethod): Boolean = {
     val found = _serviceClassLookupByImplementation.get(sm.declaringClass.name).flatMap(_.methods.asScala.find(matchesWebMethod(sm, _)))
     found.isDefined
   }

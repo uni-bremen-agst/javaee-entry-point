@@ -6,17 +6,18 @@
 package soot.jimple.toolkits.javaee.detectors
 
 import ca.polymtl.gigl.casi.Logging
-import scala.collection.JavaConverters._
 import soot.jimple.toolkits.javaee.model.servlet.Web
-import soot.{Unit => SootUnit, _}
 import soot.jimple.toolkits.javaee.model.servlet.jboss.JBossWSTestServlet
 import soot.util.ScalaWrappers._
+import soot.{Scene, SootClass, SootMethod}
+
+import scala.collection.JavaConverters._
 
 object JBossWSTestDetector {
   final val GENERATED_CLASS_NAME = "JBossWSTestServlet"
 }
 
-import JBossWSTestDetector._
+import soot.jimple.toolkits.javaee.detectors.JBossWSTestDetector._
 
 /**
  * Detector for the JBoss-WS test cases, which are relying on reflection-fu
