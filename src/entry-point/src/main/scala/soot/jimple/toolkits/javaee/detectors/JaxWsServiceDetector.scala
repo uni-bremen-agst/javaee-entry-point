@@ -305,8 +305,9 @@ case e: IOException => logger.info("Cannot read web.xml:", e)
     val fastHierarchy = Scene.v.getOrMakeFastHierarchy //make sure it is created before the parallel computations steps in
 
     //We use getClasses because of the Flowdroid integration
-    val wsImplementationClasses = Scene.v().applicationClasses.par.filter(_.isConcrete).
+    val wsImplementationClasses = Scene.v().classes.par.filter(_.isConcrete).
       filter(hasJavaAnnotation(_, WEBSERVICE_ANNOTATION))
+
     val explicitImplementations = wsImplementationClasses.flatMap((extractWsInformation(_, fastHierarchy, rootPackage))).seq.toList
 
     val detectedInterfaces = explicitImplementations.map(_.interfaceName).toSet
