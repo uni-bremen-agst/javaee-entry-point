@@ -241,6 +241,179 @@ object JaxWSAttributeUtils extends Logging {
 }
 
 import soot.jimple.toolkits.javaee.detectors.JaxWSAttributeUtils._
+
+object JaxWsServiceDetector extends Logging {
+
+  final val GENERATED_CLASS_NAME: String = "WSCaller"
+
+  lazy private val stringType = Scene.v.refType("java.lang.Sting")
+  lazy private val responseType = Scene.v.refType("javax.xml.ws.Response")
+  lazy private val futureType = Scene.v.refType("java.util.concurrent.Future")
+
+  /**
+   * Generates the `WebService` model object based on all the information provided
+   * @param sc implementation class
+   * @param rootPackage the root package
+   * @param serviceIfaceName service interface name. Idem to `sc` for self-contained services
+   * @param postInitMethod method annotated dwith @PostInit, if any
+   * @param preDestroyMethod method annotatino with @PreDestroy, if any
+   * @param name name of the service
+   * @param targetNamespace target namespace
+   * @param serviceName name of the 'service'
+   * @param wsdlLocation WSDL file location
+   * @param portName name of the 'port'
+   * @param serviceMethods all operations implemented by this service
+   * @return a `WebService` object wrapping all that
+   */
+  private def generateModel(sc: SootClass, rootPackage: String, serviceIfaceName: String,
+                            postInitMethod: Option[String], preDestroyMethod: Option[String],
+                            name: String, targetNamespace: String, serviceName: String, wsdlLocation: String, portName: String,
+                            serviceMethods: Traversable[WebMethod]): WebService = {
+
+    val hasAsyncAlready = serviceMethods.find(wsm => wsm.targetMethodName.endsWith("Async") && (wsm.retType == responseType || wsm.retType == futureType)).isDefined
+
+
+    serviceMethods.foreach(wm => logger.trace("Web method {} hash: {}", wm, wm.hashCode(): Integer))
+
+    // ------------- Detect handler chain on the server and parse it --------
+    val handlerChainOpt = handlerChainOption(sc)
+    if (handlerChainOpt.isDefined) {
+      logger.warn("Service {} is using an handler chain. This is not supported by the analysis.", sc.name)
+    }
+    /* val chain : List[String] = for (
+       handlerChain <- handlerChainOpt.toList;
+       chain <- handlerChain.getHandlerChain.asScala;
+       handler <- chain.getHandler.asScala
+     ) yield handler.getHandlerClass.getValue
+
+     if (!chain.isEmpty)
+       logger.warn("Non-empty handler chain !!!!!!!!!!! {}", sc.getName)
+      */
+
+    val chain = List[String]()
+
+    // ------------- Determine the name of the wrapper
+    val wrapperName = WebService.wrapperName(rootPackage, sc.name)
+
+    // ------------- Log and create holder object                    -------
+    logger.debug("Found WS. Interface: {} Implementation: {}. Wrapper: {}. Init: {} Destroy: {} Name: {} Namespace: {} " +
+      "ServiceName: {} wsdl: {} port: {}.\tMethods: {}",
+      serviceIfaceName, sc.name, wrapperName, postInitMethod.getOrElse(""), preDestroyMethod.getOrElse(""), name, targetNamespace,
+      serviceName, wsdlLocation, portName, serviceMethods, hasAsyncAlready: java.lang.Boolean
+    )
+
+    val ws = WebService(
+      serviceIfaceName, sc.name, wrapperName, postInitMethod.getOrElse(""), preDestroyMethod.getOrElse(""), name, targetNamespace,
+      serviceName, wsdlLocation, portName, chain.asJava, serviceMethods.toList.asJava, hasAsyncAlready
+    )
+
+    ws.methods.asScala.foreach(_.service = ws)
+    ws
+  }
+
+  /**
+   * Extracts web service information when the interface is known
+   * @param sc the implementation class
+   * @param fastHierarchy the hierarchy object
+   * @param rootPackage the root package
+   * @param serviceInterface the service's specification interface
+   * @return
+   */
+  def extractWsInformationKnownIFace(sc: SootClass, fastHierarchy: FastHierarchy,
+                                     rootPackage: String, serviceInterface: SootClass): WebService = {
+    val init: Option[String] = sc.methods.find(hasJavaAnnotation(_, WEBSERVICE_POSTINIT_ANNOTATION)).map(_.getName)
+    val destroy: Option[String] = sc.methods.find(hasJavaAnnotation(_, WEBSERVICE_PREDESTROY_ANNOTATION)).map(_.getName)
+    val serviceInterfaceAnnotationElems: Map[String, Any] = elementsForJavaAnnotation(serviceInterface, WEBSERVICE_ANNOTATION)
+    val annotationElems: Map[String, Any] = elementsForJavaAnnotation(sc, WEBSERVICE_ANNOTATION)
+
+    val name: String = localName(sc, annotationElems, serviceInterfaceAnnotationElems)
+    val srvcName: String = serviceName(name, annotationElems, serviceInterfaceAnnotationElems)
+    val prtName: String = portName(name, annotationElems)
+    val tgtNamespace: String = targetNamespace(sc, annotationElems, serviceInterfaceAnnotationElems)
+    val wsdlLoc: String = wsdlLocation(srvcName, annotationElems)
+
+    //Detect method names
+    // JSR-181, p. 35, section 3.5 operation name is @WebMethod.operationName. Default is in Jax-WS 2.0 section 3.5
+    // JAX-WS 2.2 Rev a sec 3.5 p.35 Default is the name of the method
+    //TODO double-check this matching rule
+    val potentialMethods = sc.methods.filterNot(_.isConstructor).filter(_.isConcrete)
+
+    //JBOSS-WS Test case in org.jboss.test.ws.jaxws.samples.webservice has no @WebMethod annotation on either interface nor implementation class
+    val serviceMethods: Traversable[WebMethod] = for (
+      sm <- potentialMethods.filterNot(m => m.isConstructor || m.isClinit || m.isStatic);
+      subsig = sm.getSubSignature;
+      seiMethod <- serviceInterface.methodOpt(subsig);
+      //if (hasJavaAnnotation(sm,WEBMETHOD_ANNOTATION) || hasJavaAnnotation(seiMethod,WEBMETHOD_ANNOTATION));
+      implAnn = elementsForJavaAnnotation(sm, WEBMETHOD_ANNOTATION);
+      seiAnn = elementsForJavaAnnotation(serviceInterface, WEBMETHOD_ANNOTATION);
+      opName = readCascadedAnnotation("operationName", sm.getName, implAnn, seiAnn);
+      targetOpName = if (opName(0).isUpper) opName(0).toLower + opName.drop(1) else opName
+    ) yield new WebMethod(null, targetOpName, sm.name, sm.parameterTypes.toList.asJava, sm.returnType)
+
+    generateModel(sc = sc, rootPackage = rootPackage, serviceIfaceName = serviceInterface.name, preDestroyMethod = destroy, postInitMethod = init,
+      targetNamespace = tgtNamespace, name = name, serviceName = srvcName, wsdlLocation = wsdlLoc, portName = prtName, serviceMethods = serviceMethods)
+
+  }
+
+  /**
+   * Extracts web service information when the WS is self-contained (i.e. has no interface at all)
+   * @param sc the implementation class
+   * @param rootPackage the root package
+   * @return
+   */
+  def extractWsInformationSelfContained(sc: SootClass, rootPackage: String): WebService = {
+    val init: Option[String] = sc.methods.find(hasJavaAnnotation(_, WEBSERVICE_POSTINIT_ANNOTATION)).map(_.getName)
+    val destroy: Option[String] = sc.methods.find(hasJavaAnnotation(_, WEBSERVICE_PREDESTROY_ANNOTATION)).map(_.getName)
+    val annotationElems: Map[String, Any] = elementsForJavaAnnotation(sc, WEBSERVICE_ANNOTATION)
+
+    val name: String = localName(sc, annotationElems, Map())
+    val srvcName: String = serviceName(name, annotationElems, Map())
+    val prtName: String = portName(name, annotationElems)
+    val tgtNamespace: String = targetNamespace(sc, annotationElems, Map())
+    val wsdlLoc: String = wsdlLocation(srvcName, annotationElems)
+
+    val operations = sc.methods.collect {
+      case sm if hasJavaAnnotation(sm, WEBMETHOD_ANNOTATION) =>
+        val implAnn = elementsForJavaAnnotation(sm, WEBMETHOD_ANNOTATION);
+        val opName = implAnn.getOrElse("operationName", sm.getName).asInstanceOf[String]
+        val targetOpName = if (opName(0).isUpper) opName(0).toLower + opName.drop(1) else opName
+        WebMethod(service = null, name = targetOpName, targetMethodName = sm.name, retType = sm.returnType, argTypes = sm.getParameterTypes)
+    }
+    generateModel(sc = sc, rootPackage = rootPackage, serviceIfaceName = sc.name, preDestroyMethod = destroy, postInitMethod = init,
+      targetNamespace = tgtNamespace, name = name, serviceName = srvcName, wsdlLocation = wsdlLoc, portName = prtName, serviceMethods = operations)
+
+  }
+
+  /**
+   * Determine which class is the service's interface
+   * @param sc the implementation class
+   * @param fastHierarchy the hierarchy object
+   * @return an option to the class that specifies the WS' interface. In the case that the class is self-contained,
+   *         we return Some(`sc`)
+   */
+  def determineSEI(sc: SootClass, fastHierarchy: FastHierarchy): Option[SootClass] = {
+    val annotationElems: Map[String, Any] = elementsForJavaAnnotation(sc, WEBSERVICE_ANNOTATION)
+    annotationElems.get("endpointInterface") match {
+      case None =>
+        //Check if the implemented interface is a WS - CXF workaround
+        val interfaceWithWS: Option[SootClass] = sc.interfaces.find(hasJavaAnnotation(_, WEBSERVICE_ANNOTATION))
+        interfaceWithWS orElse Some(sc)
+      case Some(ei) =>
+        //JSR-181, section 3.1, page 13: the implementing class only needs to implement methods in the interface
+        //If it is an implementing class, then it meets that criteria for sure
+        //It could also not implement the interface, but have the same signatures.
+        val iface = Scene.v.getSootClass(ei.asInstanceOf[String])
+        if (hasJavaAnnotation(iface, WEBSERVICE_ANNOTATION) &&
+          (fastHierarchy.canStoreType(sc.getType, iface.getType) || implementsAllMethods(sc, iface))) {
+          //All good. The specified interface is implemented and it has the annotation
+          Some(iface)
+        } else None
+    }
+  }
+
+}
+
+
 import soot.jimple.toolkits.javaee.detectors.JaxWsServiceDetector._
 
 /**
@@ -248,10 +421,6 @@ import soot.jimple.toolkits.javaee.detectors.JaxWsServiceDetector._
  * @author Marc-André Laverdière-Papineau
  */
 class JaxWsServiceDetector extends AbstractServletDetector with Logging {
-
-  lazy val stringType = Scene.v.getRefType("java.lang.String")
-  lazy val responseType = Scene.v.refType("javax.xml.ws.Response")
-  lazy val futureType = Scene.v.refType("java.util.concurrent.Future")
 
   override def detectFromSource(web: Web) {
     val rootPackage: String = web.getGeneratorInfos.getRootPackage
@@ -264,6 +433,9 @@ class JaxWsServiceDetector extends AbstractServletDetector with Logging {
       web.getServlets.add(newServlet)
       web.bindServlet(newServlet, "/wscaller")
     }
+
+    logger.info("Found {} web services, representing {} operations", foundWs.size, foundWs.map(_.methods.size).sum)
+
     WebServiceRegistry.services = foundWs
   }
 
@@ -305,14 +477,14 @@ case e: IOException => logger.info("Cannot read web.xml:", e)
     val fastHierarchy = Scene.v.getOrMakeFastHierarchy //make sure it is created before the parallel computations steps in
 
     //We use getClasses because of the Flowdroid integration
-    val wsImplementationClasses = Scene.v().classes.par.filter(_.isConcrete).
+    val wsImplementationClasses = Scene.v().classes.filter(_.isConcrete).
       filter(hasJavaAnnotation(_, WEBSERVICE_ANNOTATION))
 
-    val explicitImplementations = wsImplementationClasses.flatMap((extractWsInformation(_, fastHierarchy, rootPackage))).seq.toList
+    val explicitImplementations = wsImplementationClasses.flatMap((extractWsInformation(_, fastHierarchy, rootPackage))).toList
 
     val detectedInterfaces = explicitImplementations.map(_.interfaceName).toSet
 
-    val wsInterfaceClasses = Scene.v().applicationClasses.par.filter(_.isInterface).filterNot(_.isPhantom).
+    val wsInterfaceClasses = Scene.v().applicationClasses.filter(_.isInterface).filterNot(_.isPhantom).
       filter(hasJavaAnnotation(_, WEBSERVICE_ANNOTATION)).filterNot(sc => detectedInterfaces.contains(sc.name))
 
     val implicitImplementations = wsInterfaceClasses.flatMap(extractWsInformationInterfaces(_, fastHierarchy, rootPackage))
@@ -332,11 +504,8 @@ case e: IOException => logger.info("Cannot read web.xml:", e)
 
 
   def extractWsInformation(sc: SootClass, fastHierarchy: FastHierarchy,
-                           rootPackage: String, knownInterface: Option[SootClass] = None): Option[WebService] = {
-    val init: Option[String] = sc.methods.par.find(hasJavaAnnotation(_, WEBSERVICE_POSTINIT_ANNOTATION)).map(_.getName)
-    val destroy: Option[String] = sc.methods.par.find(hasJavaAnnotation(_, WEBSERVICE_PREDESTROY_ANNOTATION)).map(_.getName)
+                           rootPackage: String): Option[WebService] = {
 
-    val annotationElems: Map[String, Any] = elementsForJavaAnnotation(sc, WEBSERVICE_ANNOTATION)
 
     //Ignored annotations:
     // - @SOAPBinding: This does not change the high-level behavior
@@ -364,107 +533,16 @@ case e: IOException => logger.info("Cannot read web.xml:", e)
     //  String portName() default "";
     //};
 
-    val endpointInterface = annotationElems.get("endpointInterface")
-
-
-
-    val serviceInterfaceOpt: Option[SootClass] = knownInterface.orElse(determineSEI(sc, fastHierarchy, endpointInterface))
-    if (serviceInterfaceOpt.isEmpty) {
-      logger.error("Cannot process service {} because the specified interface is not implemented or not annotated", sc.getName)
-      return None
+    determineSEI(sc, fastHierarchy) match {
+      case None =>
+        logger.error("Cannot process service {} because the specified interface is not implemented or not annotated", sc.getName)
+        None
+      case Some(selfContainedClass) if selfContainedClass == sc => Some(extractWsInformationSelfContained(sc, rootPackage))
+      case Some(serviceInterface) => Some(extractWsInformationKnownIFace(sc, fastHierarchy, rootPackage, serviceInterface))
     }
-    val serviceInterface = serviceInterfaceOpt.get
 
-    val serviceInterfaceAnnotationElems: Map[String, Any] = elementsForJavaAnnotation(serviceInterface, WEBSERVICE_ANNOTATION)
-
-    val name: String = localName(sc, annotationElems, serviceInterfaceAnnotationElems)
-    val srvcName: String = serviceName(name, annotationElems, serviceInterfaceAnnotationElems)
-    val prtName: String = portName(name, annotationElems)
-    val tgtNamespace: String = targetNamespace(sc, annotationElems, serviceInterfaceAnnotationElems)
-    val wsdlLoc: String = wsdlLocation(srvcName, annotationElems)
-
-    //Detect method names
-    // JSR-181, p. 35, section 3.5 operation name is @WebMethod.operationName. Default is in Jax-WS 2.0 section 3.5
-    // JAX-WS 2.2 Rev a sec 3.5 p.35 Default is the name of the method
-    //TODO double-check this matching rule
-    val potentialMethods = sc.methods.filterNot(_.isConstructor).filter(_.isConcrete)
-
-    //JBOSS-WS Test case in org.jboss.test.ws.jaxws.samples.webservice has no @WebMethod annotation on either interface nor implementation class
-    val serviceMethods: Traversable[WebMethod] = for (
-      sm <- potentialMethods.filterNot(m => m.isConstructor || m.isClinit || m.isStatic);
-      subsig = sm.getSubSignature;
-      seiMethod <- serviceInterface.methodOpt(subsig);
-      //if (hasJavaAnnotation(sm,WEBMETHOD_ANNOTATION) || hasJavaAnnotation(seiMethod,WEBMETHOD_ANNOTATION));
-      implAnn = elementsForJavaAnnotation(sm, WEBMETHOD_ANNOTATION);
-      seiAnn = elementsForJavaAnnotation(serviceInterface, WEBMETHOD_ANNOTATION);
-      opName = readCascadedAnnotation("operationName", sm.getName, implAnn, seiAnn);
-      targetOpName = if (opName(0).isUpper) opName(0).toLower + opName.drop(1) else opName
-    ) yield new WebMethod(null, targetOpName, sm.name, sm.parameterTypes.toList.asJava, sm.returnType)
-
-
-    val hasAsyncAlready = serviceMethods.find(wsm => wsm.targetMethodName.endsWith("Async") && (wsm.retType == responseType || wsm.retType == futureType)).isDefined
-
-
-    serviceMethods.foreach(wm => logger.trace("Web method {} hash: {}", wm, wm.hashCode(): Integer))
-
-    // ------------- Detect handler chain on the server and parse it --------
-    val handlerChainOpt = handlerChainOption(sc)
-    if (handlerChainOpt.isDefined) {
-      logger.warn("Service {} is using an handler chain. This is not supported by the analysis.", sc.name)
-    }
-    /* val chain : List[String] = for (
-       handlerChain <- handlerChainOpt.toList;
-       chain <- handlerChain.getHandlerChain.asScala;
-       handler <- chain.getHandler.asScala
-     ) yield handler.getHandlerClass.getValue
-
-     if (!chain.isEmpty)
-       logger.warn("Non-empty handler chain !!!!!!!!!!! {}", sc.getName)
-      */
-
-    val chain = List[String]()
-
-    // ------------- Determine the name of the wrapper
-    val wrapperName = WebService.wrapperName(rootPackage, sc.name)
-
-    // ------------- Log and create holder object                    -------
-    logger.debug("Found WS. Interface: {} Implementation: {}. Wrapper: {}. Init: {} Destroy: {} Name: {} Namespace: {} " +
-      "ServiceName: {} wsdl: {} port: {}.\tMethods: {}",
-      serviceInterface.name, sc.name, wrapperName, init.getOrElse(""), destroy.getOrElse(""), name, tgtNamespace,
-      srvcName, wsdlLoc, prtName, serviceMethods, hasAsyncAlready: java.lang.Boolean
-    )
-
-    val ws = new WebService(
-      serviceInterface.name, sc.name, wrapperName, init.getOrElse(""), destroy.getOrElse(""), name, tgtNamespace,
-      srvcName, wsdlLoc, prtName, chain.asJava, serviceMethods.toList.asJava, hasAsyncAlready
-    )
-
-    ws.methods.asScala.foreach(_.service = ws)
-
-    Some(ws)
   }
 
-  protected def determineSEI(sc: SootClass, fastHierarchy: FastHierarchy, endpointInterface: Option[Any]): Option[SootClass] = {
-    if (endpointInterface.isEmpty) {
-      //Check if the implemented interface is a WS - CXF workaround
-      val interfaceWithWS = sc.interfaces.find(hasJavaAnnotation(_, WEBSERVICE_ANNOTATION))
-      Some(interfaceWithWS.getOrElse(sc)) //Default is to use the service's name
-    }
-    else {
-      //JSR-181, section 3.1, page 13: the implementing class only needs to implement methods in the interface
-      //If it is an implementing class, then it meets that criteria for sure
-      //It could also not implement the interface, but have the same signatures.
-      val iface = Scene.v.getSootClass(endpointInterface.get.asInstanceOf[String])
-      if (hasJavaAnnotation(iface, WEBSERVICE_ANNOTATION) &&
-        (fastHierarchy.canStoreType(sc.getType, iface.getType) || implementsAllMethods(sc, iface))) {
-        //All good. The specified interface is implemented and it has the annotation
-        Some(iface)
-      } else None
-    }
-  }
-}
 
-object JaxWsServiceDetector {
-  final val GENERATED_CLASS_NAME: String = "WSCaller"
 
 }
