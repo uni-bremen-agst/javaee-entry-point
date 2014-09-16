@@ -59,31 +59,16 @@ object JaxWSAttributeUtils extends Logging {
     referenceMethodSignatures.forall(implementorMethodSignatures.contains(_))
   }
 
-  /**
-   * Read an annotation element on the current class on or service interface
-   * @param annName name of the annotation
-   * @param default a function that gives the default value, if it is not found in the annotations
-   * @param localAnn the local annotation's elements
-   * @param interfaceAnn the interface annotation's elements
-   * @return an option for the value of the annotation element
-   */
-  def readCascadedAnnotation(annName: String, default: => String, localAnn: Map[String, Any], interfaceAnn: Map[String, Any]): String = {
-    if (localAnn != interfaceAnn)
-      localAnn.getOrElse(annName, interfaceAnn.getOrElse(annName, default)).asInstanceOf[String]
-    else
-      localAnn.getOrElse(annName, default).asInstanceOf[String]
-  }
 
   /**
    * Determines the local name of the service. This is not the same as the service name
    * JSR 181 section 4.1.1 Default: short name of the class or interface
    * @param sc the implementation class
    * @param annotationElems the annotations on the class
-   * @param serviceInterfaceAnnotationElems the annotations on the service interface
    * @return a non-empty string with the name of the service
    */
-  def localName(sc: SootClass, annotationElems: Map[String, Any], serviceInterfaceAnnotationElems: Map[String, Any]): String = {
-    readCascadedAnnotation("name", sc.getShortName, annotationElems, serviceInterfaceAnnotationElems)
+  def localName(sc: SootClass, annotationElems: Map[String, Any]): String = {
+    annotationElems.getOrElse("name", sc.getShortName).toString
   }
 
   /**
@@ -115,11 +100,10 @@ object JaxWSAttributeUtils extends Logging {
    *
    * @param sc the implementation class
    * @param annotationElems the annotations on the implementation class
-   * @param serviceInterfaceAnnotationElems the annotations on the SEI
    * @return a non-empty string
    */
-  def targetNamespace(sc: SootClass, annotationElems: Map[String, Any], serviceInterfaceAnnotationElems: Map[String, Any]): String = {
-    readCascadedAnnotation("targetNamespace", "http://" + reversePackageName(sc.getPackageName) + "/", annotationElems, serviceInterfaceAnnotationElems)
+  def targetNamespace(sc: SootClass, annotationElems: Map[String, Any]): String = {
+    annotationElems.getOrElse("targetNamespace", "http://" + reversePackageName(sc.getPackageName) + "/").toString
   }
 
   /**
@@ -136,7 +120,7 @@ object JaxWSAttributeUtils extends Logging {
    * @return a non-empty string
    */
   def portName(name: String, annotationElems: Map[String, Any]): String = {
-    annotationElems.get("portName").getOrElse(name + "Port").asInstanceOf[String]
+    annotationElems.getOrElse("portName", name + "Port").asInstanceOf[String]
   }
 
   /**
@@ -156,11 +140,14 @@ object JaxWSAttributeUtils extends Logging {
    *
    * @param name the name of the serice
    * @param annotationElems the annotations on the implementation class
-   * @param serviceInterfaceAnnotationElems the annotations on the SEI
    * @return a non-empty string
    */
-  def serviceName(name: String, annotationElems: Map[String, Any], serviceInterfaceAnnotationElems: Map[String, Any]): String = {
-    readCascadedAnnotation("serviceName", name + "Service", annotationElems, serviceInterfaceAnnotationElems)
+  def serviceName(name: String, annotationElems: Map[String, Any]): String = {
+    annotationElems.getOrElse("serviceName", name + "Service").toString
+  }
+
+  def operationName(methodName: String, annotationElems: Map[String, Any]): String = {
+    annotationElems.getOrElse("operationName", methodName).toString
   }
 
   /**
@@ -255,21 +242,20 @@ object JaxWsServiceDetector extends Logging {
    * @param sc implementation class
    * @param rootPackage the root package
    * @param serviceIfaceName service interface name. Idem to `sc` for self-contained services
-   * @param postInitMethod method annotated dwith @PostInit, if any
-   * @param preDestroyMethod method annotatino with @PreDestroy, if any
-   * @param name name of the service
-   * @param targetNamespace target namespace
-   * @param serviceName name of the 'service'
-   * @param wsdlLocation WSDL file location
-   * @param portName name of the 'port'
    * @param serviceMethods all operations implemented by this service
    * @return a `WebService` object wrapping all that
    */
   private def generateModel(sc: SootClass, rootPackage: String, serviceIfaceName: String,
-                            postInitMethod: Option[String], preDestroyMethod: Option[String],
-                            name: String, targetNamespace: String, serviceName: String, wsdlLocation: String, portName: String,
-                            serviceMethods: Traversable[WebMethod]): WebService = {
+                            annotationChain: Map[String, Any], serviceMethods: Traversable[WebMethod]): WebService = {
 
+    val postInitMethod: Option[String] = sc.methods.find(hasJavaAnnotation(_, WEBSERVICE_POSTINIT_ANNOTATION)).map(_.getName)
+    val preDestroyMethod: Option[String] = sc.methods.find(hasJavaAnnotation(_, WEBSERVICE_PREDESTROY_ANNOTATION)).map(_.getName)
+
+    val name: String = localName(sc, annotationChain)
+    val srvcName: String = serviceName(name, annotationChain)
+    val prtName: String = portName(name, annotationChain)
+    val tgtNamespace: String = targetNamespace(sc, annotationChain)
+    val wsdlLoc: String = wsdlLocation(srvcName, annotationChain)
     val hasAsyncAlready = serviceMethods.find(wsm => wsm.targetMethodName.endsWith("Async") && (wsm.retType == responseType || wsm.retType == futureType)).isDefined
 
 
@@ -298,13 +284,13 @@ object JaxWsServiceDetector extends Logging {
     // ------------- Log and create holder object                    -------
     logger.debug("Found WS. Interface: {} Implementation: {}. Wrapper: {}. Init: {} Destroy: {} Name: {} Namespace: {} " +
       "ServiceName: {} wsdl: {} port: {}.\tMethods: {}",
-      serviceIfaceName, sc.name, wrapperName, postInitMethod.getOrElse(""), preDestroyMethod.getOrElse(""), name, targetNamespace,
-      serviceName, wsdlLocation, portName, serviceMethods, hasAsyncAlready: java.lang.Boolean
+      serviceIfaceName, sc.name, wrapperName, postInitMethod.getOrElse(""), preDestroyMethod.getOrElse(""), name, tgtNamespace,
+      srvcName, wsdlLoc, prtName, serviceMethods, hasAsyncAlready: java.lang.Boolean
     )
 
     val ws = WebService(
-      serviceIfaceName, sc.name, wrapperName, postInitMethod.getOrElse(""), preDestroyMethod.getOrElse(""), name, targetNamespace,
-      serviceName, wsdlLocation, portName, chain.asJava, serviceMethods.toList.asJava, hasAsyncAlready
+      serviceIfaceName, sc.name, wrapperName, postInitMethod.getOrElse(""), preDestroyMethod.getOrElse(""), name, tgtNamespace,
+      srvcName, wsdlLoc, prtName, chain.asJava, serviceMethods.toList.asJava, hasAsyncAlready
     )
 
     ws.methods.asScala.foreach(_.service = ws)
@@ -321,17 +307,6 @@ object JaxWsServiceDetector extends Logging {
    */
   def extractWsInformationKnownIFace(sc: SootClass, fastHierarchy: FastHierarchy,
                                      rootPackage: String, serviceInterface: SootClass): WebService = {
-    val init: Option[String] = sc.methods.find(hasJavaAnnotation(_, WEBSERVICE_POSTINIT_ANNOTATION)).map(_.getName)
-    val destroy: Option[String] = sc.methods.find(hasJavaAnnotation(_, WEBSERVICE_PREDESTROY_ANNOTATION)).map(_.getName)
-    val serviceInterfaceAnnotationElems: Map[String, Any] = elementsForJavaAnnotation(serviceInterface, WEBSERVICE_ANNOTATION)
-    val annotationElems: Map[String, Any] = elementsForJavaAnnotation(sc, WEBSERVICE_ANNOTATION)
-
-    val name: String = localName(sc, annotationElems, serviceInterfaceAnnotationElems)
-    val srvcName: String = serviceName(name, annotationElems, serviceInterfaceAnnotationElems)
-    val prtName: String = portName(name, annotationElems)
-    val tgtNamespace: String = targetNamespace(sc, annotationElems, serviceInterfaceAnnotationElems)
-    val wsdlLoc: String = wsdlLocation(srvcName, annotationElems)
-
     //Detect method names
     // JSR-181, p. 35, section 3.5 operation name is @WebMethod.operationName. Default is in Jax-WS 2.0 section 3.5
     // JAX-WS 2.2 Rev a sec 3.5 p.35 Default is the name of the method
@@ -344,14 +319,13 @@ object JaxWsServiceDetector extends Logging {
       subsig = sm.getSubSignature;
       seiMethod <- serviceInterface.methodOpt(subsig);
       //if (hasJavaAnnotation(sm,WEBMETHOD_ANNOTATION) || hasJavaAnnotation(seiMethod,WEBMETHOD_ANNOTATION));
-      implAnn = elementsForJavaAnnotation(sm, WEBMETHOD_ANNOTATION);
-      seiAnn = elementsForJavaAnnotation(serviceInterface, WEBMETHOD_ANNOTATION);
-      opName = readCascadedAnnotation("operationName", sm.getName, implAnn, seiAnn);
+      methodAnn = elementsForJavaAnnotation(sm, WEBMETHOD_ANNOTATION) withDefault elementsForJavaAnnotation(seiMethod, WEBMETHOD_ANNOTATION);
+      opName = operationName(sm.getName, methodAnn);
       targetOpName = if (opName(0).isUpper) opName(0).toLower + opName.drop(1) else opName
     ) yield new WebMethod(null, targetOpName, sm.name, sm.parameterTypes.toList.asJava, sm.returnType)
 
-    generateModel(sc = sc, rootPackage = rootPackage, serviceIfaceName = serviceInterface.name, preDestroyMethod = destroy, postInitMethod = init,
-      targetNamespace = tgtNamespace, name = name, serviceName = srvcName, wsdlLocation = wsdlLoc, portName = prtName, serviceMethods = serviceMethods)
+    val annotationChain: Map[String, Any] = elementsForJavaAnnotation(sc, WEBSERVICE_ANNOTATION) withDefault elementsForJavaAnnotation(serviceInterface, WEBSERVICE_ANNOTATION)
+    generateModel(sc, rootPackage, serviceInterface.name, annotationChain, serviceMethods)
 
   }
 
@@ -362,16 +336,6 @@ object JaxWsServiceDetector extends Logging {
    * @return
    */
   def extractWsInformationSelfContained(sc: SootClass, rootPackage: String): WebService = {
-    val init: Option[String] = sc.methods.find(hasJavaAnnotation(_, WEBSERVICE_POSTINIT_ANNOTATION)).map(_.getName)
-    val destroy: Option[String] = sc.methods.find(hasJavaAnnotation(_, WEBSERVICE_PREDESTROY_ANNOTATION)).map(_.getName)
-    val annotationElems: Map[String, Any] = elementsForJavaAnnotation(sc, WEBSERVICE_ANNOTATION)
-
-    val name: String = localName(sc, annotationElems, Map())
-    val srvcName: String = serviceName(name, annotationElems, Map())
-    val prtName: String = portName(name, annotationElems)
-    val tgtNamespace: String = targetNamespace(sc, annotationElems, Map())
-    val wsdlLoc: String = wsdlLocation(srvcName, annotationElems)
-
     val operations = sc.methods.collect {
       case sm if hasJavaAnnotation(sm, WEBMETHOD_ANNOTATION) =>
         val implAnn = elementsForJavaAnnotation(sm, WEBMETHOD_ANNOTATION);
@@ -379,9 +343,9 @@ object JaxWsServiceDetector extends Logging {
         val targetOpName = if (opName(0).isUpper) opName(0).toLower + opName.drop(1) else opName
         WebMethod(service = null, name = targetOpName, targetMethodName = sm.name, retType = sm.returnType, argTypes = sm.getParameterTypes)
     }
-    generateModel(sc = sc, rootPackage = rootPackage, serviceIfaceName = sc.name, preDestroyMethod = destroy, postInitMethod = init,
-      targetNamespace = tgtNamespace, name = name, serviceName = srvcName, wsdlLocation = wsdlLoc, portName = prtName, serviceMethods = operations)
 
+    val annotationElems: Map[String, Any] = elementsForJavaAnnotation(sc, WEBSERVICE_ANNOTATION)
+    generateModel(sc, rootPackage, sc.name, annotationElems, operations)
   }
 
   /**
