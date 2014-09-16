@@ -451,7 +451,11 @@ case e: IOException => logger.info("Cannot read web.xml:", e)
     val wsInterfaceClasses = Scene.v().applicationClasses.filter(_.isInterface).filterNot(_.isPhantom).
       filter(hasJavaAnnotation(_, WEBSERVICE_ANNOTATION)).filterNot(sc => detectedInterfaces.contains(sc.name))
 
-    val implicitImplementations = wsInterfaceClasses.flatMap(extractWsInformationInterfaces(_, fastHierarchy, rootPackage))
+    //TODO make this one skip the ones that were already found
+    val implicitImplementations = for (sc <- wsInterfaceClasses;
+                                       potImpl <- fastHierarchy.interfaceImplementers(sc);
+                                       impl <- extractWsInformation(potImpl, fastHierarchy, rootPackage)) yield impl
+
 
     val jaxRpcServices =
       for (interface: SootClass <- fastHierarchy.allSubinterfaces(jaxRpcService) - jaxRpcService;
@@ -460,12 +464,6 @@ case e: IOException => logger.info("Cannot read web.xml:", e)
 
     explicitImplementations ++ implicitImplementations ++ jaxRpcServices
   }
-
-  def extractWsInformationInterfaces(sc: SootClass, fastHierarchy: FastHierarchy, rootPackage: String): Traversable[WebService] = {
-    val implementers = fastHierarchy.interfaceImplementers(sc)
-    implementers.flatMap(extractWsInformation(_, fastHierarchy, rootPackage))
-  }
-
 
   def extractWsInformation(sc: SootClass, fastHierarchy: FastHierarchy,
                            rootPackage: String): Option[WebService] = {
