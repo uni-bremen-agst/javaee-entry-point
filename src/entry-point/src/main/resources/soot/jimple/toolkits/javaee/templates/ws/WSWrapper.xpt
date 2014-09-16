@@ -27,15 +27,15 @@ public class «clazz» extends javax.servlet.http.HttpServlet
     {
 «FOREACH (List[WebService])services() AS service ITERATOR iter»
        «service.implementationName()» $r«iter.counter1»;
-«ENDFOREACH»
+«ENDFOREACH-»
 «FOREACH (List[WebService])services() AS service ITERATOR iter»
        $r«iter.counter1» = new '«service.implementationName()»';
        specialinvoke $r«iter.counter1».<'«service.implementationName()»': void <init>()>();
-«ENDFOREACH»
+«ENDFOREACH-»
 
 «FOREACH (List[WebService])services() AS service ITERATOR iter»
        <'«clazz»': '«service.implementationName()»' 'ws«toIdentifier(service)»'> = $r«iter.counter1»;
-«ENDFOREACH»
+«ENDFOREACH-»
         return;
     }
 
@@ -59,7 +59,7 @@ public class «clazz» extends javax.servlet.http.HttpServlet
         '«service.implementationName()»' '$wsl«toIdentifier(service)»'; «REM»local var for ws«ENDREM»
 «ENDFOREACH»
 
-«FOREACH (List[WebMethod])((List[WebService])services()).methods() AS method ITERATOR methodIterator -»
+«FOREACH (List[WebMethod])operations() AS method ITERATOR methodIterator -»
 «FOREACH (List[Type])method.argTypes() AS param ITERATOR paramIterator-»
 «EXPAND BeanFactory::beanLocals(param.localPrefix() + "_" + methodIterator.counter0 + "_" + paramIterator.counter0 ) FOR param-»«REM»Local var for each parameter value«ENDREM»
 «ENDFOREACH-»«ENDFOREACH-»
@@ -76,15 +76,15 @@ label0:
         $i0 = virtualinvoke $r3.<java.util.Random: int nextInt()>();
         tableswitch($i0)
         {
-«FOREACH ((List[WebService])services()).methods() AS method ITERATOR iter-»
-            case «iter.counter0»: goto label«iter.counter0 + 2»;
+«FOREACH (List[WebMethod])operations() AS method ITERATOR methodIterator -»
+            case «methodIterator.counter0»: goto label«methodIterator.counter0 + 2»;
 «ENDFOREACH-»
             default: goto label1;
           };
 
 label1:
           return;
-«FOREACH ((List[WebService])services()).methods() AS method ITERATOR methodIterator»
+«FOREACH (List[WebMethod])operations() AS method ITERATOR methodIterator -»
 label«methodIterator.counter0 + 2»:
 «FOREACH (List[Type])method.argTypes() AS param ITERATOR paramIterator-»
 «EXPAND BeanFactory::initializeLocal(clazz, param.localPrefix() + "_" + methodIterator.counter0 + "_" + paramIterator.counter0 ) FOR param-»«REM»Local var for each parameter value«ENDREM»
