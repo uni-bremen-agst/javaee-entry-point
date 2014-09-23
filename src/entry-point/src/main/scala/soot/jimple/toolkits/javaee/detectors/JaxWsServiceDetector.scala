@@ -56,7 +56,7 @@ object JaxWSAttributeUtils extends Logging {
   def implementsAllMethods(implementor: SootClass, reference: SootClass): Boolean = {
     val referenceMethodSignatures = reference.methods.map(_.getSubSignature)
     val implementorMethodSignatures = implementor.methods.map(_.getSubSignature).toSet
-    referenceMethodSignatures.forall(implementorMethodSignatures.contains(_))
+    referenceMethodSignatures.forall(implementorMethodSignatures.contains)
   }
 
 
@@ -84,7 +84,7 @@ object JaxWSAttributeUtils extends Logging {
    * @return a non-empty string
    */
   def wsdlLocation(serviceName: String, annotationElems: Map[String, Any]): String = {
-    annotationElems.get("wsdlLocation").getOrElse(serviceName + "?wsdl").asInstanceOf[String]
+    annotationElems.getOrElse("wsdlLocation", serviceName + "?wsdl").asInstanceOf[String]
   }
 
   /**
@@ -233,7 +233,6 @@ object JaxWsServiceDetector extends Logging {
 
   final val GENERATED_CLASS_NAME: String = "WSCaller"
 
-  lazy private val stringType = Scene.v.refType("java.lang.Sting")
   lazy private val responseType = Scene.v.refType("javax.xml.ws.Response")
   lazy private val futureType = Scene.v.refType("java.util.concurrent.Future")
 
@@ -256,7 +255,7 @@ object JaxWsServiceDetector extends Logging {
     val prtName: String = portName(name, annotationChain)
     val tgtNamespace: String = targetNamespace(sc, annotationChain)
     val wsdlLoc: String = wsdlLocation(srvcName, annotationChain)
-    val hasAsyncAlready = serviceMethods.find(wsm => wsm.targetMethodName.endsWith("Async") && (wsm.retType == responseType || wsm.retType == futureType)).isDefined
+    val hasAsyncAlready = serviceMethods.exists(wsm => wsm.targetMethodName.endsWith("Async") && (wsm.retType == responseType || wsm.retType == futureType))
 
 
     serviceMethods.foreach(wm => logger.trace("Web method {} hash: {}", wm, wm.hashCode(): Integer))
@@ -338,7 +337,7 @@ object JaxWsServiceDetector extends Logging {
   def extractWsInformationSelfContained(sc: SootClass, rootPackage: String): WebService = {
     val operations = sc.methods.collect {
       case sm if hasJavaAnnotation(sm, WEBMETHOD_ANNOTATION) =>
-        val implAnn = elementsForJavaAnnotation(sm, WEBMETHOD_ANNOTATION);
+        val implAnn = elementsForJavaAnnotation(sm, WEBMETHOD_ANNOTATION)
         val opName = implAnn.getOrElse("operationName", sm.getName).asInstanceOf[String]
         val targetOpName = if (opName(0).isUpper) opName(0).toLower + opName.drop(1) else opName
         WebMethod(service = null, name = targetOpName, targetMethodName = sm.name, retType = sm.returnType, argTypes = sm.getParameterTypes)
@@ -389,7 +388,7 @@ class JaxWsServiceDetector extends AbstractServletDetector with Logging {
   override def detectFromSource(web: Web) {
     val rootPackage: String = web.getGeneratorInfos.getRootPackage
     val foundWs = findWSInApplication(rootPackage)
-    if (!foundWs.isEmpty) {
+    if (foundWs.nonEmpty) {
       val newServlet = new WsServlet(foundWs.asJava)
       val fullName = rootPackage + "." + GENERATED_CLASS_NAME
       newServlet.setClazz(fullName)
@@ -428,7 +427,7 @@ case e: IOException => logger.info("Cannot read web.xml:", e)
   // ----------------------- Template part of the interface
   override def getModelExtensions: java.util.List[Class[_]] = List[Class[_]](classOf[WsServlet], classOf[WebService]).asJava
 
-  override def getCheckFiles: java.util.List[String] = return List[String]().asJava
+  override def getCheckFiles: java.util.List[String] = List[String]().asJava
 
   override def getTemplateFiles: java.util.List[String] =
     List[String]("soot::jimple::toolkits::javaee::templates::ws::WSWrapper::main",
@@ -441,10 +440,10 @@ case e: IOException => logger.info("Cannot read web.xml:", e)
     val fastHierarchy = Scene.v.getOrMakeFastHierarchy //make sure it is created before the parallel computations steps in
 
     //We use getClasses because of the Flowdroid integration
-    val wsImplementationClasses = Scene.v().classes.filter(_.isConcrete).
-      filter(hasJavaAnnotation(_, WEBSERVICE_ANNOTATION))
+    val wsImplementationClasses = Scene.v().classes.filter(sc => sc.resolvingLevel() > SootClass.DANGLING && sc.isConcrete &&
+                                                           hasJavaAnnotation(sc, WEBSERVICE_ANNOTATION))
 
-    val explicitImplementations = wsImplementationClasses.flatMap((extractWsInformation(_, fastHierarchy, rootPackage))).toList
+    val explicitImplementations = wsImplementationClasses.flatMap(extractWsInformation(_, fastHierarchy, rootPackage)).toList
 
     val detectedInterfaces = explicitImplementations.map(_.interfaceName).toSet
 
