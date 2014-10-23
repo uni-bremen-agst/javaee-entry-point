@@ -77,7 +77,7 @@ object WebServiceRegistry {
    * @return `true` if this method is a service method, `false` otherwise
    */
   def isServiceImplementationMethod(sm : SootMethod) : Boolean = {
-    val thisServiceMethods : TraversableOnce[WebMethod] = _serviceClassLookupByImplementation.get(sm.declaringClass.name).flatMap(_.methods.asScala)
+    val thisServiceMethods: TraversableOnce[WebMethod] = _serviceClassLookupByImplementation.get(sm.declaringClass.name).toIterable.flatMap(_.methods.asScala)
     thisServiceMethods.
       exists(method => method.targetMethodName == sm.name && method.retType == sm.returnType && method.argTypes.asScala == sm.parameterTypes)
   }
