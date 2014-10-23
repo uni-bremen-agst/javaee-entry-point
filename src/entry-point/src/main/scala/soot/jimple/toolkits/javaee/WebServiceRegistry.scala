@@ -71,12 +71,15 @@ object WebServiceRegistry {
   def findServiceByImplementation(impl: SootClass): Option[WebService] =
     _serviceClassLookupByImplementation.get(impl.name)
 
-  private def matchesWebMethod(sm: SootMethod, wm: WebMethod): Boolean =
-    wm.name == sm.name && wm.retType == sm.returnType && wm.argTypes.asScala == sm.parameterTypes
-
-
-  def isServiceImplementationMethod(sm: SootMethod): Boolean = {
-    val found = _serviceClassLookupByImplementation.get(sm.declaringClass.name).flatMap(_.methods.asScala.find(matchesWebMethod(sm, _)))
-    found.isDefined
+  /**
+   * Checks if this Soot method is actually a service method
+   * @param sm the Soot method
+   * @return `true` if this method is a service method, `false` otherwise
+   */
+  def isServiceImplementationMethod(sm : SootMethod) : Boolean = {
+    val thisServiceMethods : TraversableOnce[WebMethod] = _serviceClassLookupByImplementation.get(sm.declaringClass.name).flatMap(_.methods.asScala)
+    thisServiceMethods.
+      exists(method => method.targetMethodName == sm.name && method.retType == sm.returnType && method.argTypes.asScala == sm.parameterTypes)
   }
+
 }
