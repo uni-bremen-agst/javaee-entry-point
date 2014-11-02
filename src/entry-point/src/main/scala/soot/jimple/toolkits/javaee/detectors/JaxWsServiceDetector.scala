@@ -4,8 +4,8 @@
  */
 package soot.jimple.toolkits.javaee.detectors
 
-import java.io.File
 import java.net.{MalformedURLException, URL}
+import java.nio.file.{Files, Path, Paths}
 import javax.xml.bind.{JAXB, JAXBContext}
 
 import ca.polymtl.gigl.casi.Logging
@@ -14,7 +14,6 @@ import soot._
 import soot.jimple.toolkits.javaee.WebServiceRegistry
 import soot.jimple.toolkits.javaee.model.servlet.Web
 import soot.jimple.toolkits.javaee.model.ws.{WebService, WsServlet, _}
-import soot.tagkit.SourceFileTag
 import soot.util.ScalaWrappers._
 import soot.util.SootAnnotationUtils._
 
@@ -169,43 +168,51 @@ object JaxWSAttributeUtils extends Logging {
   }
 
   /**
-   * Helper function that tries to read the file on that class - and guesses where it could be
+   * Helper function that tries to read the file on that class - and guesses where it could be.
+   * It tries to find that file in `resourceLookupRoots` and the current working directory.
    * @param sc the soot class we are dealing with - used in logging
    * @param file the handler configuration file location
+   * @param resourceLookupRoots all the places where to look up the file specified in the @HandlerChain annotation.
    * @return an Option over the handler chain XML type
    **/
-  private def handlerChainAsFile(sc: SootClass, file: String): Option[HandlerChainsType] = {
+  private def handlerChainAsFile(sc: SootClass, file: String, resourceLookupRoots: Traversable[Path]): Option[HandlerChainsType] = {
     logger.trace("Checking annotations: {}", sc.tags)
-    val location = findAnnotation(sc, classOf[SourceFileTag]).map(_.getAbsolutePath)
-    val locationFile = location.map(new File(_))
+    val annotationElems = findJavaAnnotation(sc, HANDLER_CHAIN_ANNOTATION).map(annotationElements)
+    annotationElems.flatMap(_.get("file")).map(_.toString) match {
+      case None => logger.trace("No handler path annotation found in class {}", sc.name); None
+      case Some(location) =>
+        logger.trace("Handler file location: {}", location)
+        //Paths can be expressed as absolute from the war deployment, which is useless for us
+        //Transform those to relative paths and look for them in the possible places
+        val locAsPath = Paths.get(if (location.startsWith("/")) location.drop(1) else location)
+        val allPossibleRoots = resourceLookupRoots.toSeq :+ Paths.get(".")
+        val possiblePaths = allPossibleRoots.map(_.resolve(locAsPath).toAbsolutePath)
 
-    locationFile.flatMap { f: File =>
-      val handlerFile = new File(f.getParent, file)
-      if (handlerFile.exists()) {
-        logger.info("For class {}, handler file is located at: {}", sc, handlerFile)
-        val unmarshalled = JAXB.unmarshal(handlerFile, classOf[HandlerChainsType])
-        Some(unmarshalled)
-
-      }
-      else {
-        logger.warn("For class {}, handler file was wrongly located at: {}", sc, handlerFile)
-        None
-      }
+        possiblePaths.find(Files.exists(_)) match {
+          case Some(handlerFile) =>
+            logger.info("For class {}, handler file is located at: {}", sc, handlerFile.toRealPath())
+            val unmarshalled = JAXB.unmarshal(handlerFile.toFile, classOf[HandlerChainsType])
+            Some(unmarshalled)
+          case None => logger.warn("For class {}, handler file {} could not be found in : {}", sc, location, allPossibleRoots.mkString(", "))
+            None
+        }
     }
+
   }
 
   /**
    * Helper function that tries to read the file on that class
    * @param sc the soot class we are dealing with - used in logging
    * @param file the handler configuration file location
+   * @param resourceLookupRoots all the places where to look up the file specified in the @HandlerChain annotation.
    * @return an Option over the handler chain XML type
    **/
-  private def handlerChain(sc: SootClass, file: String): Option[HandlerChainsType] = {
+  private def handlerChain(sc: SootClass, file: String, resourceLookupRoots: Traversable[Path]): Option[HandlerChainsType] = {
     val isUrl = handlerChainAsURL(sc, file)
     if (isUrl.isDefined)
       isUrl
     else
-      handlerChainAsFile(sc, file)
+      handlerChainAsFile(sc, file, resourceLookupRoots)
   }
 
 
@@ -214,14 +221,15 @@ object JaxWSAttributeUtils extends Logging {
    * If so, it retrieves the file specified in the annotation
    * and tries to locate it on the file system (relatively to the class' location)
    * @param sc the class to get the handlers for
+   * @param resourceLookupRoots all the places where to look up the file specified in the @HandlerChain annotation.
    * @return an option to the handler chains
    **/
-  def handlerChainOption(sc: SootClass): Option[HandlerChainsType] = {
+  def handlerChainOption(sc: SootClass, resourceLookupRoots: Traversable[Path]): Option[HandlerChainsType] = {
 
     for (handlerChainAnn <- findJavaAnnotation(sc, HANDLER_CHAIN_ANNOTATION);
          elements = annotationElements(handlerChainAnn);
          file <- elements.get("file").asInstanceOf[Option[String]];
-         chain <- handlerChain(sc, file)
+         chain <- handlerChain(sc, file, resourceLookupRoots: Traversable[Path])
     ) yield chain
 
   }
@@ -243,10 +251,12 @@ object JaxWsServiceDetector extends Logging {
    * @param rootPackage the root package
    * @param serviceIfaceName service interface name. Idem to `sc` for self-contained services
    * @param serviceMethods all operations implemented by this service
+   * @param resourceLookupRoots all the places where to look up the file specified in the @HandlerChain annotation.
    * @return a `WebService` object wrapping all that
    */
   private def generateModel(sc: SootClass, rootPackage: String, serviceIfaceName: String,
-                            annotationChain: Map[String, Any], serviceMethods: Traversable[WebMethod]): WebService = {
+                            annotationChain: Map[String, Any], serviceMethods: Traversable[WebMethod],
+                            resourceLookupRoots: Traversable[Path]): WebService = {
 
     val postInitMethod: Option[String] = sc.methods.find(hasJavaAnnotation(_, WEBSERVICE_POSTINIT_ANNOTATION)).map(_.getName)
     val preDestroyMethod: Option[String] = sc.methods.find(hasJavaAnnotation(_, WEBSERVICE_PREDESTROY_ANNOTATION)).map(_.getName)
@@ -262,7 +272,7 @@ object JaxWsServiceDetector extends Logging {
     serviceMethods.foreach(wm => logger.trace("Web method {} hash: {}", wm, wm.hashCode(): Integer))
 
     // ------------- Detect handler chain on the server and parse it --------
-    val handlerChainOpt = handlerChainOption(sc)
+    val handlerChainOpt = handlerChainOption(sc, resourceLookupRoots)
     if (handlerChainOpt.isDefined) {
       logger.warn("Service {} is using an handler chain. This is not supported by the analysis.", sc.name)
     }
@@ -303,10 +313,11 @@ object JaxWsServiceDetector extends Logging {
    * @param fastHierarchy the hierarchy object
    * @param rootPackage the root package
    * @param serviceInterface the service's specification interface
+   * @param resourceLookupRoots all the places where to look up the file specified in the @HandlerChain annotation.
    * @return
    */
   def extractWsInformationKnownIFace(sc: SootClass, fastHierarchy: FastHierarchy,
-                                     rootPackage: String, serviceInterface: SootClass): WebService = {
+                                     rootPackage: String, serviceInterface: SootClass, resourceLookupRoots: Traversable[Path]): WebService = {
     //Detect method names
     // JSR-181, p. 35, section 3.5 operation name is @WebMethod.operationName. Default is in Jax-WS 2.0 section 3.5
     // JAX-WS 2.2 Rev a sec 3.5 p.35 Default is the name of the method
@@ -325,7 +336,7 @@ object JaxWsServiceDetector extends Logging {
     ) yield new WebMethod(null, targetOpName, sm.name, sm.parameterTypes.toList.asJava, sm.returnType)
 
     val annotationChain: Map[String, Any] = elementsForJavaAnnotation(sc, WEBSERVICE_ANNOTATION) withDefault elementsForJavaAnnotation(serviceInterface, WEBSERVICE_ANNOTATION)
-    generateModel(sc, rootPackage, serviceInterface.name, annotationChain, serviceMethods)
+    generateModel(sc, rootPackage, serviceInterface.name, annotationChain, serviceMethods, resourceLookupRoots)
 
   }
 
@@ -333,9 +344,10 @@ object JaxWsServiceDetector extends Logging {
    * Extracts web service information when the WS is self-contained (i.e. has no interface at all)
    * @param sc the implementation class
    * @param rootPackage the root package
+   * @param resourceLookupRoots all the places where to look up the file specified in the @HandlerChain annotation.
    * @return
    */
-  def extractWsInformationSelfContained(sc: SootClass, rootPackage: String): WebService = {
+  def extractWsInformationSelfContained(sc: SootClass, rootPackage: String, resourceLookupRoots: Traversable[Path]): WebService = {
     val operations = sc.methods.collect {
       case sm if hasJavaAnnotation(sm, WEBMETHOD_ANNOTATION) =>
         val implAnn = elementsForJavaAnnotation(sm, WEBMETHOD_ANNOTATION)
@@ -345,7 +357,7 @@ object JaxWsServiceDetector extends Logging {
     }
 
     val annotationElems: Map[String, Any] = elementsForJavaAnnotation(sc, WEBSERVICE_ANNOTATION)
-    generateModel(sc, rootPackage, sc.name, annotationElems, operations)
+    generateModel(sc, rootPackage, sc.name, annotationElems, operations, resourceLookupRoots)
   }
 
   /**
@@ -382,9 +394,12 @@ import soot.jimple.toolkits.javaee.detectors.JaxWsServiceDetector._
 
 /**
  * Detector for Jax-WS 2.0 Web Services
+ * @param resourceLookupRoots all the places where to look up the file specified in the @HandlerChain annotation.
  * @author Marc-André Laverdière-Papineau
  */
-class JaxWsServiceDetector extends AbstractServletDetector with Logging {
+class JaxWsServiceDetector(resourceLookupRoots: Traversable[Path] = Traversable[Path]()) extends AbstractServletDetector with Logging {
+
+  def this() = this(Traversable[Path]())
 
   override def detectFromSource(web: Web) {
     val rootPackage: String = web.getGeneratorInfos.getRootPackage
@@ -499,8 +514,8 @@ case e: IOException => logger.info("Cannot read web.xml:", e)
       case None =>
         logger.error("Cannot process service {} because the specified interface is not implemented or not annotated", sc.getName)
         None
-      case Some(selfContainedClass) if selfContainedClass == sc => Some(extractWsInformationSelfContained(sc, rootPackage))
-      case Some(serviceInterface) => Some(extractWsInformationKnownIFace(sc, fastHierarchy, rootPackage, serviceInterface))
+      case Some(selfContainedClass) if selfContainedClass == sc => Some(extractWsInformationSelfContained(sc, rootPackage, resourceLookupRoots))
+      case Some(serviceInterface) => Some(extractWsInformationKnownIFace(sc, fastHierarchy, rootPackage, serviceInterface, resourceLookupRoots: Traversable[Path]))
     }
 
   }
