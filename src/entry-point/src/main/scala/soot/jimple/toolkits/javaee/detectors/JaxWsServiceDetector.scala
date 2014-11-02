@@ -175,6 +175,7 @@ object JaxWSAttributeUtils extends Logging {
    * @return an Option over the handler chain XML type
    **/
   private def handlerChainAsFile(sc: SootClass, file: String): Option[HandlerChainsType] = {
+    logger.trace("Checking annotations: {}", sc.tags)
     val location = findAnnotation(sc, classOf[SourceFileTag]).map(_.getAbsolutePath)
     val locationFile = location.map(new File(_))
 
