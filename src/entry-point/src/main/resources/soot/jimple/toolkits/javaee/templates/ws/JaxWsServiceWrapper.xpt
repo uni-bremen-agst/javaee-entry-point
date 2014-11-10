@@ -58,14 +58,15 @@ public class «service.wrapperName» extends java.lang.Object
 «ENDFOREACH-»
     «service.implementationName()» '$wsl«toIdentifier(service)»';
     «method.retType.quoteIfNeeded()» $retVal;
-    soot.javaee.stubs.jaxws.ResponseWrapper $wrapRet;
+    soot.javaee.FutureWrapper $wrapRet;
 
 «FOREACH (List[Type])method.argTypes() AS param ITERATOR iter»
     «param.localPrefix()»«iter.counter0» := @parameter«iter.counter0»: «param.quoteIfNeeded()»;
 «ENDFOREACH-»
     '$wsl«toIdentifier(service)»' = <«clazz»: «service.implementationName()» ws«toIdentifier(service)»>;
-    $retVal = virtualinvoke '$wsl«toIdentifier(service)»'.<«service.implementationName()»: «method.retType.quoteIfNeeded()» '«method.targetMethodName»'(«FOREACH method.argTypes() AS param ITERATOR iter SEPARATOR ','»«param.quoteIfNeeded()»«ENDFOREACH»)>(«FOREACH (List[Type])method.argTypes() AS param ITERATOR iter SEPARATOR ','»«param.localPrefix()»«iter.counter0»«ENDFOREACH»);    $wrapRet = new soot.javaee.stubs.jaxws.ResponseWrapper;
-    specialinvoke $wrapRet.<«service.implementationName()»: void <init>(«method.retType.quoteIfNeeded()»)>($retVal);
+    $retVal = virtualinvoke '$wsl«toIdentifier(service)»'.<«service.implementationName()»: «method.retType.quoteIfNeeded()» '«method.targetMethodName»'(«FOREACH method.argTypes() AS param ITERATOR iter SEPARATOR ','»«param.quoteIfNeeded()»«ENDFOREACH»)>(«FOREACH (List[Type])method.argTypes() AS param ITERATOR iter SEPARATOR ','»«param.localPrefix()»«iter.counter0»«ENDFOREACH»);
+    $wrapRet = new soot.javaee.FutureWrapper;
+    specialinvoke $wrapRet.<soot.javaee.FutureWrapper: void <init>(java.lang.Object)>($retVal);
     return $wrapRet;
   }
 
@@ -84,7 +85,7 @@ public class «service.wrapperName» extends java.lang.Object
     javax.xml.ws.AsyncHandler handler;
     «service.implementationName()» '$wsl«toIdentifier(service)»';
     «method.retType.quoteIfNeeded()» $retVal;
-    soot.javaee.stubs.jaxws.FutureWrapper $wrapRet;
+    soot.javaee.FutureWrapper $wrapRet;
 
 «FOREACH (List[Type])method.argTypes() AS param ITERATOR iter»
     «param.localPrefix()»«iter.counter0» := @parameter«iter.counter0»: «param.quoteIfNeeded()»;
@@ -92,8 +93,10 @@ public class «service.wrapperName» extends java.lang.Object
 
     handler := @parameter«method.argTypes().size»: javax.xml.ws.AsyncHandler;
     '$wsl«toIdentifier(service)»' = <«clazz»: «service.implementationName()» ws«toIdentifier(service)»>;
-    $retVal = virtualinvoke '$wsl«toIdentifier(service)»'.<«service.implementationName()»: «method.retType.quoteIfNeeded()» '«method.targetMethodName»'(«FOREACH method.argTypes() AS param ITERATOR iter SEPARATOR ','»«param.quoteIfNeeded()»«ENDFOREACH»)>(«FOREACH (List[Type])method.argTypes() AS param ITERATOR iter SEPARATOR ','»«param.localPrefix()»«iter.counter0»«ENDFOREACH»);    $wrapRet = new soot.javaee.stubs.jaxws.FutureWrapper;
-    specialinvoke $wrapRet.<«service.implementationName()»: void <init>(«method.retType.quoteIfNeeded()»)>($retVal);
+    $retVal = virtualinvoke '$wsl«toIdentifier(service)»'.<«service.implementationName()»: «method.retType.quoteIfNeeded()» '«method.targetMethodName»'(«FOREACH method.argTypes() AS param ITERATOR iter SEPARATOR ','»«param.quoteIfNeeded()»«ENDFOREACH»)>(«FOREACH (List[Type])method.argTypes() AS param ITERATOR iter SEPARATOR ','»«param.localPrefix()»«iter.counter0»«ENDFOREACH»);
+    $wrapRet = new soot.javaee.FutureWrapper;
+    specialinvoke $wrapRet.<soot.javaee.FutureWrapper: void <init>(java.lang.Object)>($retVal);
+    interfaceinvoke handler.<javax.xml.ws.AsyncHandler: void handleResponse(javax.xml.ws.Response)>($wrapRet);
     return $wrapRet;
   }
 «ENDIF-»
