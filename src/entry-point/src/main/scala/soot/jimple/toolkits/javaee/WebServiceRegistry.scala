@@ -22,7 +22,7 @@ object WebServiceRegistry {
   private var _services: Traversable[WebService] = Array[WebService]()
   private lazy val _qnameLookup: Map[QName, Set[WebService]] = {
     val multimap = new mutable.HashMap[QName, mutable.Set[WebService]] with mutable.MultiMap[QName, WebService]
-    _services.foreach(ws => multimap.addBinding(new QName(ws.targetNamespace, ws.serviceName), ws))
+    _services.foreach(ws => multimap.addBinding(new QName(ws.targetNamespace, ws.name), ws))
     multimap
   }
 
@@ -42,9 +42,17 @@ object WebServiceRegistry {
    * @param localName the local name of the qualified name
    * @return a possibly empty set of web services found for that qualified name
    */
-  def findService(nameSpace: String, localName: String): Set[WebService] = {
-    _qnameLookup.getOrElse(new QName(nameSpace, localName), Set[WebService]())
-  }
+  def findService(nameSpace: String, localName: String): Set[WebService] =
+    findService(new QName(nameSpace, localName))
+
+  /**
+   * Lookup a service by qualified name.
+   * @param nameSpace the name space for the qualified name
+   * @param localName the local name of the qualified name
+   * @return `Some` set of web service metadata if it exists, `None` otherwise
+   */
+  def findServiceOpt(nameSpace: String, localName: String): Option[Set[WebService]] =
+    findServiceOpt(new QName(nameSpace, localName))
 
   /**
    * Lookup a service by qualified name.
@@ -56,12 +64,29 @@ object WebServiceRegistry {
   }
 
   /**
+   * Lookup a service by qualified name.
+   * @param qName the qualified name
+   * @return `Some` set of web service metadata if it exists, `None` otherwise
+   */
+  def findServiceOpt(qName: QName): Option[Set[WebService]] =
+    _qnameLookup.get(qName)
+
+  /**
    * Find a service by its interface
    * @param iface the interface class
    * @return a possibly empty set of `WebService` that represent the services implementing that interface (in the WS sense)
    */
   def findServiceByInterface(iface: SootClass): Set[WebService] =
     _serviceClassLookupByInterface.getOrElse(iface.name, Set()).toSet
+
+  /**
+   * Find a service by its interface
+   * @param iface the interface class
+   * @return `Some` set of web service metadata if it exists, `None` otherwise
+   */
+  def findServiceByInterfaceOpt(iface: SootClass): Option[Set[WebService]] =
+    _serviceClassLookupByInterface.get(iface.name).map(_.toSet)
+
 
   /**
    * Find a service by its implementation class
