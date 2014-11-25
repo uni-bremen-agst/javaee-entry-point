@@ -335,7 +335,8 @@ object JaxWsServiceDetector extends Logging {
       targetOpName = if (opName(0).isUpper) opName(0).toLower + opName.drop(1) else opName
     ) yield new WebMethod(null, targetOpName, sm.name, sm.parameterTypes.toList.asJava, sm.returnType)
 
-    val annotationChain: Map[String, Any] = elementsForJavaAnnotation(sc, WEBSERVICE_ANNOTATION) withDefault elementsForJavaAnnotation(serviceInterface, WEBSERVICE_ANNOTATION)
+    //This form overrides the interface's with the implementation's
+    val annotationChain: Map[String, Any] = elementsForJavaAnnotation(serviceInterface, WEBSERVICE_ANNOTATION) ++ elementsForJavaAnnotation(sc, WEBSERVICE_ANNOTATION)
     generateModel(sc, rootPackage, serviceInterface.name, annotationChain, serviceMethods, resourceLookupRoots)
 
   }
