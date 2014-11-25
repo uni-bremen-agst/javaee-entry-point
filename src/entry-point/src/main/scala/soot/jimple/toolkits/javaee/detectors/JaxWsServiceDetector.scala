@@ -348,8 +348,9 @@ object JaxWsServiceDetector extends Logging {
    * @return
    */
   def extractWsInformationSelfContained(sc: SootClass, rootPackage: String, resourceLookupRoots: Traversable[Path]): WebService = {
-    val operations = sc.methods.collect {
-      case sm if hasJavaAnnotation(sm, WEBMETHOD_ANNOTATION) =>
+    val eligibleMethods = sc.methods.filterNot(m => m.isConstructor || m.isClinit || m.isPrivate)
+
+    val operations = eligibleMethods.map { sm =>
         val implAnn = elementsForJavaAnnotation(sm, WEBMETHOD_ANNOTATION)
         val opName = implAnn.getOrElse("operationName", sm.getName).asInstanceOf[String]
         val targetOpName = if (opName(0).isUpper) opName(0).toLower + opName.drop(1) else opName
