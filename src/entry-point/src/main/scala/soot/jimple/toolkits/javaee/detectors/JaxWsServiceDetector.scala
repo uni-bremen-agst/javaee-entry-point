@@ -330,7 +330,7 @@ object JaxWsServiceDetector extends Logging {
       subsig = sm.getSubSignature;
       seiMethod <- serviceInterface.methodOpt(subsig);
       //if (hasJavaAnnotation(sm,WEBMETHOD_ANNOTATION) || hasJavaAnnotation(seiMethod,WEBMETHOD_ANNOTATION));
-      methodAnn = elementsForJavaAnnotation(sm, WEBMETHOD_ANNOTATION) withDefault elementsForJavaAnnotation(seiMethod, WEBMETHOD_ANNOTATION);
+      methodAnn = elementsForJavaAnnotation(seiMethod, WEBMETHOD_ANNOTATION) ++ elementsForJavaAnnotation(sm, WEBMETHOD_ANNOTATION);
       opName = operationName(sm.getName, methodAnn);
       targetOpName = if (opName(0).isUpper) opName(0).toLower + opName.drop(1) else opName
     ) yield new WebMethod(null, targetOpName, sm.name, sm.parameterTypes.toList.asJava, sm.returnType)
