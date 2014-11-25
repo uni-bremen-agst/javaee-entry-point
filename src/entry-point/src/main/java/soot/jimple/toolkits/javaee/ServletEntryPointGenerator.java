@@ -32,6 +32,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import soot.*;
 import soot.jimple.toolkits.javaee.detectors.*;
+import soot.jimple.toolkits.javaee.model.servlet.Servlet;
 import soot.jimple.toolkits.javaee.model.servlet.Web;
 import soot.jimple.toolkits.javaee.model.servlet.http.ServletSignatures;
 
@@ -159,7 +160,14 @@ public class ServletEntryPointGenerator extends SceneTransformer implements Serv
                 sootClass.setApplicationClass();
             }
         }
-	}
+
+        //Force loading the generated servlets
+        //Sometimes, WSCaller somehow slips through the cracks by Spark
+        for (final Servlet serv : web.getServlets()) {
+            SootClass srvClazz = Scene.v().forceResolve(serv.getClazz(), SootClass.BODIES);
+            srvClazz.setApplicationClass();
+        }
+    }
 
     /**
 	 * Processes all templates.
