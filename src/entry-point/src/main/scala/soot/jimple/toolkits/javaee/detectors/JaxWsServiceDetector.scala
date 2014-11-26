@@ -146,7 +146,11 @@ object JaxWSAttributeUtils extends Logging {
   }
 
   def operationName(methodName: String, annotationElems: Map[String, Any]): String = {
-    annotationElems.getOrElse("operationName", methodName).toString
+    if (methodName.endsWith("Async"))
+      annotationElems.get("operationName").map(_ + "Async").getOrElse(methodName).toString
+    else
+      annotationElems.getOrElse("operationName", methodName).toString
+
   }
 
   /**
@@ -322,11 +326,11 @@ object JaxWsServiceDetector extends Logging {
     // JSR-181, p. 35, section 3.5 operation name is @WebMethod.operationName. Default is in Jax-WS 2.0 section 3.5
     // JAX-WS 2.2 Rev a sec 3.5 p.35 Default is the name of the method
     //TODO double-check this matching rule
-    val potentialMethods = sc.methods.filterNot(_.isConstructor).filter(_.isConcrete)
+    val potentialMethods = sc.methods.filterNot(m => m.isConstructor || m.isClinit || m.isStatic).filter(_.isConcrete)
 
     //JBOSS-WS Test case in org.jboss.test.ws.jaxws.samples.webservice has no @WebMethod annotation on either interface nor implementation class
     val serviceMethods: Traversable[WebMethod] = for (
-      sm <- potentialMethods.filterNot(m => m.isConstructor || m.isClinit || m.isStatic);
+      sm <- potentialMethods;
       subsig = sm.getSubSignature;
       seiMethod <- serviceInterface.methodOpt(subsig);
       //if (hasJavaAnnotation(sm,WEBMETHOD_ANNOTATION) || hasJavaAnnotation(seiMethod,WEBMETHOD_ANNOTATION));
