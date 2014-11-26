@@ -312,6 +312,15 @@ object JaxWsServiceDetector extends Logging {
   }
 
   /**
+   * Given a collection of methods, pick the ones that would make sense to be web service methods.
+   * Practically, that means all non-static concrete methods that aren't constructors or initializers
+   * @param candidates a collection of methods
+   * @return a filtered collection of methods
+   */
+  private def filterLegitimateWebMethods(candidates : Traversable[SootMethod]) : Traversable[SootMethod] =
+    candidates.filterNot(m => m.isConstructor || m.isClinit || m.isStatic).filter(_.isConcrete)
+
+  /**
    * Extracts web service information when the interface is known
    * @param sc the implementation class
    * @param fastHierarchy the hierarchy object
@@ -326,7 +335,7 @@ object JaxWsServiceDetector extends Logging {
     // JSR-181, p. 35, section 3.5 operation name is @WebMethod.operationName. Default is in Jax-WS 2.0 section 3.5
     // JAX-WS 2.2 Rev a sec 3.5 p.35 Default is the name of the method
     //TODO double-check this matching rule
-    val potentialMethods = sc.methods.filterNot(m => m.isConstructor || m.isClinit || m.isStatic).filter(_.isConcrete)
+    val potentialMethods = filterLegitimateWebMethods(sc.methods)
 
     //JBOSS-WS Test case in org.jboss.test.ws.jaxws.samples.webservice has no @WebMethod annotation on either interface nor implementation class
     val serviceMethods: Traversable[WebMethod] = for (
@@ -353,7 +362,7 @@ object JaxWsServiceDetector extends Logging {
    * @return
    */
   def extractWsInformationSelfContained(sc: SootClass, rootPackage: String, resourceLookupRoots: Traversable[Path]): WebService = {
-    val eligibleMethods = sc.methods.filterNot(m => m.isConstructor || m.isClinit || m.isPrivate)
+    val eligibleMethods = filterLegitimateWebMethods(sc.methods)
 
     val operations = eligibleMethods.map { sm =>
         val implAnn = elementsForJavaAnnotation(sm, WEBMETHOD_ANNOTATION)
