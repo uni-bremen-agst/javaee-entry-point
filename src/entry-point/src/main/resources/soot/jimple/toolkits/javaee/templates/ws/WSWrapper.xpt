@@ -48,50 +48,161 @@ public class «clazz» extends javax.servlet.http.HttpServlet
         return;
     }
 
+    private void serviceSync()
+    {
+            «clazz» r0;
+            int $i0;
+            java.util.Random $r3;
+    «FOREACH (List[WebService])services() AS service ITERATOR serviceIterator-»
+            '«service.implementationName()»' '$wsl«toIdentifier(service)»'; «REM»local var for ws«ENDREM»
+    «ENDFOREACH»
+
+    «FOREACH (List[WebMethod])operations() AS method ITERATOR methodIterator -»
+    «FOREACH (List[Type])method.argTypes() AS param ITERATOR paramIterator-»
+    «EXPAND BeanFactory::beanLocals(param.localPrefix() + "_" + methodIterator.counter0 + "_" + paramIterator.counter0 ) FOR param-»«REM»Local var for each parameter value«ENDREM»
+    «ENDFOREACH-»«ENDFOREACH-»
+
+            r0 := @this: «clazz»;
+            $r3 = new java.util.Random;
+    «FOREACH (List[WebService])services() AS service ITERATOR serviceIterator-»«REM»Initialize locals«ENDREM»
+            '$wsl«toIdentifier(service)»' = <'«clazz»': '«service.implementationName()»' 'ws«toIdentifier(service)»'>;«ENDFOREACH-»
+
+            specialinvoke $r3.<java.util.Random: void <init>()>();
+    label0:
+            $i0 = virtualinvoke $r3.<java.util.Random: int nextInt()>();
+            tableswitch($i0)
+            {
+    «FOREACH (List[WebMethod])operations() AS method ITERATOR methodIterator -»
+                case «methodIterator.counter0»: goto label«methodIterator.counter0 + 2»;
+    «ENDFOREACH-»
+                default: goto label1;
+              };
+
+    label1:
+              return;
+    «FOREACH (List[WebMethod])operations() AS method ITERATOR methodIterator -»
+    label«methodIterator.counter0 + 2»:
+    «FOREACH (List[Type])method.argTypes() AS param ITERATOR paramIterator-»
+    «EXPAND BeanFactory::initializeLocal(clazz, param.localPrefix() + "_" + methodIterator.counter0 + "_" + paramIterator.counter0 ) FOR param-»«REM»Local var for each parameter value«ENDREM»
+    «ENDFOREACH-»
+            staticinvoke <«method.service.wrapperName»: «method.retType.quoteIfNeeded()» '«method.name»'(«FOREACH method.argTypes() AS param SEPARATOR ','»«param.quoteIfNeeded()»«ENDFOREACH»)>(«FOREACH (List[Type])method.argTypes() AS param ITERATOR iter3 SEPARATOR ','»«param.localPrefix()»_«methodIterator.counter0»_«iter3.counter0» «ENDFOREACH»);
+            goto label0;
+    «ENDFOREACH-»
+    }
+
+    private void serviceAsyncNoCallback()
+    {
+        «clazz» r0;
+        int $i0;
+        java.util.Random $r3;
+        «FOREACH (List[WebService])services() AS service ITERATOR serviceIterator-»
+                '«service.implementationName()»' '$wsl«toIdentifier(service)»'; «REM»local var for ws«ENDREM»
+        «ENDFOREACH»
+        «REM»local var for the bean factory values«ENDREM»
+        «FOREACH (List[WebMethod])operations() AS method ITERATOR methodIterator -»
+        «FOREACH (List[Type])method.argTypes() AS param ITERATOR paramIterator-»
+        «EXPAND BeanFactory::beanLocals(param.localPrefix() + "_" + methodIterator.counter0 + "_" + paramIterator.counter0 ) FOR param-»«REM»Local var for each parameter value«ENDREM»
+        «ENDFOREACH-»«ENDFOREACH-»
+
+                r0 := @this: «clazz»;
+        «FOREACH (List[WebService])services() AS service ITERATOR serviceIterator-»«REM»Initialize locals«ENDREM»
+                '$wsl«toIdentifier(service)»' = <'«clazz»': '«service.implementationName()»' 'ws«toIdentifier(service)»'>;«ENDFOREACH-»
+
+                $r3 = new java.util.Random;
+                specialinvoke $r3.<java.util.Random: void <init>()>();
+        label0:
+                $i0 = virtualinvoke $r3.<java.util.Random: int nextInt()>();
+                tableswitch($i0)
+                {
+        «FOREACH (List[WebMethod])operations() AS method ITERATOR methodIterator -»
+                    case «methodIterator.counter0»: goto label«methodIterator.counter0 + 2»;
+        «ENDFOREACH-»
+                    default: goto label1;
+                  };
+
+        label1:
+                  return;
+        «FOREACH (List[WebMethod])operations() AS method ITERATOR methodIterator -»
+        label«methodIterator.counter0 + 2»:
+        «FOREACH (List[Type])method.argTypes() AS param ITERATOR paramIterator-»
+        «EXPAND BeanFactory::initializeLocal(clazz, param.localPrefix() + "_" + methodIterator.counter0 + "_" + paramIterator.counter0 ) FOR param-»«REM»Local var for each parameter value«ENDREM»
+        «ENDFOREACH-»
+        «IF method.retType.isObject() -» «REM»TODO disable that check once the code for primitive types gets generated.«ENDREM -»
+                staticinvoke <«method.service.wrapperName»: 'javax.xml.ws.Response' '«method.name»Async'(«FOREACH method.argTypes() AS param SEPARATOR ','»«param.quoteIfNeeded()»«ENDFOREACH»)>(«FOREACH (List[Type])method.argTypes() AS param ITERATOR iter3 SEPARATOR ','»«param.localPrefix()»_«methodIterator.counter0»_«iter3.counter0» «ENDFOREACH»);
+        «ENDIF -»
+                goto label0;
+        «ENDFOREACH-»
+    }
+
+    private void serviceAsyncCallback()
+    {
+        «clazz» r0;
+        int $i0;
+        java.util.Random $r3;
+        «FOREACH (List[WebService])services() AS service ITERATOR serviceIterator-»
+                '«service.implementationName()»' '$wsl«toIdentifier(service)»'; «REM»local var for ws«ENDREM»
+        «ENDFOREACH»
+        «REM»local var for the bean factory values«ENDREM»
+        «FOREACH (List[WebMethod])operations() AS method ITERATOR methodIterator -»
+        «FOREACH (List[Type])method.argTypes() AS param ITERATOR paramIterator-»
+        «EXPAND BeanFactory::beanLocals(param.localPrefix() + "_" + methodIterator.counter0 + "_" + paramIterator.counter0 ) FOR param-»«REM»Local var for each parameter value«ENDREM»
+        «ENDFOREACH-»«ENDFOREACH-»
+        'javax.xml.ws.AsyncHandler' $dummyHandler;
+
+                r0 := @this: «clazz»;
+        «FOREACH (List[WebService])services() AS service ITERATOR serviceIterator-»«REM»Initialize locals«ENDREM»
+                '$wsl«toIdentifier(service)»' = <'«clazz»': '«service.implementationName()»' 'ws«toIdentifier(service)»'>;«ENDFOREACH-»
+
+                $dummyHandler = new soot.javaee.NoOpAsyncHandler;
+                specialinvoke $dummyHandler.<soot.javaee.NoOpAsyncHandler: void <init>()>();
+
+                $r3 = new java.util.Random;
+                specialinvoke $r3.<java.util.Random: void <init>()>();
+        label0:
+                $i0 = virtualinvoke $r3.<java.util.Random: int nextInt()>();
+                tableswitch($i0)
+                {
+        «FOREACH (List[WebMethod])operations() AS method ITERATOR methodIterator -»
+                    case «methodIterator.counter0»: goto label«methodIterator.counter0 + 2»;
+        «ENDFOREACH-»
+                    default: goto label1;
+                  };
+
+        label1:
+                  return;
+        «FOREACH (List[WebMethod])operations() AS method ITERATOR methodIterator -»
+        label«methodIterator.counter0 + 2»:
+        «IF method.retType.isObject() -» «REM»TODO disable that check once the code for primitive types gets generated.«ENDREM -»
+        «FOREACH (List[Type])method.argTypes() AS param ITERATOR paramIterator-»
+        «EXPAND BeanFactory::initializeLocal(clazz, param.localPrefix() + "_" + methodIterator.counter0 + "_" + paramIterator.counter0 ) FOR param-»«REM»Local var for each parameter value«ENDREM»
+        «ENDFOREACH-»
+
+        «IF method.argTypes().size == 0 -»
+              staticinvoke <«method.service.wrapperName»: 'java.util.concurrent.Future' '«method.name»Async'('javax.xml.ws.AsyncHandler')>($dummyHandler);
+        «ELSE -»
+              staticinvoke <«method.service.wrapperName»: 'java.util.concurrent.Future' '«method.name»Async'(«FOREACH method.argTypes() AS param SEPARATOR ','»«param.quoteIfNeeded()»«ENDFOREACH»,javax.xml.ws.AsyncHandler)>(«FOREACH (List[Type])method.argTypes() AS param ITERATOR iter3 SEPARATOR ','»«param.localPrefix()»_«methodIterator.counter0»_«iter3.counter0» «ENDFOREACH», $dummyHandler);
+        «ENDIF -»
+        «ENDIF -»
+                goto label0;
+        «ENDFOREACH-»
+    }
+
+
     void service(javax.servlet.ServletRequest, javax.servlet.ServletResponse)
     {
         «clazz» r0;
         javax.servlet.ServletRequest r1;
         javax.servlet.ServletResponse r2;
-        int $i0;
-        java.util.Random $r3;
-«FOREACH (List[WebService])services() AS service ITERATOR serviceIterator-»
-        '«service.implementationName()»' '$wsl«toIdentifier(service)»'; «REM»local var for ws«ENDREM»
-«ENDFOREACH»
 
-«FOREACH (List[WebMethod])operations() AS method ITERATOR methodIterator -»
-«FOREACH (List[Type])method.argTypes() AS param ITERATOR paramIterator-»
-«EXPAND BeanFactory::beanLocals(param.localPrefix() + "_" + methodIterator.counter0 + "_" + paramIterator.counter0 ) FOR param-»«REM»Local var for each parameter value«ENDREM»
-«ENDFOREACH-»«ENDFOREACH-»
 
         r0 := @this: «clazz»;
         r1 := @parameter0: javax.servlet.ServletRequest;
         r2 := @parameter1: javax.servlet.ServletResponse;
-        $r3 = new java.util.Random;
-«FOREACH (List[WebService])services() AS service ITERATOR serviceIterator-»«REM»Initialize locals«ENDREM»
-        '$wsl«toIdentifier(service)»' = <'«clazz»': '«service.implementationName()»' 'ws«toIdentifier(service)»'>;«ENDFOREACH-»
 
-        specialinvoke $r3.<java.util.Random: void <init>()>();
-label0:
-        $i0 = virtualinvoke $r3.<java.util.Random: int nextInt()>();
-        tableswitch($i0)
-        {
-«FOREACH (List[WebMethod])operations() AS method ITERATOR methodIterator -»
-            case «methodIterator.counter0»: goto label«methodIterator.counter0 + 2»;
-«ENDFOREACH-»
-            default: goto label1;
-          };
+        virtualinvoke r0.<«clazz»: void serviceSync()>();
+        virtualinvoke r0.<«clazz»: void serviceAsyncNoCallback()>();
+        virtualinvoke r0.<«clazz»: void serviceAsyncCallback()>();
 
-label1:
-          return;
-«FOREACH (List[WebMethod])operations() AS method ITERATOR methodIterator -»
-label«methodIterator.counter0 + 2»:
-«FOREACH (List[Type])method.argTypes() AS param ITERATOR paramIterator-»
-«EXPAND BeanFactory::initializeLocal(clazz, param.localPrefix() + "_" + methodIterator.counter0 + "_" + paramIterator.counter0 ) FOR param-»«REM»Local var for each parameter value«ENDREM»
-«ENDFOREACH-»
-        staticinvoke <«method.service.wrapperName»: «method.retType.quoteIfNeeded()» '«method.name»'(«FOREACH method.argTypes() AS param SEPARATOR ','»«param.quoteIfNeeded()»«ENDFOREACH»)>(«FOREACH (List[Type])method.argTypes() AS param ITERATOR iter3 SEPARATOR ','»«param.localPrefix()»_«methodIterator.counter0»_«iter3.counter0» «ENDFOREACH»);
-        goto label0;
-«ENDFOREACH-»
     }
 }
 «ENDFILE»

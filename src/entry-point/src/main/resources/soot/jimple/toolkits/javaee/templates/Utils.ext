@@ -1,2 +1,26 @@
 String quoteIfNeeded(soot::Type this) :
     soot::RefType == this.metaType ? "'" + this.toString() + "'" : this.toString();
+
+boolean isNonVoid(soot::Type this) :
+    soot::VoidType != this.metaType;
+
+boolean isVoid(soot::Type this) :
+    soot::VoidType == this.metaType;
+
+boolean isObject(soot::Type this) :
+    soot::ArrayType == this.metaType ||
+    soot::NullType == this.metaType  ||
+    soot::RefType == this.metaType;
+
+boolean isPrimitive(soot::Type this) :
+    soot::BooleanType == this.metaType      ||
+    soot::ByteType == this.metaType         ||
+    soot::CharType == this.metaType         ||
+    soot::DoubleType == this.metaType       ||
+    soot::FloatType == this.metaType        ||
+    soot::Integer1Type == this.metaType     ||
+    soot::Integer127Type == this.metaType   ||
+    soot::Integer32767Type == this.metaType ||
+    soot::IntType == this.metaType          ||
+    soot::LongType == this.metaType         ||
+    soot::ShortType == this.metaType;
