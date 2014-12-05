@@ -4,12 +4,6 @@ organization := "soot.plugins"
 
 version := "0.0.1-SNAPSHOT"
 
-scalaVersion := Versions.scala
-
-sbtVersion := Versions.sbt
-
-Common.settings
-
 libraryDependencies += "org.slf4j" % "slf4j-api" % Versions.slf4j
 
 libraryDependencies += "org.eclipse.emf.mwe" % "core" % "1.2.1" % "runtime"
