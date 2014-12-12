@@ -46,5 +46,5 @@ case class WebMethod (@BeanProperty var service : WebService,
   }
 
   override def toString: String =
-    "name: "+ name +" target method: " + targetMethodName + "argument types: "+ argTypes +" return type: "+ retType
+    s"name: ${name} target method: ${targetMethodName} argument types: ${argTypes.mkString(",")} return type: ${retType}"
 }

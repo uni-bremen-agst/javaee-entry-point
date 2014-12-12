@@ -345,8 +345,8 @@ object JaxWsServiceDetector extends Logging {
       //if (hasJavaAnnotation(sm,WEBMETHOD_ANNOTATION) || hasJavaAnnotation(seiMethod,WEBMETHOD_ANNOTATION));
       methodAnn = elementsForJavaAnnotation(seiMethod, WEBMETHOD_ANNOTATION) ++ elementsForJavaAnnotation(sm, WEBMETHOD_ANNOTATION);
       opName = operationName(sm.getName, methodAnn);
-      targetOpName = if (opName(0).isUpper) opName(0).toLower + opName.drop(1) else opName
-    ) yield new WebMethod(null, targetOpName, sm.name, sm.parameterTypes.toList.asJava, sm.returnType)
+      wsOperationName = if (opName(0).isUpper) opName(0).toLower + opName.drop(1) else opName
+    ) yield new WebMethod(service = null, name = wsOperationName,  targetMethodName = sm.name, argTypes = sm.getParameterTypes, retType = sm.returnType)
 
     //This form overrides the interface's with the implementation's
     val annotationChain: Map[String, Any] = elementsForJavaAnnotation(serviceInterface, WEBSERVICE_ANNOTATION) ++ elementsForJavaAnnotation(sc, WEBSERVICE_ANNOTATION)
@@ -367,8 +367,8 @@ object JaxWsServiceDetector extends Logging {
     val operations = eligibleMethods.map { sm =>
         val implAnn = elementsForJavaAnnotation(sm, WEBMETHOD_ANNOTATION)
         val opName = implAnn.getOrElse("operationName", sm.getName).asInstanceOf[String]
-        val targetOpName = if (opName(0).isUpper) opName(0).toLower + opName.drop(1) else opName
-        WebMethod(service = null, name = targetOpName, targetMethodName = sm.name, retType = sm.returnType, argTypes = sm.getParameterTypes)
+        val wsOperationName = if (opName(0).isUpper) opName(0).toLower + opName.drop(1) else opName
+        WebMethod(service = null, targetMethodName = sm.name, name = wsOperationName, retType = sm.returnType, argTypes = sm.getParameterTypes)
     }
 
     val annotationElems: Map[String, Any] = elementsForJavaAnnotation(sc, WEBSERVICE_ANNOTATION)
