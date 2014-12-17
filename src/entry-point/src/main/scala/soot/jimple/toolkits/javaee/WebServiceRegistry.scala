@@ -98,15 +98,14 @@ object WebServiceRegistry extends Logging {
    * @return `true` if this method is a service method, `false` otherwise
    */
   def isServiceImplementationMethod(sm : SootMethod) : Boolean = {
-    logger.info("All services: {}", _services.mkString(","))
+    logger.debug("All services: {}", _services.mkString(","))
     findServiceByImplementation(sm.declaringClass) match {
       case None => logger.info("Method {} is not an service implementation - wrong class", sm); false
       case Some(srv) =>
         val thisServiceMethods: Traversable[WebMethod] = srv.methods.asScala
-        logger.info("Possible methods: {}", thisServiceMethods.mkString(", "))
-        logger.info("Sanity check: ({}) vs {}", srv, _services)
+        logger.trace("Possible methods: {}", thisServiceMethods.mkString(", "))
         val found = thisServiceMethods.exists(_.isSameAs(sm))
-        logger.info("Method {} is a WS implementation? {}", sm, found)
+        logger.debug("Method {} is a WS implementation? {}", sm, found)
         found
     }
   }
@@ -117,7 +116,7 @@ object WebServiceRegistry extends Logging {
       val retIsSame = wm.retType.toString == sm.returnType.toString
       val argIsSame = wm.argTypes.asScala.map(_.toString) == sm.parameterTypes.map(_.toString) //toString fixes this check, that returns false in maven
 
-      logger.info("({}) is same as {}? Name: {} Ret: {} Args: {}", wm, sm, nameIsSame, retIsSame, argIsSame)
+      logger.trace("({}) is same as {}? Name: {} Ret: {} Args: {}", wm, sm, nameIsSame, retIsSame, argIsSame)
 
       nameIsSame && retIsSame && argIsSame
 
