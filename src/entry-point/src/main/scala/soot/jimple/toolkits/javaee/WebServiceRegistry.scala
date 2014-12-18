@@ -100,7 +100,7 @@ object WebServiceRegistry extends Logging {
   def isServiceImplementationMethod(sm : SootMethod) : Boolean = {
     logger.debug("All services: {}", _services.mkString(","))
     findServiceByImplementation(sm.declaringClass) match {
-      case None => logger.info("Method {} is not an service implementation - wrong class", sm); false
+      case None => logger.debug("Method {} is not an service implementation - wrong class", sm); false
       case Some(srv) =>
         val thisServiceMethods: Traversable[WebMethod] = srv.methods.asScala
         logger.trace("Possible methods: {}", thisServiceMethods.mkString(", "))
