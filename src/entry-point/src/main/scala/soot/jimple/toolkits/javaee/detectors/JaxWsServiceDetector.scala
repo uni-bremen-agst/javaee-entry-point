@@ -61,13 +61,17 @@ object JaxWSAttributeUtils extends Logging {
 
   /**
    * Determines the local name of the service. This is not the same as the service name
-   * JSR 181 section 4.1.1 Default: short name of the class or interface
+   * JSR 181 section 4.1.1 Default: short name of the class or interface.
+   * Pratically, we chop any ending 'Impl' because this is what JBossWS does.
    * @param sc the implementation class
    * @param annotationElems the annotations on the class
    * @return a non-empty string with the name of the service
    */
   def localName(sc: SootClass, annotationElems: Map[String, Any]): String = {
-    annotationElems.getOrElse("name", sc.getShortName).toString
+
+    //See JBossWS WebResult test case - it looks like JBoss has an heuristic when the class ends with 'Impl'
+    val classNameNoImpl = if (sc.shortName.endsWith("Impl")) sc.shortName.dropRight(4)
+    annotationElems.getOrElse("name", classNameNoImpl).toString
   }
 
   /**
