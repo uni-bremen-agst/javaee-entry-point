@@ -11,6 +11,7 @@ import javax.xml.bind.{JAXB, JAXBContext}
 import ca.polymtl.gigl.casi.Logging
 import org.jcp.xmlns.javaee.HandlerChainsType
 import soot._
+import soot.jimple.toolkits.javaee.JaxWsAnnotations._
 import soot.jimple.toolkits.javaee.WebServiceRegistry
 import soot.jimple.toolkits.javaee.model.servlet.Web
 import soot.jimple.toolkits.javaee.model.ws.{WebService, WsServlet, _}
