@@ -1,14 +1,27 @@
-/**
-# * (c) Copyright 2013, Tata Consultancy Services & Ecole Polytechnique de Montreal
- * All rights reserved
+/*
+    This file is part of Soot entry point creator.
+
+    Soot entry point creator is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Lesser General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Soot entry point creator is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Lesser General Public License for more details.
+
+    You should have received a copy of the GNU Lesser General Public License
+    along with Soot entry point creator.  If not, see <http://www.gnu.org/licenses/>.
+
+    Copyright 2013 Ecole Polytechnique de Montreal & Tata Consultancy Services
  */
 package soot.jimple.toolkits.javaee.model.ws
 
-import scala.beans.BeanProperty
 import soot.Type
-import scala.util.hashing.MurmurHash3
 
-import scala.collection.JavaConversions._
+import scala.beans.BeanProperty
+import scala.util.hashing.MurmurHash3
 
 /**
  * Represents a method of a web service
@@ -27,7 +40,7 @@ case class WebMethod (@BeanProperty var service : WebService,
                       @BeanProperty retType: Type)
 {
   override def hashCode(): Int = {
-    import MurmurHash3._
+    import scala.util.hashing.MurmurHash3._
     var tmp = MurmurHash3.mix(symmetricSeed,stringHash(name))
     tmp = MurmurHash3.mix(tmp, stringHash(targetMethodName))
     tmp = MurmurHash3.mix(tmp,seqHash(argTypes))
