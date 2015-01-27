@@ -22,3 +22,10 @@ Configuration
 > &lt;soot-plugins&gt;
 > &lt;phase-plugin phase="wjpp.entry" class="soot.jimple.toolkits.javaee.EntryPointPlugin"/&gt;
 > &lt;/soot-plugins&gt;
+
+Dependencies
+-------------
+
+ * [Soot](https://github.com/Sable/soot)
+ * [Soot-Scala](https://github.com/malaverdiere/soot-scala)
+ * XPand2 (provided in the `repository/` folder)
