@@ -1,6 +1,6 @@
-Plugin for generating entry points
-==================================
-Plugin for generating entry points for Java applications that does not have main functions, such as JavaEE applications.
+Soot plugin for generating JavaEE entry points
+==============================================
+This repository contains a Soot plugin for generating entry points for JavaEE applications.
 
 How to build (hardcore)
 -----------------------
