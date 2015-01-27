@@ -18,11 +18,17 @@
  */
 package soot.jimple.toolkits.javaee
 
+import javax.xml.namespace.QName
+
+import ca.polymtl.gigl.casi.Logging
 import soot.jimple.toolkits.javaee.model.ws.{WebMethod, WebService}
 import soot.util.ScalaWrappers._
 import soot.{SootClass, SootMethod}
 
+import scala.collection.JavaConverters._
 import scala.collection._
+
+
 
 /**
  * A registry of the web services detected in the application under analysis

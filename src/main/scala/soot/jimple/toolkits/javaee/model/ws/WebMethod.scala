@@ -21,6 +21,7 @@ package soot.jimple.toolkits.javaee.model.ws
 import soot.Type
 
 import scala.beans.BeanProperty
+import scala.collection.JavaConverters._
 import scala.util.hashing.MurmurHash3
 
 /**
@@ -43,7 +44,7 @@ case class WebMethod (@BeanProperty var service : WebService,
     import scala.util.hashing.MurmurHash3._
     var tmp = MurmurHash3.mix(symmetricSeed,stringHash(name))
     tmp = MurmurHash3.mix(tmp, stringHash(targetMethodName))
-    tmp = MurmurHash3.mix(tmp,seqHash(argTypes))
+    tmp = MurmurHash3.mix(tmp,seqHash(argTypes.asScala))
     tmp = MurmurHash3.mixLast(tmp,retType.hashCode())
     MurmurHash3.finalizeHash(tmp,3)
 
@@ -59,5 +60,5 @@ case class WebMethod (@BeanProperty var service : WebService,
   }
 
   override def toString: String =
-    s"name: ${name} target method: ${targetMethodName} argument types: ${argTypes.mkString(",")} return type: ${retType}"
+    s"name: ${name} target method: ${targetMethodName} argument types: ${argTypes.asScala.mkString(",")} return type: ${retType}"
 }

@@ -22,6 +22,7 @@ import soot.jimple.toolkits.javaee.model.servlet.http.GenericServlet
 import soot.{SootClass, SootMethod}
 
 import scala.beans.BeanProperty
+import scala.collection.JavaConverters._
 
 case class SJBossWSTestServlet (
 @BeanProperty jBossWsClients : java.util.List[SootClass],
@@ -33,6 +34,6 @@ case class SJBossWSTestServlet (
 
 
   //Required by Jax-WB
-  def this() = this(List(),List())
+  def this() = this(List().asJava,List().asJava)
 
 }

@@ -18,10 +18,13 @@
  */
 package soot.jimple.toolkits.javaee.model.ws
 
+import javax.xml.bind.annotation.{XmlElement, XmlElementWrapper, XmlRootElement}
+
 import soot.jimple.toolkits.javaee.model.servlet.http.GenericServlet
 
 import scala.annotation.meta.beanGetter
 import scala.beans.BeanProperty
+import scala.collection.JavaConverters._
 
 /**
  * Representation of a servlet for web services.
@@ -30,12 +33,14 @@ import scala.beans.BeanProperty
  */
 @XmlRootElement(name = "WsServlet")
 case class WsServlet(
-                      @(XmlElementWrapper@beanGetter) @(XmlElement@beanGetter)(name = "service") @BeanProperty services: java.util.List[WebService])
+                      @(XmlElementWrapper@beanGetter)
+                      @(XmlElement@beanGetter)(name = "service")
+                      @BeanProperty services: java.util.List[WebService])
   extends GenericServlet {
 
   // JAXB-specific
   def this() = this(new java.util.ArrayList[WebService](0))
 
   @BeanProperty
-  lazy val operations: java.util.List[WebMethod] = services.flatMap(_.methods)
+  lazy val operations: java.util.List[WebMethod] = services.asScala.flatMap(_.methods.asScala).asJava
 }

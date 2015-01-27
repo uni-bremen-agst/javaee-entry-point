@@ -19,6 +19,7 @@
 
 package soot.jimple.toolkits.javaee.detectors
 
+import ca.polymtl.gigl.casi.Logging
 import soot.jimple.toolkits.javaee.model.servlet.Web
 import soot.jimple.toolkits.javaee.model.servlet.jboss.JBossWSTestServlet
 import soot.util.ScalaWrappers._

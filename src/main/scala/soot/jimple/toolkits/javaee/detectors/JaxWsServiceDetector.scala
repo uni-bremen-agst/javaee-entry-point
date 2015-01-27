@@ -18,6 +18,11 @@
  */
 package soot.jimple.toolkits.javaee.detectors
 
+import java.net.{MalformedURLException, URL}
+import java.nio.file.{Files, Path, Paths}
+import javax.xml.bind.{JAXB, JAXBContext}
+
+import ca.polymtl.gigl.casi.Logging
 import org.jcp.xmlns.javaee.HandlerChainsType
 import soot._
 import soot.jimple.toolkits.javaee.JaxWsAnnotations._

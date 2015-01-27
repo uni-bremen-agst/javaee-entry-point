@@ -18,7 +18,10 @@
  */
 package soot.jimple.toolkits.javaee.model.ws
 
+import javax.xml.bind.annotation.XmlRootElement
+
 import scala.beans.BeanProperty
+import scala.collection.JavaConverters._
 
 object WebService{
   def wrapperName(rootPackage : String, implementationClassName : String) : String = rootPackage + "." + implementationClassName + "Wrapper"
@@ -49,12 +52,12 @@ case class WebService
   @BeanProperty serviceName : String ="",
   @BeanProperty wsdlLocation : String ="",
   @BeanProperty portName : String ="",
-  @BeanProperty handlerChain : java.util.List[String] = List[String](),
-  @BeanProperty methods : java.util.Collection[WebMethod] = List[WebMethod](),
+  @BeanProperty handlerChain : java.util.List[String] = List[String]().asJava,
+  @BeanProperty methods : java.util.Collection[WebMethod] = List[WebMethod]().asJava,
   @BeanProperty hasAsyncAlready : Boolean = false
   ){
 
   //Required by Jax-WB
-  def this() = this("","","","","","","","","","", List[String](), List[WebMethod](),false)
+  def this() = this("","","","","","","","","","", List[String]().asJava, List[WebMethod]().asJava,false)
 
 }
