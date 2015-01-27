@@ -83,7 +83,7 @@
     <repositories>
         <repository>
             <id>project-site</id>
-            <url>file://${basedir}/../../repository</url>
+            <url>file://${basedir}/repository</url>
         </repository>
     </repositories>
 
